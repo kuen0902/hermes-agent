@@ -1,0 +1,8 @@
+02:30:35 ENTER: queued interrupt msg='hi', agent_running=True
+02:30:35 interrupt fired: msg='hi', children=0, parent._interrupt=True
+02:30:53 interrupt fired: msg='who are you', children=0, parent._interrupt=True
+02:30:53 ENTER: queued interrupt msg='who are you', agent_running=True
+02:31:31 interrupt fired: msg='connect to telegram', children=0, parent._interrupt=True
+02:31:31 ENTER: queued interrupt msg='connect to telegram', agent_running=True
+03:02:21 interrupt fired: msg='quit', children=0, parent._interrupt=True
+03:02:21 ENTER: queued interrupt msg='quit', agent_running=True

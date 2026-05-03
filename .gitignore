@@ -1,0 +1,18 @@
+# Hermes Git Exclusion List
+logs/*
+sessions/*
+scratch/*
+*.db-shm
+*.db-wal
+*.lock
+*.pid
+.hermes_history
+.restart_last_processed.json
+.skills_prompt_snapshot.json
+.update_check
+context_length_cache.yaml
+models_dev_cache.json
+ollama_cloud_models_cache.json
+pairing/*
+state-snapshots/*
+hermes-agent/
