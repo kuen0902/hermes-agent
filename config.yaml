@@ -200,14 +200,14 @@ display:
             - cwd
     show_cost: false
     show_reasoning: false
-    skin: default
+    skin: nerd
     streaming: true
     tool_preview_length: 0
     tool_progress: all
     tool_progress_command: false
     tool_progress_overrides: {}
     tui_auto_resume_recent: false
-    tui_status_indicator: kaomoji
+    tui_status_indicator: nerd_font
     user_message_preview:
         first_lines: 2
         last_lines: 2
