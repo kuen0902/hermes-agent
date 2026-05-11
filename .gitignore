@@ -1,7 +1,9 @@
 # Hermes Git Exclusion List
 logs/*
 sessions/*
+cron/output/*
 scratch/*
+state.db
 *.db-shm
 *.db-wal
 *.lock

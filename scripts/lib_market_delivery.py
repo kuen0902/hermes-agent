@@ -31,24 +31,12 @@ def deliver_market_report(data):
     """
     data: dict containing prices, deltas, and session_deltas for FITXP, TSM, NVDA, SYNA
     """
-    # 1. Star Platinum Group Report
-    sp_msg = f"""⭐ **「白金之星」：精密數據監修** ⭐
-
-ORA ORA ORA! 所有的數據誤差已被速度抹除。
-
-### 📊 **夜盤與美股即時動態**
-- **台指期夜盤 (FITXP)**: **{data['FITXP']['price']}**
-    - 🛰️ 價差：`{data['FITXP']['delta']:+.1f}` | 📈 漲跌：`{data['FITXP']['pct']:+.2f}%`
-- **TSM ADR (台積電)**: **${data['TSM']['price']:.2f}**
-    - 🛰️ 價差：`{data['TSM']['delta']:+.2f}` | 📉 漲跌：`{data['TSM']['pct']:+.2f}%`
-- **NVDA (輝達)**: **${data['NVDA']['price']:.2f}**
-    - 🛰️ 價差：`{data['NVDA']['delta']:+.2f}` | 📈 漲跌：`{data['NVDA']['pct']:+.2f}%`
-- **SYNA (新思)**: **${data['SYNA']['price']:.2f}**
-    - 🛰️ 價差：`{data['SYNA']['delta']:+.2f}` | 📈 漲跌：`{data['SYNA']['pct']:+.2f}%`
-
-**精密狀態維持中。**"""
-    
-    send_telegram(STAR_PLATINUM_TOKEN, GROUP_ID, sp_msg)
+    # 1. Star Platinum Group Report (DISABLED per User request)
+    # sp_msg = f"""⭐ **「白金之星」：精密數據監修** ⭐
+    # ORA ORA ORA! 所有的數據誤差已被速度抹除。
+    # ...
+    # send_telegram(STAR_PLATINUM_TOKEN, GROUP_ID, sp_msg)
+    pass
 
     # 2. GER Private Report
     ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：現實同步** 🌅

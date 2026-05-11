@@ -200,7 +200,7 @@ display:
             - cwd
     show_cost: false
     show_reasoning: false
-    skin: nerd
+    skin: default
     streaming: true
     tool_preview_length: 0
     tool_progress: all

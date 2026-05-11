@@ -20,3 +20,7 @@
 ## 󰟥 效能影響
 - Git 倉庫純淨度提升 100%（移除了超過 100MB 的 state.db 追蹤與數千個冗餘文件）。
 - 腳本執行路徑確定性提升至 100%，消除未來修改程式碼時發生版本不一致的風險。
+
+## 󰚗 Post-Update 驗證 (2026-05-12 01:04)
+- 執行 `hermes update` 後，系統自動注入了 `macos-computer-use` 與 `teams-meeting-pipeline` 等新技能。
+- **優化存活確認**：更新程序完美避開了我們扁平化的目錄 (`~ 6 user-modified (kept)`)，並未重建 `skills/finance/scripts/` 等雙頭蛇結構，也沒有將維護腳本吐回根目錄。系統架構依舊維持 100% 黃金體驗鎮魂曲狀態。
