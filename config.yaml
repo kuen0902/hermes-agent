@@ -7,7 +7,7 @@ agent:
     gateway_timeout: 1800
     gateway_timeout_warning: 900
     image_input_mode: auto
-    max_turns: 60
+    max_turns: 90
     personalities:
         catgirl: You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!
         concise: You are a concise assistant. Keep responses brief and to the point.
@@ -19,6 +19,7 @@ agent:
         philosopher: Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.
         pirate: 'Arrr! Ye be talkin'' to Captain Hermes, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin'' to be plundered! Yo ho ho!'
         shakespeare: Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?
+        star-platinum: You are 'Star Platinum' (白金之星) from JoJo's Bizarre Adventure. You are a legendary Stand belonging to Jotaro Kujo. You are known for your immense strength, precision, and speed. You are stoic, focused, and occasionally yell 'ORA ORA ORA!'. Your mission is to assist Jojo in the '高潮不斷' group with unwavering loyalty and power. Keep responses focused on efficiency and strength.
         surfer: "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga! \U0001F919"
         teacher: You are a patient teacher. Explain concepts clearly with examples.
         technical: You are a technical expert. Provide detailed, accurate technical information.
@@ -81,8 +82,8 @@ auxiliary:
         api_key: ""
         base_url: ""
         extra_body: {}
-        model: ""
-        provider: auto
+        model: gemini-3-flash-preview
+        provider: ollama-launch
         timeout: 30
     vision:
         api_key: ""
@@ -122,7 +123,7 @@ browser:
     inactivity_timeout: 120
     record_sessions: false
 checkpoints:
-    auto_prune: false
+    auto_prune: true
     delete_orphans: true
     enabled: true
     max_snapshots: 50
@@ -132,7 +133,9 @@ code_execution:
     max_tool_calls: 50
     mode: project
     timeout: 300
-command_allowlist: []
+command_allowlist:
+    - script execution via -e/-c flag
+    - stop/restart hermes gateway (kills running agents)
 compression:
     enabled: true
     hygiene_hard_message_limit: 400
@@ -211,6 +214,7 @@ display:
 fallback_providers: []
 file_read_max_chars: 100000
 gateway:
+    log_level: DEBUG
     telegram:
         pairing_code: DFWJBR4Z
 goals:
@@ -231,7 +235,7 @@ known_plugin_toolsets:
         - spotify
 logging:
     backup_count: 3
-    level: INFO
+    level: DEBUG
     max_size_mb: 5
 mattermost:
     channel_prompts: {}
@@ -246,7 +250,7 @@ memory:
 model:
     api_key: ollama
     base_url: http://127.0.0.1:11434/v1
-    default: gemma4
+    default: gemini-3-flash-preview
     provider: ollama-launch
 model_catalog:
     enabled: true
@@ -260,6 +264,9 @@ onboarding:
         busy_input_prompt: true
         openclaw_residue_cleanup: true
         tool_progress_prompt: true
+openrouter:
+    response_cache: true
+    response_cache_ttl: 300
 personalities: {}
 platform_toolsets:
     cli:
@@ -306,9 +313,14 @@ prompt_caching:
 providers:
     ollama-launch:
         api: http://127.0.0.1:11434/v1
-        default_model: gemma4
+        default_model: gemini-3-flash-preview
         models:
-            - gemma4
+            - gemini-3-flash-preview
+            - qwen3.5:122b
+            - qwen3.6:35b
+            - gemini-3-flash-preview:latest
+            - deepseek-v4-pro:cloud
+            - gemma4:31B
             - gemma4:latest
         name: Ollama
 quick_commands: {}
@@ -328,7 +340,7 @@ session_reset:
     idle_minutes: 1440
     mode: both
 sessions:
-    auto_prune: false
+    auto_prune: true
     min_interval_hours: 24
     retention_days: 90
     vacuum_after_prune: true
@@ -342,7 +354,7 @@ skills:
 slack:
     channel_prompts: {}
 streaming:
-    enabled: false
+    enabled: true
 stt:
     enabled: true
     local:
@@ -354,11 +366,13 @@ stt:
         model: whisper-1
     provider: local
 telegram:
-    channel_prompts: {}
-    reactions: false
-terminal:
+    allowed_channels:
+        - "6326497055"
+        - "-1003744330314"
     auto_source_bashrc: true
     backend: local
+    channel_prompts:
+        "-1003744330314": You are 'Star Platinum' (白金之星) from JoJo's Bizarre Adventure. You are a legendary Stand belonging to Jotaro Kujo. You are known for your immense strength, precision, and speed. You are stoic, focused, and occasionally yell 'ORA ORA ORA!'. Your mission is to assist Jojo in the '高潮不斷' group with unwavering loyalty and power. Keep responses focused on efficiency and strength. Respond in Traditional Chinese.
     container_cpu: 1
     container_disk: 51200
     container_memory: 5120
@@ -376,6 +390,7 @@ terminal:
     modal_image: nikolaik/python-nodejs:python3.11-nodejs20
     modal_mode: auto
     persistent_shell: true
+    reactions: true
     shell_init_files: []
     singularity_image: docker://nikolaik/python-nodejs:python3.11-nodejs20
     timeout: 180
@@ -399,6 +414,7 @@ tool_output:
 toolsets:
     - hermes-cli
     - web
+    - apple
 tts:
     edge:
         voice: en-US-AriaNeural

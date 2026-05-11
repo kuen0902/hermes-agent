@@ -43,12 +43,24 @@ osascript -e 'tell application "Notes" to get body of note "Exact Note Title"'
 osascript -e 'tell application "Notes" to get name of every folder'
 ```
 
+## Advanced Execution: Python Wrapper
+
+When creating notes with complex HTML bodies or special characters, raw shell escaping via `osascript -e` is brittle. Use a Python script with `subprocess` to pass the body as a clean string.
+
+```python
+import subprocess
+body = "<h1>Title</h1><p>Content with 'quotes' and <b>formatting</b>.</p>"
+cmd = f'tell application "Notes" to make new note with properties {{body:"{body}"}}'
+subprocess.run(['osascript', '-e', cmd])
+```
+
 ## Rules & Pitfalls
 
 1. **HTML Body**: Apple Notes uses HTML for the body. Use `<h1>` for titles and `<p>` for paragraphs.
 2. **Folder Existence**: The target folder (e.g., "Notes") must exist. If unsure, list folders first.
 3. **Accuracy**: When reading a note, use the exact title returned by a search.
 4. **Permissions**: Requires "Automation" access to Notes.app. If it fails with a permissions error, remind the user to check System Settings -> Privacy & Security -> Automation.
+5. **No Backgrounding**: Never add `&` to the end of a shell command to avoid backgrounding errors in the agent environment.
 
 ## Verification Checklist
 

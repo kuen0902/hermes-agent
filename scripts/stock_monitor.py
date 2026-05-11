@@ -1,0 +1,88 @@
+import json
+import urllib.request
+import urllib.parse
+import sys
+import os
+import time
+from datetime import datetime
+import ssl
+
+# Configuration
+BOT_TOKEN = "8513436203:AAH_Z-REDACTED" # USER BOT (GER)
+CHAT_ID = "6326497055"
+CENTRAL_DATA_FILE = "/Users/bookid/.hermes/data/central_stock_data.json"
+CACHE_FILE = "/Users/bookid/.hermes/data/user_stock_last_prices.json"
+OPEN_STATE_FILE = "/Users/bookid/.hermes/data/user_day_open_report_sent.json"
+
+def send_telegram(message):
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    ctx = ssl._create_unverified_context()
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    data = urllib.parse.urlencode(payload).encode("utf-8")
+    try:
+        req = urllib.request.Request(url, data=data)
+        urllib.request.urlopen(req, context=ctx)
+        return True
+    except: return False
+
+def main():
+    if not os.path.exists(CENTRAL_DATA_FILE): return
+    with open(CENTRAL_DATA_FILE, 'r') as f: central_store = json.load(f)
+    
+    mapping = central_store.get("full_mapping", {})
+    market_data = central_store.get("data", {})
+    # Core Holdings
+    user_portfolio = ["2454", "3037", "2330"] 
+
+    now = datetime.now()
+    today_str = now.strftime("%Y-%m-%d")
+    is_opening = now.hour == 9 and 0 <= now.minute <= 10
+    
+    open_state = {}
+    if os.path.exists(OPEN_STATE_FILE):
+        with open(OPEN_STATE_FILE, 'r') as f: open_state = json.load(f)
+
+    # Opening Report logic
+    if is_opening and open_state.get("date") != today_str:
+        header = f"🎖️ **黃金體驗 - 09:00 開盤決報**\n📅 日期：`{today_str}`\n"
+        body = ""
+        current_prices = {}
+        for code in user_portfolio:
+            data = market_data.get(code)
+            if data:
+                price, prev, open_p = data['price'], data['prev_close'], data.get('open', price)
+                current_prices[data['symbol']] = price
+                pct = ((price - prev) / prev * 100) if prev > 0 else 0
+                emoji = "🔴" if price > prev else "🟢"
+                name = mapping.get(code, code)
+                body += f"{emoji} **{name}** (`{data['symbol']}`)\n   ▸ 價：`{price:,.2f}` | 開：`{open_p:,.2f}` | 昨收：`{prev:,.2f}` | 差：`{pct:+.2f}%`\n"
+        if send_telegram(header + body):
+            with open(OPEN_STATE_FILE, 'w') as f: json.dump({"date": today_str}, f)
+            with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
+        return
+
+    last_prices = {}
+    if os.path.exists(CACHE_FILE):
+        with open(CACHE_FILE, 'r') as f: last_prices = json.load(f)
+    
+    report_lines = []
+    current_prices = last_prices.copy()
+    for code in user_portfolio:
+        data = market_data.get(code)
+        if not data: continue
+        sym, price, prev = data['symbol'], data['price'], data['prev_close']
+        last_p = last_prices.get(sym, prev)
+        
+        # Filter Logic: >3% from Prev or >2% from Last 20M
+        if abs((price - prev) / prev * 100) >= 3.0 or abs((price - last_p) / last_p * 100) >= 2.0:
+            emoji = "🔴" if price > prev else "🟢"
+            name = mapping.get(code, code)
+            report_lines.append(f"{emoji} **{name}** 高劇烈波動！\n   ▸ 現價：`{price:,.2f}` (較前次：`{((price-last_p)/last_p*100):+.2f}%`)\n")
+            current_prices[sym] = price
+
+    if report_lines:
+        send_telegram(f"⚖️ **黃金體驗 - 波動警戒**\n\n" + "".join(report_lines))
+        with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
+
+if __name__ == "__main__":
+    main()

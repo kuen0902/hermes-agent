@@ -220,6 +220,24 @@ jp2a --width=80 image.jpg
 jp2a --colors image.jpg              # Colorized
 ```
 
+### Option C: Python Fallback (Built-in Script)
+
+If no specialized CLI tools are available, use the provided internal script. It requires the `Pillow` library.
+
+**Setup:**
+```bash
+python3 -m pip install pillow --break-system-packages -q
+```
+
+**Usage:**
+```bash
+# Basic usage (default width 80)
+python3 scripts/img2ascii.py path/to/image.png
+
+# Custom width and palette (standard, block, minimal)
+python3 scripts/img2ascii.py path/to/image.png 100 block
+```
+
 ## Tool 7: Search Pre-Made ASCII Art
 
 Search curated ASCII art from the web. Use `terminal` with `curl`.

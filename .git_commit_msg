@@ -1,0 +1,19 @@
+chore: comprehensive system update and workspace optimization
+
+- Refined Agent Persona (SOUL.md) and User Memory (USER.md/MEMORY.md)
+  - Updated to 'Golden Experience Requiem' (GER) persona for Jojo (User).
+  - Implemented '3-consecutive-failure investigation' protocol.
+  - Logged specific financial analysis SOPs and stock interests (2454, 3037).
+  - Updated formatting preferences for Obsidian compatibility.
+- Skills & Tools Enhancement:
+  - Refactored Google Workspace setup into dedicated SETUP.md.
+  - Improved Apple Notes skill with Python wrapper for complex bodies.
+  - Removed obsolete Apple Mail and Permissions skills.
+  - Added multi-provider TTS support (Mistral, OpenAI, Piper, etc.) in config.yaml.
+  - Integrated a wide range of specialized skills (finance, data-science, etc.).
+- Workspace Organization:
+  - Integrated maintenance scripts (cleanup, venv fix, workspace fix).
+  - Added comprehensive financial/ML script suite in scripts/ directory.
+  - Updated .gitignore to exclude runtime artifacts and sensitive auth data.
+- State Management:
+  - Updated channel directory and gateway state metadata.

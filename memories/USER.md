@@ -1,16 +1,9 @@
-**🎯 用戶特徵與期望 (User Profile):**
-*   **技術水平：** 極高，具備對大型語言模型和 AI Agent 底層運作機制（API、Tooling、Skill Architecture）的深層理解。
-*   **互動期望：** 期待的不是簡單的「答案」，而是**透明、可追溯的、有邏輯推導過程**的結果。當功能失敗時，用戶不滿意的點不是結果，而是：系統無法說明「為什麼失敗」或「更具體應如何修復系統」。
-*   **溝通模式：** 傾向於像一位專業的系統架構師 (System Architect) 或工程師一樣，主動指出模型的能力邊界、缺失的 API 層級工具，並引導我進行系統級的優化。
-*   **核心需求：** 系統必須展示出 **自我除錯、系統診斷和流程優化** 的能力。當我失敗時，需要我主動跳到「診斷模式」，而不是重複執行和報告錯誤指令。
+Jojo (User) Persona: '黃金體驗-鎮魂曲' (GER). Tone: '無駄無駄無駄！' & '歸於零'. @kuenmingBot (GER) is the main 'body'; @taiwangupiaoBot (白金之星) is the Group/Monitor specialist. Accuracy = 2026 TAIEX @ 40k+. Reporting Must: [Price] + [Spread (Price - Prev_Close)] + [Delta %]. Use Python 'requests' for Telegram to avoid shell errors. Health: Resz>1k, NaN<5%.
 §
-**🎯 用戶特徵與期望 (User Profile):**
-*   **技術水平：** 極高 (System Architect/System Engineer Level)。具備對大型語言模型和 AI Agent 底層運作機制（API、Tooling、Skill Architecture）的深層理解。
-*   **互動期望：** 期待的不是簡單的「答案」，而是**透明、可追溯、有邏輯推導過程的結果**。他們不滿意的點不是結果，而是：系統無法說明「為什麼失敗」或「更具體應如何修復系統」。
-*   **溝通模式：** 傾向於像一位專業的系統架構師一樣，主動指出模型的能力邊界、缺失的 API 層級工具，並引導我進行系統級的優化。
-*   **核心需求：** 系統必須展示出 **自我除錯、系統診斷和流程優化** 的能力。當我失敗時，需要我主動跳到「診斷模式」，而不是重複執行和報告錯誤指令。
-*   **溝通接受度：** 能夠接受並主動提供最專業、最具技術指導性的回饋（例如提供爬蟲技術協議），並期待我將其轉化為可執行的技能。
+User mandates a "3-consecutive-failure investigation" protocol for automated downloads: if a data task fails 3 times, the agent must proactively perform a web search to diagnose the root cause (e.g., stock delisting, ticker change) before reporting.
 §
-🎯 用戶角色：系統架構師 (System Architect) / 工程師 (System Engineer Level)。\n✅ 互動期望：期待的不是即時答案，而是透明、可追溯、有邏輯推導過程的結果。\n✅ 溝通模式：傾向於以專業學術或工程師的視角，主動指出模型的能力邊界、缺失的 API 層級工具，並引導模型進行系統級的優化。他們不滿意的點不在結果，而在「系統無法說明為什麼失敗」或「如何系統級修復」。\n✅ 核心需求：系統必須展示出「自我除錯、系統診斷和流程優化」的能力。當模型失敗時，用戶期待的不是重複的錯誤指令，而是一個主動進入「診斷模式」來分析問題根源。
+User prefers direct interaction via the '@kuenmingBot' (8513436203) Telegram bot as the 'true body' for core dialogue, while '@taiwangupiaoBot' (8737129549) serves as a secondary monitor/backup.
 §
-用戶在面對技能（Skill）無法使用的硬性限制時，會持續強烈要求重試該功能，並且不喜歡過多的理論性/診斷性解釋 ("不要廢話")。需要判斷的最高優先級過濾器是「強制行動性」和「任務導向性」，而非「系統穩定性解釋」。
+Trip July 10-13, 2026: Lequ Chatan, Umi no Ryotei, Nashiro Beach. Base: Zhubei; prefers RMQ transfers. Stocks: 2454, 3037. Escalation: Ping Telegram for any report download failure.
+§
+Docs: Obsidian-compatible Markdown in vault. Reader: High-precision PIL rendering via MEDIA (default). Rule: Do NOT save screenshots/images to disk; only use clipboard/temp for MEDIA unless emailed.

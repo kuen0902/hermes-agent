@@ -180,6 +180,9 @@ current.
 - OSRM routing coverage is best for Europe and North America
 - Overpass API can be slow during peak hours; the script automatically
   falls back between mirrors (overpass-api.de → overpass.kumi.systems)
+- **SSL Certificate Verification**: In some macOS environments, Python fails to verify SSL certificates for Nominatim/OSRM.
+  - **Error**: `[SSL: CERTIFICATE_VERIFY_FAILED]`
+  - **Fix**: Guide the user to run `/Applications/Python\ 3.x/Install\ Certificates.command` or use `web_search` as a fallback.
 - `distance` and `directions` use `--to` flag for the destination (not positional)
 - If a zip code alone gives ambiguous results globally, include country/state
 

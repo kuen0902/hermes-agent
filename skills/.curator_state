@@ -1,8 +1,8 @@
 {
-  "last_report_path": null,
-  "last_run_at": "2026-05-01T18:30:11.726286+00:00",
-  "last_run_duration_seconds": null,
-  "last_run_summary": "deferred first run — curator seeded, will run after one interval; use `hermes curator run --dry-run` to preview now",
+  "last_report_path": "/Users/bookid/.hermes/logs/curator/20260508-192921",
+  "last_run_at": "2026-05-08T19:29:21.730230+00:00",
+  "last_run_duration_seconds": 91.5572,
+  "last_run_summary": "auto: no changes; llm: I have completed the umbrella-building consolidation pass. I identified and processed three major prefix clusters (**Apple**, **Data**, and **Finance**) and one utility skill, absorbing 13 narrow agent-created skills into 4 class-level umbr…",
   "paused": false,
-  "run_count": 0
+  "run_count": 1
 }

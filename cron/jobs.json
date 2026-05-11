@@ -1,0 +1,1052 @@
+{
+  "jobs": [
+    {
+      "id": "5919df8c19dd",
+      "name": "stock-portfolio-monitor",
+      "prompt": "Execute the stock monitoring script and report the current status of the user's holdings compared to the market open price.\n\nScript path: `~/.hermes/scripts/stock_monitor.py`\n\nPlease run the script, capture the output, and deliver it as the final response.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/10 9-12 * * 1-5",
+        "display": "*/10 9-12 * * 1-5"
+      },
+      "schedule_display": "*/10 9-12 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 35
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-07T09:35:19.430368+08:00",
+      "paused_reason": null,
+      "created_at": "2026-05-04T08:41:40.695235+08:00",
+      "next_run_at": "2026-05-07T09:40:00+08:00",
+      "last_run_at": "2026-05-05T09:43:44.680462+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "d06c88f3091b",
+      "name": "earnings-weekly-scanner",
+      "prompt": "It's Sunday. Please check the earnings call and financial report announcement dates for the following 18 stocks for the upcoming week:\n0050, 0052, 00965, 00981A, 1513, 2002, 2049, 2313, 2327, 2330, 2382, 2395, 2413, 2454, 3037, 3260, 3709, 5347.\n\n1. Search for their 2026 Q1 earnings dates.\n2. Update the local file `~/.hermes/data/earnings_calendar.json` with the found dates.\n3. If a report is already available (date has passed), mark it for download in the next Daily check.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 9 * * 0",
+        "display": "0 9 * * 0"
+      },
+      "schedule_display": "0 9 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-04T10:06:34.551416+08:00",
+      "next_run_at": "2026-05-17T09:00:00+08:00",
+      "last_run_at": "2026-05-10T09:02:41.825258+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "1b9e65d2b69b",
+      "name": "earnings-daily-downloader",
+      "prompt": "Check the local earnings calendar `~/.hermes/data/earnings_calendar.json`. \n1. Identify any stock who announced earnings ON OR BEFORE YESTERDAY (event_date < today) and hasn't been downloaded.\n2. For each identified stock, search for its latest quarterly financial report (2025 Q4 or 2026 Q1 as applicable) from the official company investor relations website or TWSE.\n3. Download the PDF to `~/Documents/Reports/2026_Q1/`.\n4. Perform a health check on the downloaded PDF.\n5. Update the calendar `downloaded_q1: true` upon success.\n6. Report findings to the user.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 6 * * *",
+        "display": "0 6 * * *"
+      },
+      "schedule_display": "0 6 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 7
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-04T10:06:37.725732+08:00",
+      "next_run_at": "2026-05-12T06:00:00+08:00",
+      "last_run_at": "2026-05-11T06:02:02.935213+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "340764cf9002",
+      "name": "william-stock-monitor-auto",
+      "prompt": "Execute William's stock monitoring script.\nScript path: `/Users/bookid/.hermes/scripts/william_stock_monitor.py`\nThis script sends a report directly to William's Telegram Bot via API. No response delivery to my main chat is needed.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/10 9-12 * * 1-5",
+        "display": "*/10 9-12 * * 1-5"
+      },
+      "schedule_display": "*/10 9-12 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 8
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-07T09:35:20.442478+08:00",
+      "paused_reason": null,
+      "created_at": "2026-05-04T13:29:06.436235+08:00",
+      "next_run_at": "2026-05-07T09:40:00+08:00",
+      "last_run_at": "2026-05-05T09:45:09.902743+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "1461450fa82d",
+      "name": "stock-portfolio-monitor-market-close",
+      "prompt": "Execute the stock monitoring script for the final market close segment.\nScript path: `~/.hermes/scripts/stock_monitor.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0,10,20,30 13 * * 1-5",
+        "display": "0,10,20,30 13 * * 1-5"
+      },
+      "schedule_display": "0,10,20,30 13 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-05T09:44:42.337139+08:00",
+      "paused_reason": null,
+      "created_at": "2026-05-04T13:54:13.320901+08:00",
+      "next_run_at": "2026-05-05T13:00:00+08:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "3528a895fee8",
+      "name": "william-stock-monitor-market-close",
+      "prompt": "Execute William's stock monitoring script for the final market close segment.\nScript path: `/Users/bookid/.hermes/scripts/william_stock_monitor.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0,10,20,30 13 * * 1-5",
+        "display": "0,10,20,30 13 * * 1-5"
+      },
+      "schedule_display": "0,10,20,30 13 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-05T09:44:44.648420+08:00",
+      "paused_reason": null,
+      "created_at": "2026-05-04T13:54:14.471566+08:00",
+      "next_run_at": "2026-05-05T13:00:00+08:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "e95f9fa3b34e",
+      "name": "group-stock-monitor-13-close",
+      "prompt": "Execute the group stock monitoring script for '\u9ad8\u6f6e\u4e0d\u65b7' close session. Script: `/Users/bookid/.hermes/scripts/group_stock_monitor.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0,10,20,30 13 * * 1-5",
+        "display": "0,10,20,30 13 * * 1-5"
+      },
+      "schedule_display": "0,10,20,30 13 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-05T09:44:40.318410+08:00",
+      "paused_reason": null,
+      "created_at": "2026-05-04T14:08:45.590520+08:00",
+      "next_run_at": "2026-05-05T13:00:00+08:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "622b5c3dd6e9",
+      "name": "group-stock-monitor-9-12",
+      "prompt": "Execute the group stock monitoring script for '\u9ad8\u6f6e\u4e0d\u65b7'. Script: `/Users/bookid/.hermes/scripts/group_stock_monitor.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/10 9-12 * * 1-5",
+        "display": "*/10 9-12 * * 1-5"
+      },
+      "schedule_display": "*/10 9-12 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 5
+      },
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-07T09:35:21.541964+08:00",
+      "paused_reason": null,
+      "created_at": "2026-05-04T14:08:46.741723+08:00",
+      "next_run_at": "2026-05-07T09:40:00+08:00",
+      "last_run_at": "2026-05-05T09:41:22.837119+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "9b78b006628c",
+      "name": "Download All TW Stock Data (15 Months)",
+      "prompt": "\u76f4\u63a5\u57f7\u884c /Users/bookid/.hermes/scripts/fetch_tw_historical_all.py \u4e0b\u8f09\u5168\u53f0\u80a1\u904e\u53bb 15 \u500b\u6708\u4ea4\u6613\u8cc7\u6599\uff0c\u4e26\u5b58\u81f3 ~/Documents/StockData_History/\u3002\u57f7\u884c\u5b8c\u7562\u5f8c\u5c0d\u8a71\u56de\u5831\u7d50\u679c\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 4 5 5 *",
+        "display": "0 4 5 5 *"
+      },
+      "schedule_display": "0 4 5 5 *",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-04T16:58:01.315537+08:00",
+      "next_run_at": "2027-05-05T04:00:00+08:00",
+      "last_run_at": "2026-05-05T04:03:10.854203+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "97e95dae8562",
+      "name": "Stock Market Closing Update (13:30)",
+      "prompt": "\u3010\u4f11\u5e02\u5075\u6e2c\u3011\u57f7\u884c\u524d\u8acb\u5148\u6aa2\u67e5 2330.TW \u7684\u6700\u65b0\u6210\u4ea4\u65e5\u671f\uff08\u53f0\u5317\u6642\u9593\uff09\u3002\u5982\u679c\u6700\u65b0\u6210\u4ea4\u65e5\u671f\u4e0d\u662f\u300c\u4eca\u5929\u300d\uff0c\u4ee3\u8868\u4eca\u65e5\u70ba\u4f11\u5e02\u6216\u570b\u5b9a\u5047\u65e5\uff0c\u8acb\u76f4\u63a5\u7d42\u6b62\u4efb\u52d9\uff0c\u4e0d\u8981\u767c\u9001\u4efb\u4f55\u8a0a\u606f\u3002\n\n\u82e5\u78ba\u8a8d\u4eca\u65e5\u70ba\u958b\u76e4\u4ea4\u6613\u65e5\uff0c\u8acb\u8b80\u53d6 /Users/bookid/Documents/StockTracking_Daily.numbers \u7684 Portfolio \u5206\u9801\u6301\u80a1\u6e05\u55ae\uff0c\u6293\u53d6\u6700\u65b0\u7684\u53f0\u80a1\u73fe\u50f9\uff0c\u8a08\u7b97\u640d\u76ca\uff08\u5305\u542b\u7d05\u7da0\u71c8\u8207\u767e\u5206\u6bd4\uff09\uff0c\u4e26\u4ee5\u300c\ud83d\udcca \u6700\u7d42\u8cc7\u7522\u7d71\u8a08 (\u5c0d\u9f4a\u5be6\u969b\u5eab\u5b58)\u300d\u7684\u683c\u5f0f\u56de\u5831\u3002\u6ce8\u610f\uff1a\u806f\u767c\u79d1\u6210\u672c\u61c9\u70ba 2655\uff0c\u6b23\u8208\u6210\u672c\u61c9\u70ba 514\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 13 * * 1-5",
+        "display": "30 13 * * 1-5"
+      },
+      "schedule_display": "30 13 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 5
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-04T18:15:42.884626+08:00",
+      "next_run_at": "2026-05-12T13:30:00+08:00",
+      "last_run_at": "2026-05-11T13:33:20.288942+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:6326497055",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "92761c4c3e4e",
+      "name": "Taiwan Stock Night Session Hourly Update",
+      "prompt": "Execute the combined night session monitoring script. Path: /Users/bookid/.hermes/scripts/run_night_report.py",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 15-23,0-5 * * *",
+        "display": "0 15-23,0-5 * * *"
+      },
+      "schedule_display": "0 15-23,0-5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 97
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-05T08:16:44.283732+08:00",
+      "next_run_at": "2026-05-12T01:00:00+08:00",
+      "last_run_at": "2026-05-12T00:00:58.971900+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "d9346611f4c5",
+      "name": "Daily Architect Worklog",
+      "prompt": "\u8acb\u751f\u6210\u4e00\u4efd\u300c\u7cfb\u7d71\u67b6\u69cb\u5e2b\u6bcf\u65e5\u5de5\u4f5c\u65e5\u8a8c\u300d\u3002\n\u5167\u5bb9\u8981\u6c42\uff1a\n1. **\u6628\u65e5\u56de\u9867**\uff1a\u5217\u51fa\u524d\u4e00\u5de5\u4f5c\u65e5\u5b8c\u6210\u7684\u4e3b\u8981\u4efb\u52d9\uff0c\u5fc5\u9808\u6a19\u8a3b\u8a73\u7d30\u6642\u9593\u9ede\u3002\n2. **\u4eca\u65e5\u91cd\u9ede**\uff1a\u5217\u51fa\u4eca\u5929\u9810\u8a08\u57f7\u884c\u7684\u81ea\u52d5\u5316\u76e3\u63a7\u8207\u7dad\u8b77\u4efb\u52d9\uff08\u5305\u542b\u591c\u76e4\u5c0f\u6642\u66f4\u65b0\u7b49\uff09\u3002\n3. **\u660e\u65e5\u5c55\u671b**\uff1a\u5217\u51fa\u660e\u5929\u5373\u5c07\u555f\u52d5\u7684\u91cd\u5927\u8a08\u756b\uff08\u5982\u9577\u7dda\u8cc7\u6599\u88dc\u5168\u8207\u5408\u4f75\uff09\u3002\n4. **\u7cfb\u7d71\u5065\u5eb7\u5ea6**\uff1a\u76ee\u524d\u6240\u6709\u81ea\u52d5\u5316\u8173\u672c\u3001\u6392\u7a0b\u8207\u8cc7\u6599\u5eab\u7684\u5065\u5eb7\u72c0\u614b\u6aa2\u67e5\u5831\u544a\u3002\n\n\u8acb\u4ee5\u5c08\u696d\u3001\u7cbe\u78ba\u7684\u7e41\u9ad4\u4e2d\u6587\u64b0\u5beb\uff0c\u5b57\u6578\u7cbe\u7149\uff0c\u76f4\u63a5\u4ea4\u4ed8\u6838\u5fc3\u8cc7\u8a0a\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 8 * * *",
+        "display": "0 8 * * *"
+      },
+      "schedule_display": "0 8 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 7
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-05T08:32:26.197660+08:00",
+      "next_run_at": "2026-05-12T08:00:00+08:00",
+      "last_run_at": "2026-05-11T08:00:45.648492+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "f95f14b437ee",
+      "name": "TAIEX Master Monitor (Orchestrator)",
+      "prompt": "\u57f7\u884c\u53f0\u80a1\u81ea\u52d5\u5316\u8abf\u5ea6\u8173\u672c `/Users/bookid/.hermes/scripts/taiex_orchestrator.py`\u3002\n\u6b64\u8173\u672c\u6703\uff1a\n1. \u7d71\u4e00\u6293\u53d6\u6240\u6709\u80a1\u7968\u6578\u64da (Yahoo Finance -> yfinance)\u3002\n2. \u540c\u6b65 Numbers \u6a94\u6848\u540d\u7a31\u3002\n3. \u5206\u767c\u81f3\u5404\u500b\u983b\u9053 (\u500b\u4eba\u3001William\u3001\u9ad8\u6f6e\u4e0d\u65b7)\u3002\n\u5305\u542b\u6578\u64da\u5065\u5eb7\u6aa2\u67e5\u3002",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/20 9-13 * * 1-5",
+        "display": "*/20 9-13 * * 1-5"
+      },
+      "schedule_display": "*/20 9-13 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 121
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-05T09:44:30.413848+08:00",
+      "next_run_at": "2026-05-12T09:00:00+08:00",
+      "last_run_at": "2026-05-11T13:51:16.078431+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "b011e4cc6aa8",
+      "name": "Star Platinum Silent Mode (Start)",
+      "prompt": "Kill the Star Platinum gateway to enter silent mode during trading hours. Profile: star-platinum. Command: hermes --profile star-platinum gateway stop",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 8 * * 1-5",
+        "display": "30 8 * * 1-5"
+      },
+      "schedule_display": "30 8 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 4
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-05T23:20:43.390627+08:00",
+      "next_run_at": "2026-05-12T08:30:00+08:00",
+      "last_run_at": "2026-05-11T08:30:58.301187+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "a3a8234343a7",
+      "name": "Star Platinum Silent Mode (End)",
+      "prompt": "Restart the Star Platinum gateway to end silent mode after trading hours. Profile: star-platinum. Command: hermes --profile star-platinum gateway run",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 14 * * 1-5",
+        "display": "0 14 * * 1-5"
+      },
+      "schedule_display": "0 14 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 3
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-05T23:20:47.078400+08:00",
+      "next_run_at": "2026-05-12T14:00:00+08:00",
+      "last_run_at": "2026-05-08T14:01:29.478085+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "origin",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "fd2cf872b2f7",
+      "name": "Daily-Backfill-0300",
+      "prompt": "Execute backfill worker AND cross-check for Batch 1.\\nCommands:\\n1. `python3 /Users/bookid/.hermes/scripts/backfill_batch_worker.py` \\n2. `python3 /Users/bookid/.hermes/scripts/batch_cross_checker.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 3 * * *",
+        "display": "0 3 * * *"
+      },
+      "schedule_display": "0 3 * * *",
+      "repeat": {
+        "times": 20,
+        "completed": 5
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-06T17:22:23.580358+08:00",
+      "next_run_at": "2026-05-12T03:00:00+08:00",
+      "last_run_at": "2026-05-11T04:38:22.248996+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "642ad241f32e",
+      "name": "Daily-Backfill-0500",
+      "prompt": "Execute backfill worker AND cross-check for Batch 2.\\nCommands:\\n1. `python3 /Users/bookid/.hermes/scripts/backfill_batch_worker.py` \\n2. `python3 /Users/bookid/.hermes/scripts/batch_cross_checker.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 * * *",
+        "display": "0 5 * * *"
+      },
+      "schedule_display": "0 5 * * *",
+      "repeat": {
+        "times": 20,
+        "completed": 5
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-06T17:22:24.663934+08:00",
+      "next_run_at": "2026-05-12T05:00:00+08:00",
+      "last_run_at": "2026-05-11T05:01:04.206384+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "a9edac269e3e",
+      "name": "Daily-Backfill-0600",
+      "prompt": "Execute backfill worker AND cross-check for Batch 3.\\nCommands:\\n1. `python3 /Users/bookid/.hermes/scripts/backfill_batch_worker.py` \\n2. `python3 /Users/bookid/.hermes/scripts/batch_cross_checker.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 6 * * *",
+        "display": "0 6 * * *"
+      },
+      "schedule_display": "0 6 * * *",
+      "repeat": {
+        "times": 20,
+        "completed": 5
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-06T17:22:25.728983+08:00",
+      "next_run_at": "2026-05-12T06:00:00+08:00",
+      "last_run_at": "2026-05-11T06:00:23.341776+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "31f60cb28648",
+      "name": "Backfill-Silent-Mode-Trigger-0250",
+      "prompt": "Kill the Star Platinum gateway before batch backfill starts to ensure silence. \\nCommand: `hermes gateway kill star-platinum`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "50 2 * * *",
+        "display": "50 2 * * *"
+      },
+      "schedule_display": "50 2 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 4
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-06T17:23:47.247222+08:00",
+      "next_run_at": "2026-05-12T02:50:00+08:00",
+      "last_run_at": "2026-05-10T02:51:07.543301+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "3608997f1e16",
+      "name": "Obsidian-EOD-Daily-Log-2330",
+      "prompt": "You are the System Architect. It is 23:30 (End of Day). \nGenerate a comprehensive technical audit and daily log for Obsidian.\n\n1. DATA COLLECTION:\n   - Use session_search to review today's high-level architectural decisions and user requests.\n   - Scan `~/.hermes/cron/output/` and specifically the logs of `taiex_orchestrator.py`, `stock_monitor.py`, and `run_night_report.py`.\n\n2. LOG CONTENT REQUIREMENTS:\n   - ## \ud83d\udce5 [Summary] What was done\n     - List technical implementations and configuration changes.\n   - ## \ud83d\udd0d [Analysis] What happened\n     - Factural report of system events (e.g., yfinance errors, data latency, successful downloads).\n     - Include errors encountered and their root causes.\n   - ## \ud83d\udee0\ufe0f [Improvement] How it was improved\n     - Specific solutions applied (e.g., pivoting to NQ=F, clearing caches, implementing cross-checkers).\n   - ## \ud83d\udcca [Communication Stats]\n     - List each chat group/target (e.g. 'Home', '\u9ad8\u6f6e\u4e0d\u65b7').\n     - Total count of messages sent to each today.\n     - Identify which automated scripts were the primary senders.\n\n3. STRUCTURE for Obsidian:\n   - YAML Frontmatter (tags: #daily-log #system-audit, date: YYYY-MM-DD).\n   - Use [[Wikilinks]] for linked system components.\n\n4. OUTPUT: Save as `~/Documents/Obsidian Vault/Daily Logs/YYYY-MM-DD.md` and report the path.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 23 * * *",
+        "display": "30 23 * * *"
+      },
+      "schedule_display": "30 23 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 6
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-06T21:58:27.890264+08:00",
+      "next_run_at": "2026-05-12T23:30:00+08:00",
+      "last_run_at": "2026-05-11T23:31:42.137189+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "session_search",
+        "file",
+        "terminal"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "ac430b36deb9",
+      "name": "Daily-Historical-Sync-0500",
+      "prompt": "Execute the daily historical stock data sync script, then run the ML inference engine to generate buy/sell signals based on the updated data. Finally, report any high-confidence signals.\n\nCommands:\n1. `python3 /Users/bookid/.hermes/scripts/daily_historical_sync.py`\n2. `python3 /Users/bookid/.hermes/scripts/ml_signal_inference.py`\n3. `python3 /Users/bookid/.hermes/scripts/ml_signal_reporter.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 * * *",
+        "display": "0 5 * * *"
+      },
+      "schedule_display": "0 5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 2
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-10T01:02:14.142354+08:00",
+      "next_run_at": "2026-05-12T05:00:00+08:00",
+      "last_run_at": "2026-05-11T05:07:05.036263+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "9e38a92a90d1",
+      "name": "Portfolio-Analysis-1430",
+      "prompt": "Execute a high-fidelity confluence analysis (Micro + Macro) after market close, ONLY if the Taiwan market was open today.\n\n1. Gatekeeper check: `python3 /Users/bookid/.hermes/scripts/day_market_gatekeeper.py`\n2. Update historical CSVs with today's final closing data: `python3 /Users/bookid/.hermes/scripts/daily_historical_sync.py`\n3. Execute the Confluence EOD Analysis (combining intraday 10m logs with historical trends): `python3 /Users/bookid/.hermes/scripts/confluence_eod_analysis.py`\n\nDeliver the comprehensive report to the Star Platinum channel. if day_market_gatekeeper fails (exit code 1), the analysis is aborted.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 14 * * 1-5",
+        "display": "30 14 * * 1-5"
+      },
+      "schedule_display": "30 14 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-10T01:21:57.694271+08:00",
+      "next_run_at": "2026-05-12T14:30:00+08:00",
+      "last_run_at": "2026-05-11T14:44:52.504972+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "telegram:6326497055",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "a4cb5faeeb5b",
+      "name": "Group-Stock-Analysis-1350",
+      "prompt": "Execute a focus analysis for the '\u9ad8\u6f6e\u4e0d\u65b7' stock group at 13:50 (market closing), ONLY if the Taiwan market is open today.\n\n1. Gatekeeper check: `python3 /Users/bookid/.hermes/scripts/day_market_gatekeeper.py`\n2. If successful, sync latest data for all stocks: `python3 /Users/bookid/.hermes/scripts/taiex_orchestrator.py`\n3. Execute the group monitoring script to send report to the group: `python3 /Users/bookid/.hermes/scripts/group_stock_monitor.py`\n\nThe group script handles its own Telegram delivery to the '-1003744330314' (\u9ad8\u6f6e\u4e0d\u65b7) group. Deliver logs locally.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "50 13 * * 1-5",
+        "display": "50 13 * * 1-5"
+      },
+      "schedule_display": "50 13 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-10T01:25:25.947235+08:00",
+      "next_run_at": "2026-05-12T13:50:00+08:00",
+      "last_run_at": "2026-05-11T13:51:38.842635+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null
+    },
+    {
+      "id": "c48948cee40c",
+      "name": "Group-Stock-Analysis-1530-Close",
+      "prompt": "Task: Deliver High-Precision EOD Confluence Analysis to the '\u9ad8\u6f6e\u4e0d\u65b7' group.\nWorkflow:\n1. RUN: `python3 /Users/bookid/.hermes/scripts/taiex_central_data_sync.py`\n2. RUN: `python3 /Users/bookid/.hermes/scripts/group_confluence_analysis.py`\nThis script automatically pulls data, calculates Micro (intraday), Macro (SMA/Trend), and ML signals (Confidence Index) for all 5 categories, and delivers a formatted report titled:\n`AI Architect: \u53f0\u80a1\u6536\u76e4\u7d9c\u5408\u5206\u6790\u5831\u544a`\nEnding with \"\u7121\u99c4\u7121\u99c4\u7121\u99c4\uff01\" protocol.",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "00 15 * * 1-5",
+        "display": "00 15 * * 1-5"
+      },
+      "schedule_display": "00 15 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-11T15:14:22.198385+08:00",
+      "next_run_at": "2026-05-12T15:00:00+08:00",
+      "last_run_at": "2026-05-11T15:30:59.177858+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": null,
+      "workdir": null
+    },
+    {
+      "id": "9a48c002acf5",
+      "name": "Night Session Settlement Archive (05:00)",
+      "prompt": "Execute the night session settlement and archive script to finalize the day's data.\\nCommand: `python3 /Users/bookid/.hermes/scripts/night_session_settlement.py`",
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": null,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 5 * * *",
+        "display": "0 5 * * *"
+      },
+      "schedule_display": "0 5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-11T23:44:58.197993+08:00",
+      "next_run_at": "2026-05-12T05:00:00+08:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [
+        "terminal",
+        "file"
+      ],
+      "workdir": null
+    }
+  ],
+  "updated_at": "2026-05-12T00:00:58.972980+08:00"
+}
