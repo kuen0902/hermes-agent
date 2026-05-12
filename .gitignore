@@ -34,3 +34,4 @@ sessions.db
 *.pyc
 skills/.curator_backups/
 skills/**/.curator_backups/
+*.json
