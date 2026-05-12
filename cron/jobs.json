@@ -142,15 +142,15 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 8
+        "completed": 9
       },
-      "enabled": false,
-      "state": "paused",
-      "paused_at": "2026-05-07T09:35:20.442478+08:00",
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T13:29:06.436235+08:00",
-      "next_run_at": "2026-05-07T09:40:00+08:00",
-      "last_run_at": "2026-05-05T09:45:09.902743+08:00",
+      "next_run_at": "2026-05-12T10:50:00+08:00",
+      "last_run_at": "2026-05-12T10:40:47.655306+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -511,17 +511,17 @@
       "schedule_display": "*/20 9-13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 125
+        "completed": 127
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T09:44:30.413848+08:00",
-      "next_run_at": "2026-05-12T10:20:00+08:00",
-      "last_run_at": "2026-05-12T10:00:23.780043+08:00",
-      "last_status": "error",
-      "last_error": "cannot access local variable '_VAR_MAP' where it is not associated with a value",
+      "next_run_at": "2026-05-12T11:00:00+08:00",
+      "last_run_at": "2026-05-12T10:40:54.463907+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1045,5 +1045,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-12T10:00:23.780707+08:00"
+  "updated_at": "2026-05-12T10:40:54.464471+08:00"
 }

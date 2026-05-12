@@ -8,7 +8,7 @@ from datetime import datetime
 import ssl
 
 # Configuration
-WILLIAM_BOT_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
+WILLIAM_BOT_TOKEN = "8678817340:AAHLd6ObYqUUTfygY-fPf57Rw6SfOO2WEGQ"
 WILLIAM_CHAT_ID = "8695583357" 
 CENTRAL_DATA_FILE = "/Users/bookid/.hermes/data/central_stock_data.json"
 CACHE_FILE = "/Users/bookid/.hermes/data/william_stock_last_prices.json"
@@ -76,7 +76,8 @@ def main():
         if abs((price - prev) / prev * 100) >= 3.0 or abs((price - last_p) / last_p * 100) >= 2.0:
             emoji = "🔴" if price > prev else "🟢"
             name = mapping.get(code, code)
-            report_lines.append(f"{emoji} **{name}** (`{sym}`) 劇烈變動！\n   ▸ 現價：`{price:,.2f}` (昨收比：`{((price-prev)/prev*100):+.2f}%` | 20M：`{((price-last_p)/last_p*100):+.2f}%`)\n")
+            change_str = f" (較前次：`{((price-last_p)/last_p*100):+.2f}%`)" if price != last_p else ""
+            report_lines.append(f"{emoji} **{name}** (`{code}`)\n   ▸ 現價：`{price:,.2f}` | 昨收比：`{((price-prev)/prev*100):+.2f}%`{change_str}\n")
             current_prices[sym] = price
 
     if report_lines:

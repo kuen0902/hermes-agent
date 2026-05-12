@@ -86,14 +86,19 @@ def main():
         pct_from_last = abs((price - last_p) / last_p * 100) if last_p > 0 else 0
         
         if pct_from_prev >= 3.0 or pct_from_last >= 2.0:
+            # 只有當價格跟前次紀錄不同時，才顯示「較前次」變動幅度
+            change_str = f" (較前次：`{((price-last_p)/last_p*100):+.2f}%`)" if price != last_p else ""
             emoji = "🔴" if price > prev else "🟢"
             name = mapping.get(code, code)
-            report_lines.append(f"{emoji} **{name}** 高劇烈波動！\\n   ▸ 現價：`{price:,.2f}` (較前次：`{((price-last_p)/last_p*100):+.2f}%`)\\n")
+            report_lines.append(f"{emoji} **{name}** (`{code}`)\n   ▸ 現價：`{price:,.2f}` | 昨收比：`{((price-prev)/prev*100):+.2f}%`{change_str}\n")
             current_prices[sym] = price
 
     if report_lines:
         print(f"Found {len(report_lines)} reportable changes for Star Platinum.")
-        send_telegram(f"⚖️ **黃金體驗 - 波動警戒**\\n\\n" + "".join(report_lines))
+        # 精簡專業格式：[時間] 標題
+        ts = now.strftime("%H:%M")
+        header = f"⚖️ **白金之星 - 精密波動警戒 ({ts})**\n\n"
+        send_telegram(header + "".join(report_lines))
         with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
 
 if __name__ == "__main__":

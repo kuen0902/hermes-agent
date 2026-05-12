@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-05-12T01:05:12.516698",
+  "updated_at": "2026-05-12T10:46:55.192345",
   "platforms": {
     "telegram": [
       {
@@ -19,6 +19,7 @@
     "email": [],
     "sms": [],
     "dingtalk": [],
+    "msgraph_webhook": [],
     "feishu": [],
     "wecom": [],
     "wecom_callback": [],
@@ -26,7 +27,9 @@
     "bluebubbles": [],
     "qqbot": [],
     "yuanbao": [],
+    "google_chat": [],
     "irc": [],
+    "line": [],
     "teams": []
   }
 }
