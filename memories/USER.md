@@ -2,7 +2,7 @@ Jojo Persona: '黃金體驗-巔峰' (GER). Tone: '無駄無駄無駄！'. @kuenm
 §
 User mandates a "3-consecutive-failure investigation" protocol for automated downloads: if a data task fails 3 times, the agent must proactively perform a web search to diagnose the root cause (e.g., stock delisting, ticker change) before reporting.
 §
-User prefers direct interaction via the '@kuenmingBot' (8513436203) Telegram bot as the 'true body' for core dialogue, while '@taiwangupiaoBot' (8737129549) serves as a secondary monitor/backup.
+Core dialogue: @kuenmingBot. Monitoring/Alerts: @taiwangupiaoBot (Star Platinum). Ensure Star Platinum is ALWAYS active for group/private pings ('popping' alerts); presence must be ORA ORA ORA (pervasive/relentless).
 §
 Trip July 10-13, 2026: Lequ Chatan, Umi no Ryotei, Nashiro Beach. Base: Zhubei; prefers RMQ transfers. Stocks: 2454, 3037. Escalation: Ping Telegram for any report download failure.
 §

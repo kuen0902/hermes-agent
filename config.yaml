@@ -82,7 +82,7 @@ auxiliary:
         api_key: ""
         base_url: ""
         extra_body: {}
-        model: gemini-3-flash-preview
+        model: gemma4:31B
         provider: ollama-launch
         timeout: 30
     vision:

@@ -21,6 +21,8 @@ This skill governs automated financial tracking, market data retrieval, and corp
 - `references/taiex_bot_authority_mapping.md` (Authoritative Bot roles and Private/Group channel routing)
 - `references/multi_bot_routing_map.md` (Bot Tokens, Chat IDs, and Persona Routing)
 - `references/taiwan_mops_pitfalls.md` (Bot detection and HTML-disguised PDFs)
+- `references/vision_to_sync_workflow.md` (Interpreting trade screenshots to update Numbers)
+- `references/resilient_bridge_pattern.md` (Multi-tier fallback for 429 Rate Limits)
 - `scripts/lib_market_delivery.py` (Unified Persona-based Telegram delivery logic)
 - `scripts/night_session_settlement.py` (05:00 Night Session settlement and archival logic)
 
@@ -33,6 +35,11 @@ Retrieve real-time and historical data with multi-provider redundancy.
 - **The Hybrid Fallback Pattern**:
     - **Logic**: Use the TWSE API as primary (speed/accuracy). If a ticker returns `None`, trigger the `yfinance` fallback.
     - **Code Snippet**: See `templates/yfinance_fallback_logic.py`.
+- **The Resilient Bridge (Anti-429 Defense)**: ⚠️ **Use when Yahoo Finance returns 429/Empty.**
+    - **Trigger**: Catch `yfinance` exceptions or check if return is `None`.
+    - **Logic**: Use a browser agent to scrape Google Finance/HiStock and cache results in `market_prices_bridge.json`. 
+    - **Targeted Navigation**: Navigating directly to `google.com/finance/quote/TICKER:EXCHANGE` is the most efficient fallback.
+    - **Implementation**: See `references/resilient_bridge_pattern.md`.
 - **TWSE/OTC Official API (The Robust Path)**: For high-frequency intraday monitoring...
     - **Endpoint**: `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=[QUERY]&json=1&delay=0`
     - **Query Format**: `tse_<CODE>.tw`, `otc_<CODE>.tw`, or `eb_<CODE>.tw` (Emerging/興櫃). Multiple symbols are joined by `|`.
@@ -58,7 +65,7 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
 
 ### 2.2 Persona Protocol
         - **「白金之星」 (Star Platinum)**: Group Monitor (@taiwangupiaoBot).
-            - **Night Mode**: ONLY sends the raw 「🌌 台股夜盤監測」 reports. The personality-driven "精密數據監修" (sp_msg) is **DISABLED** to minimize group chatter.
+            - **Night Mode**: Sends combined reports from `run_night_report.py`. The personality-driven "精密數據監修" (sp_msg) is **ENABLED** per user request (22:11, May 12, 2026) to ensure the bot is visible and "popping" alerts.
             - **Day Mode**: Follows the 09:00 Full Scan + 20-min Absolute Value Filter.
             - **Language Constraint**: **ALWAYS use Traditional Chinese (繁體中文).** Simplified Chinese is strictly forbidden and disrupts user experience.
         - **「黃金體驗-鎮魂曲」 (GER)**: Core Architect (@kuenmingBot). Style: Absolute Reality, "無駄無駄無駄！".
@@ -96,6 +103,10 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
         end tell
         ```
     - **Row Iteration (Precision)**: Use when filtering or updating specific tickers. Search 'cell 1' for ticker -> Update 'cell X' in the same row.
+    - **Safe Row Deletion (Backward Iteration)**: Always delete from bottom to top (e.g., `repeat with i from rowCount to 2 by -1`) to preserve index integrity.
+    - **Robust Append Logic**: Use `make new row at end of rows` to avoid calculation errors with `count + 1`.
+    - **Object Hierarchy Safety**: Always nested `tell document X -> tell sheet Y -> tell table Z`. Avoid `document X of table Y` errors.
+    - **Value Casting**: Explicitly cast using `as string` or `as real` for reliability in comparative logic.
 - **Telegram Bot Error Code Triage (4xx Series)**:
     - **401 Unauthorized**: Token is invalid, revoked, or expired. Requires a new Token from BotFather.
     - **403 Forbidden**: Bot cannot initiate conversation (BotFather policy). User MUST send `/start` to the bot first. Common after user clears chat history OR if the bot tries to DM a user who hasn't messaged it in the current session.
@@ -120,10 +131,15 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
 - **Zero Hardcoding Policy**: Monitoring scripts (`stock_monitor.py`, `group_stock_monitor.py`) MUST NOT hardcode ticker lists. They must dynamically read from `central_stock_data.json`.
 - **Numbers Dependency**: ⚠️ **Numbers MUST be running** for the sync to extract portfolio qty/cost. If `personal_data` is empty in the central JSON, the monitors will silence themselves.
 - **Telegram Token Integrity**: 401 errors are often caused by scripts carrying stale/redacted tokens (e.g., `...REDACTED`). Always verify the token via `getMe` before assuming a network failure.
-- **Routing Clarity**:
-- **@kuenmingBot (GER)**: 1-on-1 Dialogue, architecture commands, and Manual Deep Analysis reports.
-    - **@taiwangupiaoBot (Star Platinum)**: The exclusive **MONITIOR** for all automated status updates. This includes BOTH private intraday alerts to the user AND group report distribution.
-- **Credential Integrity**: 401 errors in scripts (like `stock_monitor.py`) are frequently caused by tokens being accidentally truncated or redacted to `...REDACTED` during manual edits or automated patches. Always source the actual token from `lib_market_delivery.py` or `.env` rather than trusting the script's internal variable.
+    - **Routing Clarity**:
+        - **@kuenmingBot (GER)**: 1-on-1 Dialogue, architecture commands, and Manual Deep Analysis reports.
+        - **@taiwangupiaoBot (Star Platinum)**: The exclusive **MONITOR** for all automated status updates. This includes BOTH private intraday alerts to the user AND group report distribution.
+        - **@williamHermes7788_bot (小智)**: Dedicated private monitor for William.
+    - **Formatting Optimization (The Zero Noise Principle)**:
+        - **Threshold Display**: When a ticker triggers an "Absolute Value" report (e.g., >3% from prev close), only show the "較前次" (compared to last) delta if the price has actually changed since the last fetch.
+        - **Logic**: `change_str = f" (較前次：{pct:+.2f}%)" if current_price != last_price else ""`
+        - **Reasoning**: Many stocks hit >3% early and hold that level for hours. Repeatedly showing `+0.00%` is visual noise.
+    - **Credential Integrity**: 401 errors in scripts are frequently caused by tokens being accidentally truncated or redacted to `...REDACTED`. NEVER rely on a script's internal variable if it fails. **Authoritative Source**: Always extract the live token from `lib_market_delivery.py` (Line 8 for SP, Line 10 for William, Line 12 for GER) or the `.env` file.
 
 - **Portfolio Analysis (EOD)**: Daily at 14:30 (Market Close + 1h), run a deep analysis on personal holdings using ML/Trend indicators, but ONLY if the day gatekeeper passes.
 

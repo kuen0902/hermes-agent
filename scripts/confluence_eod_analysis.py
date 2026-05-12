@@ -56,6 +56,8 @@ def analyze_confluence():
         with open(PORTFOLIO_JSON, 'r') as f:
             p_data = json.load(f)
         holdings = p_data.get("personal_data", {})
+        if not holdings:
+            holdings = p_data.get("full_mapping", {})
     except Exception as e:
         print(f"Failed to load portfolio: {e}")
         return
@@ -68,9 +70,17 @@ def analyze_confluence():
         f"----------------------------"
     ]
 
-    for code, info in holdings.items():
+    for code, item in holdings.items():
+        if isinstance(item, str):
+            name = item
+            avg_c = 0
+        else:
+            name = item.get('name', 'Unknown')
+            avg_c = item.get('avg', 0)
+            
         match_f = next((f for f in all_files if f.startswith(code + ".")), None)
         if not match_f: continue
+
         
         hist_df = pd.read_csv(os.path.join(DATA_DIR, match_f))
         if len(hist_df) < 30: continue
@@ -100,6 +110,7 @@ def analyze_confluence():
         X = hist_df.iloc[[-1]][feature_cols]
         prob_buy = model_buy.predict_proba(X)[0][1]
         prob_sell = model_sell.predict_proba(X)[0][1]
+        vol_ratio = float(hist_df['Vol_Ratio'].iloc[-1])
         
         # Confluence Logic
         intra_status = "N/A"
@@ -123,14 +134,13 @@ def analyze_confluence():
         elif prob_buy > 0.60: signal = "Bullish 🟡"
         elif prob_sell > 0.60: signal = "Bearish 🔵"
 
-        output.append(f"**{info['name']} ({code})**")
+        output.append(f"**{name} ({code})**")
         output.append(f"▸ **盤中觀察**：`{intra_status}`")
         output.append(f"▸ **歷史趨勢**：ML {signal}")
-        output.append(f"▸ **信心指標**：買 `{prob_buy*100:.0f}%` / 賣 `{prob_sell*100:.0f}%`")
+        output.append(f"▸ **信心指標**：買 `{prob_buy*100:.0f}%` / 賣 `{prob_sell*100:.0f}%` / 能量 `{vol_ratio:.1f}x`")
         
         # Cost check
-        current_p = hist_df['Close'].iloc[-1]
-        avg_c = info.get('avg', 0)
+        current_p = float(hist_df['Close'].iloc[-1])
         pnl = (current_p - avg_c)/avg_c * 100 if avg_c > 0 else 0
         pnl_emoji = "💰" if pnl > 0 else "💸"
         output.append(f"▸ **盈虧狀態**：{pnl_emoji} `{pnl:+.2f}%` (現價 ${current_p:.1f})")

@@ -65,6 +65,7 @@ def main():
         full_msg = adri_report or futures_report
 
     if full_msg:
+        print(f"DEBUG: Sending message:\n{full_msg}")
         # Send
         for cid in TARGET_CHATS:
             success = send_telegram(full_msg, cid)

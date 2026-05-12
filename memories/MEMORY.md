@@ -7,3 +7,5 @@ User has a single lot (1000 shares) of MediaTek (2454) with a cost basis of 2655
 Monitoring Filter Rule: Use absolute percentage values for diff thresholds (e.g., |Price-PrevClose| > 3% or |Price-LastPrice| > 2%). Do not send reports with "Unhealthy" or "Error" tags; diagnose and verify health before delivery.
 §
 Primary stock monitoring scripts (stock_monitor.py, group_stock_monitor.py) are linked to the 'StockTracking_Daily.numbers' spreadsheet as the source of truth for the 22 core holdings and 39 monitored symbols.
+§
+User workflow: Provides screenshots of mobile trading apps (e.g., "Today's Trades") to trigger portfolio reconciliation. Agent is expected to parse the image, calculate realized P/L against cost basis in memory/JSON, and automate the removal of sold positions from the 'StockTracking_Daily.numbers' spreadsheet via AppleScript.
