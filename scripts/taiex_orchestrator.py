@@ -19,11 +19,19 @@ def run_script(name):
 
 def sync_numbers_filename():
     import datetime
+    import shutil
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
     target_file = f"/Users/bookid/Documents/StockTracking_{today_str}.numbers"
     link_path = "/Users/bookid/Documents/StockTracking_Daily.numbers"
     
     print(f"--- Syncing Numbers Filename for {today_str} ---")
+    if not os.path.exists(target_file):
+        import glob
+        others = sorted(glob.glob("/Users/bookid/Documents/StockTracking_20*.numbers"), reverse=True)
+        if others:
+            print(f"Found latest: {others[0]}. Copying to {target_file} for today.")
+            shutil.copy2(others[0], target_file)
+
     if os.path.exists(target_file):
         if os.path.islink(link_path):
             os.remove(link_path)

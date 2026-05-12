@@ -11,6 +11,7 @@ The current TAIEX automation in this environment follows a multi-script, decoupl
 
 2. **The Gatherer**: `/Users/bookid/.hermes/scripts/taiex_central_data_sync.py`
     - **Input 1 (Numbers)**: Fetches `Code`, `Name`, `Qty`, `Avg Cost` from `StockTracking_Daily.numbers` (Portfolio sheet).
+    - **Dynamic Integration**: Reporter scripts (like `group_stock_monitor.py`) now prioritize `personal_data` from the central JSON. Instead of hardcoded watchlists, they dynamically generate a "我的核心持股" (Core Holdings) category. This ensures updates in the Numbers file reflect immediately in Telegram without script modifications.
     - **Input 2 (Hardcoded)**: Fallback dictionaries for William and Group channels.
     - **Logic**: \n        - Deduplicates all tickers.\n        - Fetches via `yfinance` with `.TW` -> `.TWO` retry logic.\n        - **Synchronous Data**: Captures Price + **Volume**.\n        - **Persistence**: Appends every 10-minute snapshot to `~/.hermes/data/intraday_data_log.csv` for intraday momentum analysis.\n        - Checks health (>80% fetch rate = Healthy).
     - **Output**: Writes unified state to `~/.hermes/data/central_stock_data.json`.

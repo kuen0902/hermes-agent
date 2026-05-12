@@ -47,7 +47,9 @@ def main():
         for code in william_codes:
             data = market_data.get(code)
             if data:
-                price, prev, open_p = data['price'], data['prev_close'], data.get('open', price)
+                price = data['price']
+                prev = data['prev_close']
+                open_p = data.get('open', price)
                 current_prices[data['symbol']] = price
                 pct = ((price - prev) / prev * 100) if prev > 0 else 0
                 emoji = "🔴" if price > prev else "🟢"

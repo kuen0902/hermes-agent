@@ -12,8 +12,10 @@ As of 2026-05-11, the system uses a multi-bot architecture to separate architect
 ### 「白金之星」 (Star Platinum)
 - **Monitor Body**: `@taiwangupiaoBot` (8737129549)
 - **Token**: `8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU`
-- **Role**: Dedicated stock monitoring for High-Frequency alerts and PDF reports.
-- **Home Channels**: `6326497055` (Jojo Private) | `-1003744330314` (高潮不斷 Group).
+- **Logic**: Handles both Private and Group Monitoring.
+- **Home Channels**:
+    - `6326497055` (Jojo Private): Receives personal holdings alerts (`stock_monitor.py`).
+    - `-1003744330314` (高潮不斷 Group): Receives group watchlist alerts (`group_stock_monitor.py`).
 
 ### 「威廉專屬」 (William's Dedication)
 - **Monitor Body**: `@WilliamClaw55667788_bot` (8563522559)

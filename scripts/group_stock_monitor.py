@@ -40,13 +40,20 @@ def main():
     
     mapping = central_store.get("full_mapping", {})
     market_data = central_store.get("data", {})
+    personal_data = central_store.get("personal_data", {})
     categories = {
+        "我的核心持股": list(personal_data.keys()),
         "Kim哥推薦組": ["1513", "2049", "5347", "6147", "3709"],
         "正體鍾文字組": ["2408", "2382", "2327"],
         "順風老師組": ["2313", "6285", "5289"],
         "進莫組": ["4543"],
         "大盤積分組": ["2330", "2454", "3037"]
     }
+    
+    # Remove duplicates by moving to personal if they exist there
+    personal_keys = set(personal_data.keys())
+    for cat in ["Kim哥推薦組", "正體鍾文字組", "順風老師組", "進莫組", "大盤積分組"]:
+        categories[cat] = [c for c in categories[cat] if c not in personal_keys]
     
     now = datetime.now()
     today_str = now.strftime("%Y-%m-%d")
@@ -114,6 +121,7 @@ def main():
             current_prices[sym] = price
 
     if report_lines:
+        print(f"Found {len(report_lines)} reportable changes.")
         ts = now.strftime("%H:%M")
         header = f"⚡ **盤中劇烈變動追蹤 ({ts})**\n💡 *條件：與昨收差>3% 或 與20分前差>2%*\n\n"
         send_telegram(header + "".join(report_lines))

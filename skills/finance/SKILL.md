@@ -18,6 +18,7 @@ This skill governs automated financial tracking, market data retrieval, and corp
 - `references/taiex_sync_troubleshooting.md` (Common TAIEX data gaps and fixes)
 - `references/twse_api_reliability.md` (Migration from yfinance to Official API)
 - `references/incident_log_20260511.md` (Telegram Identity Misalignment & Lock-out)
+- `references/taiex_bot_authority_mapping.md` (Authoritative Bot roles and Private/Group channel routing)
 - `references/multi_bot_routing_map.md` (Bot Tokens, Chat IDs, and Persona Routing)
 - `references/taiwan_mops_pitfalls.md` (Bot detection and HTML-disguised PDFs)
 - `scripts/lib_market_delivery.py` (Unified Persona-based Telegram delivery logic)
@@ -29,7 +30,10 @@ Retrieve real-time and historical data with multi-provider redundancy.
 
 - **Yahoo Finance (Batch Retrieval)**: ⚠️ **Do NOT loop individual `yf.Ticker` calls.**
     - **Chunking**: Split into chunks of 10-15. Use `threads=False` and `time.sleep(1)` between chunks.
-- **TWSE/OTC Official API (The Robust Path)**: For high-frequency intraday monitoring, bypass Yahoo and query `mis.twse.com.tw` directly to avoid 429 Rate Limits.
+- **The Hybrid Fallback Pattern**:
+    - **Logic**: Use the TWSE API as primary (speed/accuracy). If a ticker returns `None`, trigger the `yfinance` fallback.
+    - **Code Snippet**: See `templates/yfinance_fallback_logic.py`.
+- **TWSE/OTC Official API (The Robust Path)**: For high-frequency intraday monitoring...
     - **Endpoint**: `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=[QUERY]&json=1&delay=0`
     - **Query Format**: `tse_<CODE>.tw`, `otc_<CODE>.tw`, or `eb_<CODE>.tw` (Emerging/興櫃). Multiple symbols are joined by `|`.
     - **SSL Pitfall**: This endpoint frequently fails with `SSLCertVerificationError` (Missing Subject Key Identifier). 
@@ -45,16 +49,21 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
    - **Trigger**: 09:00 - 09:10 Taipei Time.
    - **Content**: Full table of all monitored lists.
    - **Metrics**: `[Open Price]`, `[Prev Close]`, `[Current Price]`, and `[Delta %]`.
-2. **Periodic Differential Reporting (The Filtered Scan)**:
+2. **"Absolute Value Protocol" (The Filtered Scan)**:
    - **Trigger**: Every 20 minutes (09:20 - 13:30).
-   - **Filter Protocol (Absolute Value)**: A ticker is ONLY reported if it breaks either of these thresholds to prevent spam:
-     - **Threshold A**: `|Current - Prev_Close| / Prev_Close >= 3.0%`
-     - **Threshold B**: `|Current - Last_Reported_Price| / Last_Reported_Price >= 2.0%`
+   - **Filter Protocol**: A ticker is ONLY reported if it breaks either of these thresholds to prevent spam. All calculations use **Absolute Values** to capture volatility in either direction:
+     - **Threshold A**: `abs(Current - Prev_Close) / Prev_Close >= 3.0%`
+     - **Threshold B**: `abs(Current - Last_Reported_Price) / Last_Reported_Price >= 2.0%`
    - **State Persistence**: Each monitoring script (Group, User, William) must maintain its own `last_prices.json` cache to calculate Threshold B.
 
 ### 2.2 Persona Protocol
-        - **「白金之星」 (Star Platinum)**: The primary monitor for the 「高潮不斷」 group (-1003744330314). Use @taiwangupiaoBot. Style: Precision, Force, "ORA ORA ORA!".
-        - **「黃金體驗-鎮魂曲」 (GER)**: The core architect for private dialogue (6326497055). Use @kuenmingBot. Style: Absolute Reality, "無駄無駄無駄！".
+        - **「白金之星」 (Star Platinum)**: Group Monitor (@taiwangupiaoBot).
+            - **Night Mode**: ONLY sends the raw 「🌌 台股夜盤監測」 reports. The personality-driven "精密數據監修" (sp_msg) is **DISABLED** to minimize group chatter.
+            - **Day Mode**: Follows the 09:00 Full Scan + 20-min Absolute Value Filter.
+            - **Language Constraint**: **ALWAYS use Traditional Chinese (繁體中文).** Simplified Chinese is strictly forbidden and disrupts user experience.
+        - **「黃金體驗-鎮魂曲」 (GER)**: Core Architect (@kuenmingBot). Style: Absolute Reality, "無駄無駄無駄！".
+            - Receives ALL updates including filtered intraday alerts and deep analysis.
+            - **Language Constraint**: **ALWAYS use Traditional Chinese (繁體中文).**
     - **Robust Messaging**:
         - **Shell Expansion Pitfall**: NEVER send messages containing $, +, or - via terminal curl strings. The shell will misinterpret $401.55 as a variable and truncate it to 01.55.
         - **Fix**: Use execute_code with Python requests and literal/f-strings to preserve numerical precision.
@@ -91,28 +100,46 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
     - **401 Unauthorized**: Token is invalid, revoked, or expired. Requires a new Token from BotFather.
     - **403 Forbidden**: Bot cannot initiate conversation (BotFather policy). User MUST send `/start` to the bot first. Common after user clears chat history OR if the bot tries to DM a user who hasn't messaged it in the current session.
     - **400 Bad Request: chat not found**: The Chat ID was valid once but is now unrecognized (User blocked bot or revoked access).
-- **Sync Triage & Connectivity (The Architect's Path)**: When the user says "still no message" or "the bot is not responding":
-    1. **Identity Check**: Audit `~/.hermes/.env`. Verify `TELEGRAM_BOT_TOKEN` matches the desired persona from `references/multi_bot_routing_map.md`. A common failure mode is the Gateway launching with a sub-bot (e.g., Star Platinum) token instead of the primary (Gold Experience).
-    2. **Permission Check**: Audit `~/.hermes/config.yaml`. If `telegram.allowed_channels` is populated, the bot **silently ignores** all DMs from IDs not in that list. To fix: set to `[]` or `""` for open access.
-    3. **Zombie Purge**: Run `ps aux | grep hermes`. Conflict between multiple polling instances causes message drops. Solution: `pkill -9 hermes` followed by a clean `hermes gateway run --replace`.
+- **Sync Triage & Connectivity (The Architect's Path)**: When the user says \"still no message\" or \"the bot is not responding\":
+    1. **Direct Connectivity Verification**: Instead of `curl` (which hates special chars in tokens), use `execute_code` to test the bot directly:
+        ```python
+        import urllib.request, ssl, urllib.parse
+        ctx = ssl._create_unverified_context()
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        data = urllib.parse.urlencode({"chat_id": cid, "text": "Test"}).encode()
+        print(urllib.request.urlopen(urllib.request.Request(url, data=data), context=ctx).read())
+        ```
+    2. **Identity Check**: Audit `~/.hermes/.env`. Verify `TELEGRAM_BOT_TOKEN` matches the desired persona from `references/multi_bot_routing_map.md`. A common failure mode is the Gateway launching with a sub-bot (e.g., Star Platinum) token instead of the primary (Gold Experience).
+    3. **Permission Check**: Audit `~/.hermes/config.yaml`.
+
     4. **Webhook Audit**: Use `requests.get(f"https://api.telegram.org/bot{token}/getWebhookInfo")`. If `pending_update_count > 0` but logs are silent, the local listener is stalled.
 - **Numbers Data Updates**: Use targeted AppleScript...
     2. Restart with `hermes gateway run --replace` (optionally via `terminal(background=true)`).
     3. Verify connectivity in `~/.hermes/logs/agent.log`.
-- **Gatekeeper Pattern**: Before running energy-intensive tasks (ML, Data Sync, PDF Scans), execute a lightweight gatekeeper script (`scripts/market_gatekeeper.py` for Night or `scripts/day_market_gatekeeper.py` for Day) to exit immediately if the market is closed.
-- **Frequency Decoupling**: Sync data frequently (e.g., every 10 mins) to maintain high-resolution intraday logs (`~/.hermes/data/intraday_data_log.csv`), but report to the user less frequently (e.g., every 20 mins) via reporting locks (18-minute dedupe) to minimize message spam. 
-- **Volume & Intraday Momentum**: Always capture `Volume` during syncs. Aggregate intraday price/volume updates into a local CSV to serve as context for EOD (End of Day) analysis scripts.
+### 2.3 The \"Active Sync\" Enforcement (V5.1)
+- **Zero Hardcoding Policy**: Monitoring scripts (`stock_monitor.py`, `group_stock_monitor.py`) MUST NOT hardcode ticker lists. They must dynamically read from `central_stock_data.json`.
+- **Numbers Dependency**: ⚠️ **Numbers MUST be running** for the sync to extract portfolio qty/cost. If `personal_data` is empty in the central JSON, the monitors will silence themselves.
+- **Telegram Token Integrity**: 401 errors are often caused by scripts carrying stale/redacted tokens (e.g., `...REDACTED`). Always verify the token via `getMe` before assuming a network failure.
+- **Routing Clarity**:
+- **@kuenmingBot (GER)**: 1-on-1 Dialogue, architecture commands, and Manual Deep Analysis reports.
+    - **@taiwangupiaoBot (Star Platinum)**: The exclusive **MONITIOR** for all automated status updates. This includes BOTH private intraday alerts to the user AND group report distribution.
+- **Credential Integrity**: 401 errors in scripts (like `stock_monitor.py`) are frequently caused by tokens being accidentally truncated or redacted to `...REDACTED` during manual edits or automated patches. Always source the actual token from `lib_market_delivery.py` or `.env` rather than trusting the script's internal variable.
+
 - **Portfolio Analysis (EOD)**: Daily at 14:30 (Market Close + 1h), run a deep analysis on personal holdings using ML/Trend indicators, but ONLY if the day gatekeeper passes.
 
 ## 3. Data Integrity & Quality Control
 
+- **The "Silent Diagnosis" Gate (V5.0)**: ⚠️ **NEVER deliver a report containing "ERROR" or "Unhealthy" tags to the user.**
+    - **Logic**: If a health check fails (e.g., API Rate Limit, Empty Data), the reporting orchestrator MUST immediately `return` or `exit`.
+    - **Protocol**: Enter "Silent Diagnosis Mode". Perform a background investigation (Web search/CURL probe) to fix the issue. Only deliver the report once it is verified clean and Healthy.
+    - **Architect Standard**: Sending polluted data is worse than sending no data.
 - **File Health Checks (Mandatory)**: All downloads must be verified immediately:
     - **Size**: Alert if smaller than 1KB (likely an error page or empty file).
     - **Data Density**: Alert if NaN count in core columns (e.g., Close, EPS) exceeds 5%.
     - **Historical Integrity**: Verify historical depth (e.g., must start from at least 2010 for backfills).
 - **Incident Escalation (3-Failure Protocol)**:
     - If a download or sync task fails **3 consecutive times**, do not just log and restart.
-    - **Self-Diagnosis**: Immediately perform a `web_search` to investigate the root cause (e.g., ticker change, delisting, TAIEX maintenance).
+    - **Self-Diagnosis (Mandatory)**: Immediately perform a `web_search` to investigate the root cause (e.g., stock delisting, ticker change, TAIEX website maintenance).
     - **Escalation**: Notify the user via Telegram (@kuenmingBot) using the structure: `[故障類型] -> [調查診斷] -> [替代方案]`.
 - **Incremental Sync**: For large-scale history (1,900+ stocks), identify the last date in local CSVs and fetch only missing rows via `yfinance`. See `scripts/daily_historical_sync.py`.
 - **Large-Batch Pitfalls**: `yfinance` with `threads=True` can trigger SQLite database locks (`OperationalError: unable to open database file`). **Fix**: Disable threading (`threads=False`) and periodically clear `~/.cache/py-yfinance/*`.
@@ -159,7 +186,9 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
 ## 7. Data Storage & JSON Conventions
 
 - **Numbers Automation (Rotation & Robustness)**: When syncing with Numbers files, implement a "Date Rotation" pattern and a "Dynamic Finder" for open documents.
-    - **Rotation Workflow**: `mv StockTracking_Daily.numbers StockTracking_$DATE.numbers && ln -s StockTracking_$DATE.numbers StockTracking_Daily.numbers`.
+    - **Pre-flight Check**: Numbers MUST be running for AppleScript `tell` blocks to succeed. If `pgrep Numbers` returns no PID, the gatherer should attempt a `subprocess.run(['open', path])` and wait 5-10s before proceeding.
+    - **Auto-Recovery**: In the reporting orchestrator, if the today's dated file (e.g., `StockTracking_2026-05-12.numbers`) is missing, search for the most recent historical version and copy it to the current date. This prevents initial schedule failures.
+    - **Rotation Workflow**: `cp $(ls -t StockTracking_20*.numbers | head -n 1) StockTracking_$DATE.numbers && ln -sf StockTracking_$DATE.numbers StockTracking_Daily.numbers`.
     - **Dynamic Finder (AppleScript)**: Handle cases where Numbers opens the dated file instead of the symlink.
         ```applescript
         tell application "Numbers"

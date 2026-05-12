@@ -6,6 +6,17 @@
   - `SEASON`: 01, 02, 03, 04.
   - `YEAR`: ROC Year + 1911 (e.g., 114 -> 2025).
 
+## Dynamic Link Generation (The Step=9 POST Trap)
+- **Problem**: Direct links like `https://mops.twse.com.tw/nas/t164sb01/...` often return `404` or `HTML 200` (error page) because the server requires a temporary session-bound path.
+- **Root Cause**: The official "Read File" button triggers a POST request to `https://doc.twse.com.tw/server-java/t57sb01` with `step=9` which generates a time-stamped path in `/pdf/`.
+- **Solution**: Use the `terminal` or `execute_code` to perform the POST request first, extract the generated path, and THEN download.
+- **Payload Parameters**:
+  - `step=9`
+  - `kind=A`
+  - `co_id=[STOCK_CODE]` (e.g., `2330`)
+  - `filename=[YYYYNN_CODE_AI1.pdf]` where `YYYY` is Ming-guo year and `NN` is season (e.g., `2026Q1` -> `202601`).
+- **Health Check**: If the resulting file is < 100KB, it's likely a small HTML error page. Successful reports are usually 1MB - 10MB.
+
 ## Bot Detection (Radware)
 - **Symptoms**: Returns `HTTP 200` but content is a < 15KB HTML snippet containing a script redirect or "Radware Bot Manager Block".
 - **Workaround Attempts**:

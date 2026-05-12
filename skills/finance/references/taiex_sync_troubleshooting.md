@@ -1,7 +1,17 @@
 # TAIEX Sync & Monitoring Troubleshooting
 
-## The 'Single Quote' Prefix Pitfall
-In Apple Numbers, users often prefix Stock IDs with a single quote (e.g., `'2330`) to force the cell to treat the number as text and prevent it from being formatted as a currency or getting `.0` appended.
+## 1. Monitor Silence (No Messages Received)
+- **Cause A: Empty Central Cache**. If `taiex_central_data_sync.py` fails to read Numbers (e.g., Numbers is closed), the `personal_data` field in the central JSON becomes `{}`. Monitors reading this will have no tickers to check.
+    - **Fix**: Check `pgrep Numbers`. Use `open StockTracking_Daily.numbers` to force it open.
+- **Cause B: Stale Telegram Token**. Even if the script finds 10+ changes, it will fail to send if the token is unauthorized (401).
+    - **Fix**: Test the token with `curl https://api.telegram.org/bot<TOKEN>/getMe`.
+- **Cause C: Lock Files**. Check for `*.lock` files in `~/.hermes/data/`. If a script crashed before releasing a lock, it might skip the next run.
+
+## 2. Numbers Extraction Index Errors
+- **Symptom**: `execution error: Numbers Creator Studio發生錯誤：無法取得「document 1」。索引錯誤。 (-1719)`
+- **Reason**: AppleScript's `document 1` refers to the currently active window. If the user has multiple files open or No file open, it fails.
+- **Fix**: Use the "Dynamic Finder" pattern in `finance/SKILL.md` (Section 7) to find the document by its name prefixing with `StockTracking`.
+
 - **Symptom**: `yfinance` or market scrapers return 404/Not Found for the ticker `'2330.TW`.
 - **Fix**: In your Python parser, use `ticker.strip("'")` before appending the `.TW` suffix.
 
@@ -22,8 +32,15 @@ For this user, monitoring is split into two distinct modes:
    - Role: Monitors NQ (Nasdaq), TSM (ADR), and EWT (ETF) to provide leading indicators for the next morning's open.
 
 ## UnboundLocalError in Reporting
-If data-fetching fails (e.g., due to rate limits), monitoring scripts may fail with `UnboundLocalError` if variables like `top3` are defined inside an `if stats:` block but accessed later without checking.
-- **Fix**: Always initialize aggregation variables (e.g., `top3 = [], bottom3 = []`) at the start of `main()` or wrap the entire summary generation inside the `if stats:` guard.
+If data-fetching fails (e.g., due to rate limits), monitoring scripts may fail with `UnboundLocalError`.
+- **The Unpacking Trap**: ⚠️ **Avoid using a variable as its own default value in the same unpacking line.**
+    - **Bad**: `price, prev, open_p = data['price'], data['prev_close'], data.get('open', price)` (Raises error because `price` is not yet defined).
+    - **Fix**: Split the assignment into two steps:
+        ```python
+        price = data['price']
+        open_p = data.get('open', price) # price is now defined
+        ```
+- **Fallback**: Always initialize aggregation variables (e.g., `top3 = [], bottom3 = []`) at the start of `main()`.
 
 ## Batch TAIEX Ticker Mapping
 When using `yf.download([list_of_codes])` for TAIEX:

@@ -8,7 +8,7 @@ from datetime import datetime
 import ssl
 
 # Configuration
-BOT_TOKEN = "8513436203:AAH_Z-REDACTED" # USER BOT (GER)
+BOT_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU" # MONITOR BOT (STAR PLATINUM)
 CHAT_ID = "6326497055"
 CENTRAL_DATA_FILE = "/Users/bookid/.hermes/data/central_stock_data.json"
 CACHE_FILE = "/Users/bookid/.hermes/data/user_stock_last_prices.json"
@@ -31,8 +31,13 @@ def main():
     
     mapping = central_store.get("full_mapping", {})
     market_data = central_store.get("data", {})
-    # Core Holdings
-    user_portfolio = ["2454", "3037", "2330"] 
+    personal_data = central_store.get("personal_data", {})
+    # Core Holdings from central data (Numbers sync)
+    user_portfolio = list(personal_data.keys())
+    
+    if not user_portfolio:
+        # Fallback to legacy if central sync is empty
+        user_portfolio = ["2454", "3037", "2330"] 
 
     now = datetime.now()
     today_str = now.strftime("%Y-%m-%d")
@@ -50,7 +55,9 @@ def main():
         for code in user_portfolio:
             data = market_data.get(code)
             if data:
-                price, prev, open_p = data['price'], data['prev_close'], data.get('open', price)
+                price = data['price']
+                prev = data['prev_close']
+                open_p = data.get('open', price)
                 current_prices[data['symbol']] = price
                 pct = ((price - prev) / prev * 100) if prev > 0 else 0
                 emoji = "🔴" if price > prev else "🟢"
@@ -67,6 +74,7 @@ def main():
     
     report_lines = []
     current_prices = last_prices.copy()
+    print(f"Checking {len(user_portfolio)} core stocks for Star Platinum...")
     for code in user_portfolio:
         data = market_data.get(code)
         if not data: continue
@@ -74,14 +82,18 @@ def main():
         last_p = last_prices.get(sym, prev)
         
         # Filter Logic: >3% from Prev or >2% from Last 20M
-        if abs((price - prev) / prev * 100) >= 3.0 or abs((price - last_p) / last_p * 100) >= 2.0:
+        pct_from_prev = abs((price - prev) / prev * 100) if prev > 0 else 0
+        pct_from_last = abs((price - last_p) / last_p * 100) if last_p > 0 else 0
+        
+        if pct_from_prev >= 3.0 or pct_from_last >= 2.0:
             emoji = "🔴" if price > prev else "🟢"
             name = mapping.get(code, code)
-            report_lines.append(f"{emoji} **{name}** 高劇烈波動！\n   ▸ 現價：`{price:,.2f}` (較前次：`{((price-last_p)/last_p*100):+.2f}%`)\n")
+            report_lines.append(f"{emoji} **{name}** 高劇烈波動！\\n   ▸ 現價：`{price:,.2f}` (較前次：`{((price-last_p)/last_p*100):+.2f}%`)\\n")
             current_prices[sym] = price
 
     if report_lines:
-        send_telegram(f"⚖️ **黃金體驗 - 波動警戒**\n\n" + "".join(report_lines))
+        print(f"Found {len(report_lines)} reportable changes for Star Platinum.")
+        send_telegram(f"⚖️ **黃金體驗 - 波動警戒**\\n\\n" + "".join(report_lines))
         with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
 
 if __name__ == "__main__":

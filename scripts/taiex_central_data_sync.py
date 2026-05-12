@@ -6,6 +6,7 @@ from datetime import datetime
 import requests
 import pandas as pd
 import urllib3
+import yfinance as yf
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_session():
@@ -58,7 +59,6 @@ def get_personal_tickers():
     return output
     """
     try:
-        # Check if Numbers is running
         process_check = subprocess.run(['pgrep', 'Numbers'], capture_output=True)
         if process_check.returncode != 0:
             print("Numbers is not running. Attempting to open...")
@@ -86,12 +86,10 @@ def log_to_csv(data, codes_mapping):
     """Logs intraday data to a persistent CSV for reference."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     file_exists = os.path.exists(HISTORY_LOG_FILE)
-    
     os.makedirs(os.path.dirname(HISTORY_LOG_FILE), exist_ok=True)
     with open(HISTORY_LOG_FILE, 'a') as f:
         if not file_exists:
             f.write("timestamp,code,name,price,volume,pct_change\n")
-        
         for code, info in data.items():
             name = codes_mapping.get(code, "Unknown")
             f.write(f"{now},{code},{name},{info['price']},{info['volume']},{info['pct']:.4f}\n")
@@ -100,41 +98,31 @@ def fetch_twse_data(codes):
     """Fetches real-time data from TWSE/OTC API."""
     results = {}
     session = get_session()
-    
-    # We'll batch request all codes
-    # For each code, we check both tse and otc
     ex_ch_list = []
     for code in codes:
         ex_ch_list.append(f"tse_{code}.tw")
         ex_ch_list.append(f"otc_{code}.tw")
     
-    # Split into chunks of 50 (API limit)
     chunk_size = 50
     for i in range(0, len(ex_ch_list), chunk_size):
         chunk = ex_ch_list[i:i + chunk_size]
         query = "|".join(chunk)
         url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={query}&json=1&delay=0"
-        
         try:
-            # Disable SSL verification for mis.twse.com.tw due to cert issues
             resp = session.get(url, timeout=15, verify=False)
             data = resp.json()
             if 'msgArray' in data:
                 for item in data['msgArray']:
                     code = item['c']
-                    # 'z' is latest price, if '-' check 'pz' or 'o' or 'y'
                     price_str = item.get('z', '-')
                     if price_str == '-': price_str = item.get('pz', '-')
-                    if price_str == '-': price_str = item.get('o', '-') # Open as last resort
-                    
+                    if price_str == '-': price_str = item.get('o', '-')
                     try:
                         price = float(price_str)
                     except:
-                        continue # Still no price
-                        
+                        continue
                     yclose = float(item.get('y', price))
                     volume = int(item.get('v', 0))
-                    
                     res = {
                         "symbol": f"{code}.TW" if item['ex'] == 'tse' else f"{code}.TWO",
                         "price": price,
@@ -144,21 +132,43 @@ def fetch_twse_data(codes):
                         "pct": (price - yclose) / yclose * 100 if yclose else 0,
                         "time": datetime.now().isoformat()
                     }
-                    
-                    # Update if not present or if this is a valid price update
                     if code not in results:
                         results[code] = res
-            
-            time.sleep(2) # Be polite
+            time.sleep(2)
         except Exception as e:
             print(f"API Fetch Error: {e}")
-            
+    return results
+
+def fetch_yfinance_fallback(codes):
+    """Fetches data via yfinance for tickers that failed TWSE API."""
+    results = {}
+    if not codes: return results
+    for c in codes:
+        for suffix in [".TW", ".TWO"]:
+            sym = f"{c}{suffix}"
+            try:
+                t = yf.Ticker(sym)
+                info = t.info
+                price = info.get('currentPrice') or info.get('regularMarketPrice')
+                prev = info.get('previousClose')
+                if price and prev:
+                    results[c] = {
+                        "symbol": sym,
+                        "price": float(price),
+                        "volume": int(info.get('volume', 0)),
+                        "prev_close": float(prev),
+                        "change": float(price - prev),
+                        "pct": float((price - prev) / prev * 100),
+                        "time": datetime.now().isoformat()
+                    }
+                    break
+            except:
+                continue
     return results
 
 def sync():
-    print("Starting Central Stock Data Sync (TWSE API Mode)...")
+    print("Starting Central Stock Data Sync (TWSE API + YF Fallback)...")
     personal_data = get_personal_tickers()
-    
     william_defaults = {
         "8996": "高力", "5289": "宜鼎", "4966": "譜瑞", "3583": "辛耘", 
         "8210": "勤誠", "2327": "國巨", "5347": "世界", "2402": "毅嘉", 
@@ -173,16 +183,20 @@ def sync():
         "4543": "萬在",
         "2330": "台積電", "2454": "聯發科", "3037": "欣興"
     }
-    
     all_codes = set(personal_data.keys()) | set(william_defaults.keys()) | set(group_defaults.keys())
     mapping = {**william_defaults, **group_defaults}
     for code, info in personal_data.items():
         if code not in mapping: mapping[code] = info['name']
 
     print(f"Tracking {len(all_codes)} unique stocks.")
-
     market_data = fetch_twse_data(list(all_codes))
     
+    failed_codes = [c for c in all_codes if c not in market_data]
+    if failed_codes:
+        print(f"Attempting YFinance fallback for: {failed_codes}")
+        fallback_data = fetch_yfinance_fallback(failed_codes)
+        market_data.update(fallback_data)
+
     for code in all_codes:
         if code in market_data:
             res = market_data[code]
@@ -190,12 +204,9 @@ def sync():
         else:
             print(f"Failed: {code}")
 
-    # Log to CSV for persistence
     log_to_csv(market_data, mapping)
-
     healthy_count = len(market_data)
     status = "Healthy" if healthy_count > len(all_codes) * 0.8 else "Degraded"
-    
     output = {
         "metadata": {
             "last_sync": datetime.now().isoformat(),
@@ -209,11 +220,9 @@ def sync():
         "full_mapping": mapping,
         "data": market_data
     }
-    
     os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
     with open(CACHE_FILE, 'w') as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
-        
     print(f"Sync Complete: {healthy_count} stocks updated. Status: {status}")
 
 if __name__ == "__main__":

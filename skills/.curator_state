@@ -3,6 +3,7 @@
   "last_run_at": "2026-05-08T19:29:21.730230+00:00",
   "last_run_duration_seconds": 91.5572,
   "last_run_summary": "auto: no changes; llm: I have completed the umbrella-building consolidation pass. I identified and processed three major prefix clusters (**Apple**, **Data**, and **Finance**) and one utility skill, absorbing 13 narrow agent-created skills into 4 class-level umbr…",
+  "last_run_summary_shown_at": "2026-05-08T19:29:21.730230+00:00",
   "paused": false,
   "run_count": 1
 }
