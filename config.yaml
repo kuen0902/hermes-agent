@@ -147,6 +147,7 @@ context:
 credential_pool_strategies: {}
 cron:
     max_parallel_jobs: null
+    script_timeout_seconds: 600
     wrap_response: true
 curator:
     archive_after_days: 90

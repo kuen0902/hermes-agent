@@ -1,6 +1,8 @@
 import os
 import pandas as pd
 import glob
+import time
+import concurrent.futures
 
 # Configuration
 DIR_A = os.path.expanduser("~/Documents/StockData_History")       # 15 Months
@@ -9,63 +11,63 @@ FINAL_DIR = os.path.expanduser("~/Documents/StockData_History_Final")
 
 os.makedirs(FINAL_DIR, exist_ok=True)
 
-def merge_all():
-    print(f"Starting merge process...")
-    print(f"Source 1: {DIR_A}")
-    print(f"Source 2: {DIR_B}")
-    print(f"Destination: {FINAL_DIR}")
-
-    # Get all unique filenames from both directories
-    files_a = {os.path.basename(f): f for f in glob.glob(os.path.join(DIR_A, "*.csv"))}
-    files_b = {os.path.basename(f): f for f in glob.glob(os.path.join(DIR_B, "*.csv"))}
+def process_file(filename):
+    file_a = os.path.join(DIR_A, filename)
+    file_b = os.path.join(DIR_B, filename)
     
-    all_filenames = set(files_a.keys()).union(set(files_b.keys()))
+    dataframes = []
+    
+    if os.path.exists(file_a):
+        try:
+            df_a = pd.read_csv(file_a)
+            dataframes.append(df_a)
+        except Exception: pass
+            
+    if os.path.exists(file_b):
+        try:
+            df_b = pd.read_csv(file_b)
+            dataframes.append(df_b)
+        except Exception: pass
+
+    if not dataframes:
+        return False
+        
+    try:
+        merged_df = pd.concat(dataframes, ignore_index=True)
+        # Vectorized datetime parsing
+        merged_df['Date'] = pd.to_datetime(merged_df['Date'])
+        # Drop duplicates by Date and sort
+        merged_df = merged_df.drop_duplicates(subset=['Date']).sort_values(by='Date')
+        
+        output_path = os.path.join(FINAL_DIR, filename)
+        merged_df.to_csv(output_path, index=False)
+        return True
+    except Exception as e:
+        print(f"Failed to process {filename}: {e}")
+        return False
+
+def merge_all():
+    print(f"Starting highly optimized vector merge process...")
+    start_time = time.time()
+    
+    files_a = set(os.path.basename(f) for f in glob.glob(os.path.join(DIR_A, "*.csv")))
+    files_b = set(os.path.basename(f) for f in glob.glob(os.path.join(DIR_B, "*.csv")))
+    all_filenames = files_a.union(files_b)
+    
     print(f"Total unique stock files identified: {len(all_filenames)}")
 
     count = 0
-    for filename in all_filenames:
-        dataframes = []
-        
-        # Try to load from both sources
-        if filename in files_a:
-            try:
-                df_a = pd.read_csv(files_a[filename])
-                dataframes.append(df_a)
-            except Exception as e:
-                print(f"Error reading {filename} from Source 1: {e}")
-                
-        if filename in files_b:
-            try:
-                df_b = pd.read_csv(files_b[filename])
-                dataframes.append(df_b)
-            except Exception as e:
-                print(f"Error reading {filename} from Source 2: {e}")
+    # Process Pool for massive IO/CPU parallelization
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        results = executor.map(process_file, all_filenames)
+        for success in results:
+            if success:
+                count += 1
+                if count % 200 == 0:
+                    print(f"Merged {count} files...")
 
-        if not dataframes:
-            continue
-
-        try:
-            # Merge
-            merged_df = pd.concat(dataframes, ignore_index=True)
-            
-            # Ensure 'Date' is datetime for correct sorting
-            merged_df['Date'] = pd.to_datetime(merged_df['Date'])
-            
-            # Deduplicate by Date (keep the first occurrence - usually identical)
-            merged_df = merged_df.drop_duplicates(subset=['Date']).sort_values(by='Date')
-            
-            # Save to final directory
-            output_path = os.path.join(FINAL_DIR, filename)
-            merged_df.to_csv(output_path, index=False)
-            count += 1
-            
-            if count % 100 == 0:
-                print(f"Merged {count} files...")
-                
-        except Exception as e:
-            print(f"Failed to merge {filename}: {e}")
-
-    print(f"Merge complete. Total merged files saved: {count}")
+    duration = time.time() - start_time
+    print(f"Merge complete in {duration:.2f} seconds. Total saved: {count}")
     print(f"Final data location: {FINAL_DIR}")
 
 if __name__ == "__main__":
