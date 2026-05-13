@@ -148,17 +148,18 @@ def fetch_yfinance_fallback(codes):
             sym = f"{c}{suffix}"
             try:
                 t = yf.Ticker(sym)
-                info = t.info
-                price = info.get('currentPrice') or info.get('regularMarketPrice')
-                prev = info.get('previousClose')
-                if price and prev:
+                hist = t.history(period="2d")
+                if len(hist) >= 1:
+                    price = float(hist['Close'].iloc[-1])
+                    prev = float(hist['Close'].iloc[0]) if len(hist) > 1 else price
+                    volume = int(hist['Volume'].iloc[-1])
                     results[c] = {
                         "symbol": sym,
-                        "price": float(price),
-                        "volume": int(info.get('volume', 0)),
-                        "prev_close": float(prev),
-                        "change": float(price - prev),
-                        "pct": float((price - prev) / prev * 100),
+                        "price": price,
+                        "volume": volume,
+                        "prev_close": prev,
+                        "change": price - prev,
+                        "pct": (price - prev) / prev * 100 if prev else 0,
                         "time": datetime.now().isoformat()
                     }
                     break
