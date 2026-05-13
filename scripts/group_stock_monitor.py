@@ -25,14 +25,18 @@ def send_telegram(message):
     data = urllib.parse.urlencode(payload).encode("utf-8")
     try:
         req = urllib.request.Request(url, data=data)
-        urllib.request.urlopen(req, context=ctx)
-        return True
+        # 增加 timeout=10 防止程序因網路抖動卡死
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+            return response.status == 200
     except Exception as e:
         print(f"Telegram Error: {e}")
         return False
 
 def main():
+    capture_only = "--report-only" in sys.argv
+    
     if not os.path.exists(CENTRAL_DATA_FILE):
+        print("Data file missing.")
         return
 
     with open(CENTRAL_DATA_FILE, 'r') as f:
@@ -67,7 +71,6 @@ def main():
     
     # Opening Report logic
     if is_opening and open_state.get("date") != today_str:
-        print("Starting 09:00 Opening Report...")
         header = f"☀️ **09:00 開盤即時戰報**\n📅 日期：`{today_str}`\n"
         body = ""
         current_prices = {}
@@ -87,9 +90,13 @@ def main():
                     name = mapping.get(code, data.get('name_en', code))
                     body += f"{emoji} **{name}**\n   ▸ 價：`{price:,.2f}` | 開：`{open_p:,.2f}` | 昨收：`{prev:,.2f}` | 差：`{pct:+.2f}%`\n"
         
-        if send_telegram(header + body):
-            with open(OPEN_STATE_FILE, 'w') as f: json.dump({"date": today_str}, f)
-            with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
+        report_content = header + body
+        if capture_only:
+            print(report_content)
+        else:
+            if send_telegram(report_content):
+                with open(OPEN_STATE_FILE, 'w') as f: json.dump({"date": today_str}, f)
+                with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
         return
 
     # Normal monitoring with Filter (Gap > 3% from Prev or > 2% from Last)
@@ -121,11 +128,17 @@ def main():
             current_prices[sym] = price
 
     if report_lines:
-        print(f"Found {len(report_lines)} reportable changes.")
         ts = now.strftime("%H:%M")
         header = f"⚡ **盤中劇烈變動追蹤 ({ts})**\n💡 *條件：與昨收差>3% 或 與20分前差>2%*\n\n"
-        send_telegram(header + "".join(report_lines))
-        with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
+        report_content = header + "".join(report_lines)
+        if capture_only:
+            print(report_content)
+        else:
+            send_telegram(report_content)
+            with open(CACHE_FILE, 'w') as f: json.dump(current_prices, f)
+    else:
+        if capture_only:
+            print("[SILENT]")
 
 if __name__ == "__main__":
     main()

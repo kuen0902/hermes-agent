@@ -21,9 +21,12 @@ def send_telegram(message):
     data = urllib.parse.urlencode(payload).encode("utf-8")
     try:
         req = urllib.request.Request(url, data=data)
-        urllib.request.urlopen(req, context=ctx)
-        return True
-    except: return False
+        # 增加 timeout=10 防止因網路抖動造成的無限期卡死
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+            return response.status == 200
+    except Exception as e:
+        print(f"Telegram Sending Error: {e}")
+        return False
 
 def main():
     if not os.path.exists(CENTRAL_DATA_FILE): return
