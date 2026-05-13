@@ -15,7 +15,9 @@ This skill governs automated financial tracking, market data retrieval, and corp
 
 ## References
 - `references/deep_analysis_template.md` (Standard structure for Obsidian financial reports)
+- `references/night_session_network_stability.md` (Troubleshooting and fixes for night session connectivity)
 - `references/taiex_sync_troubleshooting.md` (Common TAIEX data gaps and fixes)
+- `references/incident_log_20260513.md` (Race Condition & 3-Stock Fallback Audit)
 - `references/twse_api_reliability.md` (Migration from yfinance to Official API)
 - `references/incident_log_20260511.md` (Telegram Identity Misalignment & Lock-out)
 - `references/taiex_bot_authority_mapping.md` (Authoritative Bot roles and Private/Group channel routing)
@@ -30,6 +32,20 @@ This skill governs automated financial tracking, market data retrieval, and corp
 
 Retrieve real-time and historical data with multi-provider redundancy.
 
+- **The Market Open Gatekeeper (TAIEX)**: ⚠️ **Mandatory check for automated cron jobs.**
+    - **Logic**: Fetch history for a bellwether (e.g., `2330.TW`). If the last index date is not "today" (Taipei time), terminate the task.
+    - **Code Snippet**:
+        ```python
+        import yfinance as yf
+        from datetime import datetime
+        import pytz
+        ticker = yf.Ticker("2330.TW")
+        last_date = ticker.history(period="1d").index[-1].to_pydatetime().date()
+        today = datetime.now(pytz.timezone('Asia/Taipei')).date()
+        if last_date != today:
+            print("[SILENT] Market is closed today.")
+            exit()
+        ```
 - **Yahoo Finance (Batch Retrieval)**: ⚠️ **Do NOT loop individual `yf.Ticker` calls.**
     - **Chunking**: Split into chunks of 10-15. Use `threads=False` and `time.sleep(1)` between chunks.
 - **The Hybrid Fallback Pattern**:
@@ -37,9 +53,21 @@ Retrieve real-time and historical data with multi-provider redundancy.
     - **Code Snippet**: See `templates/yfinance_fallback_logic.py`.
 - **The Resilient Bridge (Anti-429 Defense)**: ⚠️ **Use when Yahoo Finance returns 429/Empty.**
     - **Trigger**: Catch `yfinance` exceptions or check if return is `None`.
-    - **Logic**: Use a browser agent to scrape Google Finance/HiStock and cache results in `market_prices_bridge.json`. 
+    - **Logic**: Use a browser agent to scrape Google Finance/HiStock or use `web_search` + `web_extract` on search snippets.
+    - **Cache Schema**: Results MUST be cached in `/Users/bookid/.hermes/data/market_prices_bridge.json` with the following format:
+        ```json
+        {
+          "NQ": price, 
+          "TSM": price, 
+          "NVDA": price, 
+          "SYNA": price, 
+          "FITXP": price, 
+          "timestamp": "ISO-TIME"
+        }
+        ```
     - **Targeted Navigation**: Navigating directly to `google.com/finance/quote/TICKER:EXCHANGE` is the most efficient fallback.
-    - **Implementation**: See `references/resilient_bridge_pattern.md`.
+- **TWSE/OTC Official API (The Robust Path)**: For high-frequency intraday monitoring...
+    - **Pitfall**: WantGoo or TWSE MIS sites may render blank data in `browser_vision` or `read_file` if JavaScript hasn't fully executed or if the session is blocked. Fallback to `web_search` snippets which often carry the latest live price in the description.
 - **TWSE/OTC Official API (The Robust Path)**: For high-frequency intraday monitoring...
     - **Endpoint**: `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=[QUERY]&json=1&delay=0`
     - **Query Format**: `tse_<CODE>.tw`, `otc_<CODE>.tw`, or `eb_<CODE>.tw` (Emerging/興櫃). Multiple symbols are joined by `|`.
@@ -70,17 +98,34 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
             - **Language Constraint**: **ALWAYS use Traditional Chinese (繁體中文).** Simplified Chinese is strictly forbidden and disrupts user experience.
         - **「黃金體驗-鎮魂曲」 (GER)**: Core Architect (@kuenmingBot). Style: Absolute Reality, "無駄無駄無駄！".
             - Receives ALL updates including filtered intraday alerts and deep analysis.
+            - **Handshake Verification**: User may send repeated "hello" or "問候" to verify the persona's synchronization and the agent's "readiness" (Willpower check). Respond with persona-appropriate dismissiveness while proving system operational status (e.g., current stock prices). This breaks the loop by transitioning from greeting to status delivery.
+            - **Numbers Dated Rotation Workflow**: If the today's dated file (e.g., `StockTracking_2026-05-13.numbers`) is missing, perform the recovery:
+                1. Find the latest: `ls -t StockTracking_20*.numbers | head -n 1`.
+                2. Sync current: `cp <last_file> StockTracking_<today>.numbers`.
+                3. Update Link: `ln -sf StockTracking_<today>.numbers StockTracking_Daily.numbers`.
+            - **Credential Extraction Reliability**: If a 401 Unauthorized occurs, do not guess tokens. Extract the authoritative token from FS (e.g., `stock_monitor.py`) to bypass potential redaction.
             - **Language Constraint**: **ALWAYS use Traditional Chinese (繁體中文).**
     - **Robust Messaging**:
         - **Shell Expansion Pitfall**: NEVER send messages containing $, +, or - via terminal curl strings. The shell will misinterpret $401.55 as a variable and truncate it to 01.55.
         - **Fix**: Use execute_code with Python requests and literal/f-strings to preserve numerical precision.
     - **Precision Reporting Rule**: All reports MUST include: **[Current Price] + [Spread (Current - Prev Close)] + [Delta %]**.
-    - **Ticker Universe**: Ensure **SYNA** (Synaptics) is included in Night Session monitors as a key proxy for Human Interface and AI momentum.
+    - **Ticker Universe**: Ensure **SYNA** (Synaptics), **NVDA** (Nvidia), **TSM** (TSMC ADR), and **NQ** (Nasdaq 100 Futures) are included in the **Standard Night Session Watchlist** as key proxies for AI, Human Interface, and broader Tech momentum.
+    - **FITXP (Taiwan Night Session)**: High-reliability source is `https://histock.tw/index-tw/FITXP`. Look for the \"股價\" text.
 
-- **The Gatherer-Reporter Architecture**:
+- **The Resilient Bridge (Anti-429 Defense)**: ⚠️ **Mandatory for Cron Jobs.**
+    - **Scenario**: `yfinance` frequently returns `429 Too Many Requests` or `Empty Data` during peak night session hours.
+    - **Logic**: If the scripting environment fails, use the Agent's `web_search`/`browser_navigate` to find prices and update the **Bridge JSON** at `/Users/bookid/.hermes/data/market_prices_bridge.json`.
+    - **Reporting Format**:
+        - **[故障根源]** (e.g., yfinance 429 Rate Limit)
+        - **[替代路徑]** (e.g., HiStock / Google Search Snippet Scrape)
+        - **[執行結果]** (Updated bridge file + successful script execution)
+    - **Style**: Use professional Traditional Chinese. Join with 「無駄無駄無駄！」 when reporting results or troubleshooting successes.
 
     1. **Gatherer**: Single script (`taiex_central_data_sync.py`) pulls data from Numbers/APIs to a central JSON cache.
-    2. **Monitor**: `group_confluence_analysis.py` -> 15:00 EOD high-precision analysis for 「高潮不斷」 group.
+    2. **Orchestrator**: `taiex_orchestrator.py` is the **System Commander**. It MUST be the only active entry point for intraday updates to ensure sync stability.
+    3. **Exclusive Execution Protocol (2026-05-13)**: ⚠️ **NEVER enable independent cron jobs for individual monitor scripts** (e.g., `stock_monitor.py`). Doing so creates a race condition where the monitor runs before the central sync is ready, triggering the "3-stock fallback" (MediaTek, Unimicron, TSMC) and sending duplicate messages.
+    4. **Legacy Cleanup**: The standalone market-close and intraday monitors (Ids: `1461450fa82d`, `3528a895fee8`, `e95f9fa3b34e`, `5919df8c19dd`, `340764cf9002`, `622b5c3dd6e9`) are deprecated/paused. All monitor logic is now daisy-chained inside the Orchestrator.
+    5. **Monitor**: `group_confluence_analysis.py` -> 15:00 EOD high-precision analysis for 「高潮不斷」 group.
 - **AI Architect EOD Analysis (15:00)**:
     - **Title**: `AI Architect: 台股收盤綜合分析報告`
     - **Pillars**: 
@@ -159,6 +204,7 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
     - **Escalation**: Notify the user via Telegram (@kuenmingBot) using the structure: `[故障類型] -> [調查診斷] -> [替代方案]`.
 - **Incremental Sync**: For large-scale history (1,900+ stocks), identify the last date in local CSVs and fetch only missing rows via `yfinance`. See `scripts/daily_historical_sync.py`.
 - **Large-Batch Pitfalls**: `yfinance` with `threads=True` can trigger SQLite database locks (`OperationalError: unable to open database file`). **Fix**: Disable threading (`threads=False`) and periodically clear `~/.cache/py-yfinance/*`.
+- **F-String Formatting Pitfall**: When formatting currency with signs and commas, `f"{val:+, .0f}"` (with space) will raise a `ValueError`. Correct format is `f"{val:+,.0f}"`.
 - **High-Precision Rendering (DEFAULT)**: As of 2026-05-10, the user has DEPRECATED `mdcat` in favor of high-precision PIL image rendering for ALL `.md` files. 
     - **Logic**: Use `scripts/render_md_to_img.py` logic (Dynamic Height + Rich Alignment + CJK Font Fallback).
     - **Policy**: "Show, don't store." Generate the image in `~/.hermes/scratch/`, display via `MEDIA:`, and refrain from saving to persistent locations unless explicitly requested.
@@ -169,6 +215,14 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
 ## 4. Night Session & Market Integrity
 
 - **Reality Verification (The Zero Point)**: ⚠️ **Watch for Index Basis Errors.**
+- **4.1 Monitoring Script Stability**: ⚠️ **Night session scripts MUST be hardened.**
+    - **Timeout**: Explicitly set timeouts in all network calls.
+        - **urllib.request**: `urllib.request.urlopen(req, timeout=10)` (Default is infinite/OS-level, which causes hanging).
+        - **requests**: `requests.get(url, timeout=(5, 15))`.
+    - **Retries**: Implement exponential backoff for 429/5xx errors.
+    - **Persistence**: Use `caffeinate` to prevent macOS sleep and `screen`/`tmux` for background persistence.
+    - **DNS Resilience**: If high Jitter is detected in `ping`, switch to `8.8.8.8` or `1.1.1.1` to prevent DNS-related timeouts.
+    - **Reference**: See `references/night_session_network_stability.md`.
 - **Night Session Gatekeeper (Schedule-Based)**: ⚠️ **Do NOT rely on Yahoo Market Status for Gatekeeping.**
     - **Active Session Logic**:
         - **Mon-Fri**: 15:00 - 23:59 (Today's Trade)
@@ -194,6 +248,11 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
 - **Bot Detection & Fake PDFs**: Watch for 13-15KB files. Some companies (e.g., 2382 Quanta) upload HTML files disguised with a `.pdf` extension. 
     - **Verification**: Check file type via `file <path>` or check if content starts with `<!DOCTYPE html>`.
 - **Extraction Fallback**: If `pdftotext` is missing, use Python's `PyPDF2` or `pdfplumber` via `execute_code`.
+- **Secondary Source Fallback (The CDN Path)**: When MOPS returns 403 or "查無資料" during board meeting week:
+    - **Search**: Query `"[Ticker] [Name] 2026 Q1 presentation pdf"` or `"[Ticker] [Name] investor conference"`.
+    - **Authoritative Domains**: Look for `webapi3.adata.com`, `investor.tsmc.com`, `mediatek.com/investor-relations`. 
+    - **Advantage**: Slide decks (Presentations) are often uploaded to company CDNs immediately after the conference call, hours or days before the massive 200-page auditor report appears on MOPS.
+- **EPS Verification**: If no PDF is found, use the search snippet or PTT Stock board (`[情報] 2382 Q1財報`) to verify the EPS for immediate calendar updates.
 - **Timing**: Financial reports are legally approved during Board Meetings. Public release on MOPS often lags the meeting by 0-24 hours. If an announcement is made on Day X, check MOPS on Evening X or Morning X+1.
 - **TAIEX Reporting Deadlines (Calendar Year)**: Q1 (May 15), Q2/H1 (Aug 14), Q3 (Nov 14), Q4/Annual (Mar 31 following year).
 - **ETF Distinction**: When users ask for "earnings" for TAIEX tickers starting with `00`, identify them as ETFs (e.g., 0050). ETFs report dividends and NAV, not EPS/Earnings calls.
@@ -202,28 +261,22 @@ To maximize signal-to-noise ratio, intraday reports follow a two-state hierarchy
 ## 7. Data Storage & JSON Conventions
 
 - **Numbers Automation (Rotation & Robustness)**: When syncing with Numbers files, implement a "Date Rotation" pattern and a "Dynamic Finder" for open documents.
-    - **Pre-flight Check**: Numbers MUST be running for AppleScript `tell` blocks to succeed. If `pgrep Numbers` returns no PID, the gatherer should attempt a `subprocess.run(['open', path])` and wait 5-10s before proceeding.
-    - **Auto-Recovery**: In the reporting orchestrator, if the today's dated file (e.g., `StockTracking_2026-05-12.numbers`) is missing, search for the most recent historical version and copy it to the current date. This prevents initial schedule failures.
-    - **Rotation Workflow**: `cp $(ls -t StockTracking_20*.numbers | head -n 1) StockTracking_$DATE.numbers && ln -sf StockTracking_$DATE.numbers StockTracking_Daily.numbers`.
-    - **Dynamic Finder (AppleScript)**: Handle cases where Numbers opens the dated file instead of the symlink.
+- **Numbers Automation (Rotation & Robustness)**: When syncing with Numbers files, implement a \"Date Rotation\" pattern and a \"Dynamic Finder\" for open documents.
+    - **App Resilience**: If Numbers hangs or returns generic index errors, use `pkill -9 Numbers` followed by `open -a Numbers` and a 5s delay.
+    - **Document Discovery (AppleScript)**: Numbers often renames documents internally to the current date even if opened via a symlink. Avoid `document 1`. Search for the target by name prefix.
         ```applescript
         tell application "Numbers"
-            set targetDoc to missing value
-            set allDocs to name of every document
-            repeat with d in allDocs
+            set docList to name of every document
+            repeat with d in docList
                 if d starts with "StockTracking" then
-                    set targetDoc to d
+                    set targetDoc to document d
                     exit repeat
                 end if
             end repeat
-            -- Use 'document targetDoc' for further queries
         end tell
         ```
-    - **Cell Protection**: Always use `try-catch` blocks in AppleScript when reading cells (e.g., `qty`, `avg cost`) to handle `missing value` or non-numeric strings gracefully.
+    - **Pre-flight Check**: Numbers MUST be running for AppleScript `tell` blocks to succeed. If `pgrep Numbers` returns no PID, the gatherer should attempt a `subprocess.run(['open', path])` and wait 5-10s before proceeding.
 
-- **Update Logic**: When merging new stocks, always verify if the target is a list or dict. Prefer `dict.update()` for ticker-based storage.
-
-### 8. Detailed PDF Analysis SOP (Deep Analysis)
 When the user requests to "Read and analyze a PDF financial report", adhere to the following strict protocol:
 1. **Extraction**: Identify key parameters: **Revenue, Gross Margin, Operating Profit, Non-Operating Items, Net Profit (Pre/Post tax), and EPS**.
 2. **Contextual Analysis**: Beyond numbers, explain *why* metrics moved (e.g., policy tailwinds, segment shifts, order backlog).

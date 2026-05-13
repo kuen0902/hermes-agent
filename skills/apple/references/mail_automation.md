@@ -30,11 +30,14 @@ end tell
   - ✅ `make new attachment with properties {file name:(posix file "/tmp/img.png")}`
   - ❌ `make new attachment with properties {file name:"/tmp/img.png"}`
 
-### Pitfall: Automated Send Blocked
-- **Symptom**: `execution error: Mail got an error: User denied. (-128)`
-- **Solution**: 
-  1. Change `send` to `set visible to true` + `activate`.
-  2. If fully automated sending is mandatory, the User must grant **Full Disk Access** and **Automation** permissions to the Terminal application in System Settings.
+### Pitfall: AppleEvent Error (-10000)
+- **Symptom**: `execution error: Mail got an error: Camera/Mail happened an error: cannot execute AppleEvent handler. (-10000)`
+- **Common Cause**: Security/Sandbox restrictions or corrupted TCC database.
+- **Troubleshooting**:
+  1. **TCC Reset**: Execute `tccutil reset Automation` or `tccutil reset All` in a terminal (warning: resets all privacy prompts).
+  2. **Full Disk Access**: Ensure the executing process (e.g., Terminal, iTerm2, or `hermes-gateway` service) has **Full Disk Access** in System Settings > Privacy & Security.
+  3. **Path Permissions**: Files attached from `/tmp/` are generally safer, but attached files from inside `~/.hermes/` or `~/Documents/` might be blocked by Sandbox if the app isn't granted access.
+  4. **Alternative**: If AppleScript consistently fails with `-10000`, fall back to sending via the `MEDIA:/path` command in Hermes to bypass the system mail agent entirely.
 
 ### Pitfall: Newline Characters
 In AppleScript `content` strings, `\n` might literalize. Use the `return` constant for reliable line breaks.

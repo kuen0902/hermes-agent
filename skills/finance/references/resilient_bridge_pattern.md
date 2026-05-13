@@ -54,11 +54,20 @@ This pattern transforms a technical failure (API ban) into a workflow coordinati
 ## 5. Known-Good URL Templates for Scraping
 When APIs fail, use `browser_navigate` directly to these targets:
 - **US Stocks (Real-time/Pre-market)**: `https://www.google.com/finance/quote/{SYMBOL}:{EXCHANGE}` (e.g., `TSM:NYSE`, `NVDA:NASDAQ`, `SYNA:NASDAQ`).
-- **TAIEX Night Session (FITXP)**: `https://histock.tw/index-tw/FITXP` - Extremely stable. Look for the "股價" (Price) static text.
-- **NQ / Futures**: Search `NQ futures price google finance` or `NQ futures cnbc`. Note that Bloomberg/Investing.com often have aggressive bot detection; Google Finance and CNBC are more agent-friendly.
+- **TAIEX Night Session (FITXP)**: https://histock.tw/index-tw/FITXP - Extremely stable. Look for the "股價" (Price) static text.
 
-## 6. Price Source Selection Logic (US Assets)
-During TAIEX Night Session (15:00-05:00 Taipei), US markets will transition:
+## 6. Anti-Bot Strategy & Price Source Selection
+
+- **Avoid Google Search via Browser Tools**: `google.com/search` frequently triggers aggressive bot detection/CAPTCHAs when accessed via browser automation tools.
+- **Better Alternative 1**: Use the `web_search` tool (API-driven) which is significantly less likely to be blocked.
+- **Better Alternative 2**: Navigate directly to secondary finance sites like MSN, CNBC, Yahoo Finance, or HiStock.
+- **Preferred Targets**:
+    - **Synaptics (SYNA)**: `https://finance.yahoo.com/quote/SYNA/`
+    - **Futures (NQ)**: `https://www.tradingview.com/symbols/CME_MINI-NQ1!/`
+    - **TSM/NVDA**: MSN Money or MarketWatch.
+
+## 7. Price Source Selection Logic (US Assets)
+
 1. **15:00 - 21:30**: US Pre-market. Use `preMarketPrice`.
 2. **21:30 - 04:00**: US Regular Session. Use `regularMarketPrice` or `currentPrice`.
 3. **04:00 - 05:00**: US After-hours. Use `postMarketPrice`.

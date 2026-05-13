@@ -8,7 +8,7 @@ platforms: [macos]
 metadata:
   hermes:
     tags: [Notes, Apple, macOS, note-taking, applescript]
-    related_skills: [obsidian, apple-mail]
+    related_skills: [obsidian, apple-mail, apple-reminders]
 ---
 
 # Apple Notes (Native)

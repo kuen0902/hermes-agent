@@ -19,6 +19,8 @@
 - **Filter Date**: Use `next_report_date <= today` and check the `downloaded_q1` flag.
 - **Quanta (2382.TW) Edge Case**: Dates in automated calendars often point to the *estimated* date or the *Board Meeting* date. The actual financial report PDF might only appear on MOPS *after* the board meeting resolution (14:00+ on the announcement day).
 - **Silent Mode**: If no stocks meet the criteria (announced <= yesterday AND not downloaded), return `[SILENT]` to avoid empty cron notifications.
+- **Secondary Source Priority**: Slide decks (Presentations) are often available on company IR websites (e.g., `webapi3.adata.com`) immediately after a board meeting, whereas MOPS auditor reports (100+ pages) might lag by 24 hours. If MOPS fails, prioritize official company CDNs.
+- **PTT Intelligence**: For TAIEX stocks, the PTT Stock board (`ptt.cc/bbs/Stock`) is the fastest crowdsourced source for EPS data. Search results showing PTT titles like `[情報] 3260 威剛115 Q1財報` are authoritative enough for immediate metadata updates.
 
 ## Tools & Commands
 - **Path Resolution**: Always use absolute paths via `os.path.expanduser('~/.hermes/data/...')`.
