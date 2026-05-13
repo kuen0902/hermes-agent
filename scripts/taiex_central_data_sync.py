@@ -1,12 +1,22 @@
+#!/Users/bookid/.hermes/.venv/bin/python
+# /// script
+# requires-python = ">=3.11"
+# dependencies = [
+#     "pandas",
+#     "requests",
+#     "urllib3",
+#     "yfinance",
+# ]
+# ///
 import subprocess
 import json
 import os
 import time
 from datetime import datetime
-import requests
-import pandas as pd
-import urllib3
-import yfinance as yf
+import requests  # type: ignore
+import pandas as pd  # type: ignore
+import urllib3  # type: ignore
+import yfinance as yf  # type: ignore
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def get_session():
