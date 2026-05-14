@@ -1,3 +1,3 @@
 #!/bin/bash
 set -e
-hermes --profile star-platinum gateway run
+nohup hermes --profile star-platinum gateway start > /Users/bookid/.hermes/logs/gateway_cron.log 2>&1 &
