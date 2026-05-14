@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
-python3 /Users/bookid/.hermes/scripts/daily_historical_sync.py
-python3 /Users/bookid/.hermes/scripts/ml_signal_inference.py
-python3 /Users/bookid/.hermes/scripts/ml_signal_reporter.py
+PYTHON="/Users/bookid/workspace/hermes-agent/venv_314/bin/python"
+$PYTHON /Users/bookid/.hermes/scripts/daily_historical_sync.py
+$PYTHON /Users/bookid/.hermes/scripts/ml_signal_inference.py
+$PYTHON /Users/bookid/.hermes/scripts/ml_signal_reporter.py

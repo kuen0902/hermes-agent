@@ -18,6 +18,7 @@ This skill governs automated financial tracking, market data retrieval, and corp
 - **Numbers Automation**: `references/numbers_applescript.md` (Dynamic document discovery, row iteration, AppleScript safe operations).
 - **MOPS & Earnings Guidelines**: `references/mops_guidelines.md` (Taiwan MOPS scraping rules, Bot detection traps, CDN fallbacks, Calendar dates).
 - **Night Session Rules**: `references/night_session_rules.md` (Script hardening, 05:00 Archive settlement, Gatekeeper logic).
+- **Script Hardening & Compatibility**: `references/script_hardening_automation.md` (Absolute paths, Python 3.11 vs 3.12 syntax, Cron PATH issues).
 - **Historical Reference**: `references/deep_analysis_template.md` (Obsidian report structure).
 - **Multi-Bot Routing**: `references/multi_bot_routing_map.md` (Bot Tokens, Chat IDs).
 
@@ -53,6 +54,6 @@ This skill governs automated financial tracking, market data retrieval, and corp
 
 ## 5. Historical Data & AI Predictors
 
-- **Incremental Sync**: Daily at 05:00, update all local CSVs with the latest 10 days of data using `scripts/daily_historical_sync.py`.
+- **Incremental Sync**: Daily at 05:00. **Strict Environment**: Use the absolute venv python path (`/Users/bookid/workspace/hermes-agent/venv_314/bin/python`) to ensure `pandas` and other ML deps (Python 3.14) are available. (Ref: `references/script_hardening_automation.md`)
 - **Fast-Sync Pattern (EOD Analyzer)**: For time-sensitive analysis (e.g., 14:30 Portfolio Analysis), use the `--fast` flag with `daily_historical_sync.py`. This skips the full market scan (1,900+ tickers) and updates ONLY the core symbols in the monitoring watchlist, preventing timeouts.
 - **ML Signal Engine**: Focuses on Trend (SMA/EMA), Momentum (RSI/MACD), Volatility (ATR), and Volume Ratio. Targets 5-day forward return binary classification.

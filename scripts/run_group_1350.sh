@@ -1,5 +1,6 @@
 #!/bin/bash
-python3 /Users/bookid/.hermes/scripts/day_market_gatekeeper.py || {
+PYTHON="/Users/bookid/workspace/hermes-agent/venv_314/bin/python"
+$PYTHON /Users/bookid/.hermes/scripts/day_market_gatekeeper.py || {
     RET=$?
     if [ $RET -eq 1 ]; then
         echo "Market closed, exiting gracefully."
@@ -9,5 +10,5 @@ python3 /Users/bookid/.hermes/scripts/day_market_gatekeeper.py || {
     fi
 }
 set -e
-python3 /Users/bookid/.hermes/scripts/taiex_orchestrator.py
-python3 /Users/bookid/.hermes/scripts/group_stock_monitor.py
+$PYTHON /Users/bookid/.hermes/scripts/taiex_orchestrator.py
+$PYTHON /Users/bookid/.hermes/scripts/group_stock_monitor.py

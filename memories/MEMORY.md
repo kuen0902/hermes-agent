@@ -8,10 +8,13 @@ Primary stock monitoring scripts (stock_monitor.py, group_stock_monitor.py) are 
 §
 User workflow: Provides screenshots of mobile trading apps (e.g., "Today's Trades") to trigger portfolio reconciliation. Agent is expected to parse the image, calculate realized P/L against cost basis in memory/JSON, and automate the removal of sold positions from the 'StockTracking_Daily.numbers' spreadsheet via AppleScript.
 §
-2026-05-13 10:16: 移除四項原本用於數據備份與補償的 Cron Jobs (9b78b006628c, fd2cf872b2f7, 642ad241f32e, a9edac269e3e)。
+2026-05-15: System environment upgraded to Python 3.14.4. Primary venv is now /Users/bookid/workspace/hermes-agent/venv_314. All finance-related Cron jobs patched to use this path. Syntax compatibility now supports PEP 695 'type'.
 §
 User prefers having significant system administrative changes (like cron job removals) logged into persistent memory for auditing.
 §
-System Architecture: All TAIEX monitoring is now centralized via `taiex_orchestrator.py` (Job `f95f14b437ee`). Legacy individual monitor cron jobs are paused. To balance sensitivity and privacy: (1) Alert threshold `TIERS` in `monitor_engine.py` is restored to `[3.0, 5.0, 7.0, 9.0]`, (2) The `group` profile is patched to never include `personal_data` (private holdings) in public reports. Monitoring is filtered to report only milestones. Sync frequency: 30m.
+Sys Arch: TAIEX monitoring via `taiex_orchestrator.py` (Job f95f14b437ee). Tiers: [3,5,7,9]. No personal data in group reports. Venv: `/Users/bookid/workspace/hermes-agent/venv_314/bin/python`. Hermes: `/Users/bookid/.local/bin/hermes`. Environment: Python 3.14.4.
 §
 User has 1 lot (1000 shares) of ADATA (3260) with a cost basis of 463.19. (Note: Cost basis verified as 463.19 per user input 2026-05-13).
+§
+2026-05-15 (System Update): Successfully upgraded system environment to Python 3.14.4 (`venv_314`). Re-enabled PEP 695 type hints. All cron jobs are successfully running on the new environment. 
+Strategic Directive: Future architecture and new feature development will primarily focus on native Swift implementation to maximize performance and concurrency.

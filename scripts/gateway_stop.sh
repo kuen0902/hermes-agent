@@ -1,3 +1,2 @@
 #!/bin/bash
-set -e
-hermes --profile star-platinum gateway stop
+/Users/bookid/.local/bin/hermes --profile star-platinum gateway stop
