@@ -1,20 +1,16 @@
 import os
 import pandas as pd
-import pandas_ta as ta
+import pandas_ta_classic as ta
 import joblib
 import json
 from datetime import datetime
-import requests
+
 
 # Configuration
 DATA_DIR = os.path.expanduser("~/Documents/StockData_History_Final")
 MODEL_DIR = os.path.expanduser("~/.hermes/models")
 PORTFOLIO_JSON = os.path.expanduser("~/.hermes/data/central_stock_data.json")
 INTRADAY_LOG = os.path.expanduser("~/.hermes/data/intraday_data_log.csv")
-GROUP_BOT_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
-WILLIAM_BOT_TOKEN = "8678817340:AAHLd6ObYqUUTfygY-fPf57Rw6SfOO2WEGQ"
-GROUP_CHAT_ID = "-1003744330314"
-WILLIAM_CHAT_ID = "8695583357"
 
 def load_intraday_summary(code):
     if not os.path.exists(INTRADAY_LOG): return None
@@ -44,8 +40,8 @@ def get_confluence_line(code, name, model_buy, model_sell, feature_cols, all_fil
         # Stats
         hist_df['ATR_14'] = ta.atr(hist_df['High'], hist_df['Low'], hist_df['Close'], length=14)
         hist_df['VOL_SMA_20'] = ta.sma(hist_df['Volume'], length=20)
-        avg_atr = hist_df['ATR_14'].iloc[-1]
-        avg_vol = hist_df['VOL_SMA_20'].iloc[-1]
+        avg_atr = hist_df['ATR_14'].iloc[-1]  # type: ignore
+        avg_vol = hist_df['VOL_SMA_20'].iloc[-1]  # type: ignore
         
         # ML Features
         hist_df['SMA_20'] = ta.sma(hist_df['Close'], length=20)
@@ -54,7 +50,7 @@ def get_confluence_line(code, name, model_buy, model_sell, feature_cols, all_fil
         hist_df['EMA_26'] = ta.ema(hist_df['Close'], length=26)
         hist_df['RSI_14'] = ta.rsi(hist_df['Close'], length=14)
         macd = ta.macd(hist_df['Close'])
-        if macd is not None: hist_df = pd.concat([hist_df, macd], axis=1)
+        if macd is not None: hist_df = pd.concat([hist_df, macd], axis=1)  # type: ignore
         hist_df['Ret_1'] = hist_df['Close'].pct_change(1)
         hist_df['Ret_5'] = hist_df['Close'].pct_change(5)
         hist_df['Vol_Ratio'] = hist_df['Volume'] / (avg_vol + 1e-9)
@@ -112,6 +108,7 @@ def main():
     }
 
     report = [
+        "[[as_document]]\n",
         "🏛️ **AI Architect: 台股收盤綜合分析報告**",
         f"📅 日期：`{datetime.now().strftime('%Y-%m-%d')}`",
         "💡 *維度：盤中觀察 + 歷史趨勢 + ML 信心指標*",
@@ -147,16 +144,12 @@ def main():
         # but here we ensure the logic targets ONE folder.
     
     # Save MD for human reading
-    with open(os.path.join(log_dir, f"{today_str}_Group_Analysis.md"), 'w') as f:
+    with open(os.path.join(archive_dir, f"{today_str}_Group_Analysis.md"), 'w') as f:
         f.write(full_text)
         
     # Save JSON for Machine Learning feedback
-    with open(os.path.join(log_dir, f"{today_str}_Group_Data.json"), 'w') as f:
+    with open(os.path.join(archive_dir, f"{today_str}_Group_Data.json"), 'w') as f:
         json.dump(store.get("data", {}), f, indent=2, ensure_ascii=False)
-    
-    # Send to Telegram
-    url = f"https://api.telegram.org/bot{GROUP_BOT_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": GROUP_CHAT_ID, "text": full_text, "parse_mode": "Markdown"})
 
 if __name__ == "__main__":
     main()

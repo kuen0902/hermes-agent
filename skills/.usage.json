@@ -52,14 +52,14 @@
   "finance": {
     "archived_at": null,
     "created_at": "2026-05-08T22:03:33.071774+00:00",
-    "last_patched_at": "2026-05-13T08:03:34.304690+00:00",
-    "last_used_at": "2026-05-13T18:26:08.803937+00:00",
-    "last_viewed_at": "2026-05-13T18:26:08.801442+00:00",
-    "patch_count": 139,
+    "last_patched_at": "2026-05-14T13:05:39.725920+00:00",
+    "last_used_at": "2026-05-14T13:05:33.078518+00:00",
+    "last_viewed_at": "2026-05-14T13:05:33.076861+00:00",
+    "patch_count": 150,
     "pinned": false,
     "state": "active",
-    "use_count": 91,
-    "view_count": 91
+    "use_count": 100,
+    "view_count": 100
   },
   "productivity": {
     "archived_at": null,

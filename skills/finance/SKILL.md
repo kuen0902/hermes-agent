@@ -30,15 +30,17 @@ This skill governs automated financial tracking, market data retrieval, and corp
 ## 2. Portfolio Monitoring & Distribution
 
 - **09:00 Opening Report (The Full Scan)**: Full table of all monitored lists.
-- **"Absolute Value Protocol" (The Filtered Scan)**: (09:20 - 13:30). A ticker is ONLY reported if `abs(Delta)` >= 3.0% from Prev Close, OR `abs(Delta)` >= 2.0% from Last Reported Price.
+- **Tiered Milestone Protocol (The Milestone Scan)**: (09:20 - 13:30). A ticker is reported when it crosses absolute thresholds: **[3.0%, 5.0%, 7.0%, 9.0%]**. Reports trigger on the *first* crossing of a tier.
+- **Privacy Enforcement (Group Separation)**: The `group` profile MUST be patched to exclude `personal_data` (private holdings) from reports to prevent privacy leaks in public/shared Telegram channels. Only "Watchlist" or "Category" stocks are broadcasted to groups.
 - **Persona Protocol**:
-  - **@taiwangupiaoBot (Star Platinum)**: Group Monitor. Night Mode & Day Mode. MUST use Traditional Chinese.
+  - **@taiwangupiaoBot (Star Platinum)**: Group Monitor. Night Mode & Day Mode. MUST use Traditional Chinese. ORA ORA ORA style.
   - **@kuenmingBot (GER)**: Core Architect. 1-on-1 Dialogue. "無駄無駄無駄！" style.
-- **Precision Reporting Rule**: All reports MUST include: **[Current Price] + [Spread (Current - Prev Close)] + [Delta %]**.
+- **Precision Reporting Rule**: All reports MUST include: **[Current Price] + [Spread (Current - Prev Close)] + [Delta %] + [Tier Triggered]**.
 
 ## 3. Data Integrity & Quality Control
 
 - **The "Silent Diagnosis" Gate**: NEVER deliver a report containing "ERROR". If a health check fails, perform background investigation, fix, and then deliver.
+- **Unified Health Protocol (Reporting Consistency)**: When merging multiple sub-script outputs (e.g., Night Report), do NOT allow sub-scripts to print their own "Healthy" status. The orchestrator MUST perform a final verification. If any sub-script is "Degraded", the entire report is "Degraded". Only a clean pass on all components results in a final "✅ 狀態：Healthy" tag at the very bottom. (Ref: `references/night_report_unification.md`)
 - **File Health Checks (Mandatory)**: Size > 1KB, NaN count < 5%.
 - **Incident Escalation**: 3 consecutive failures = Escalate to @kuenmingBot via Telegram (`[故障類型] -> [調查診斷] -> [替代方案]`).
 - **High-Precision Rendering**: Use `scripts/render_md_to_img.py` to render Markdown to images dynamically. Do not use `mdcat` for tables. Show via `MEDIA:`, do not permanently store unless instructed.
@@ -52,4 +54,5 @@ This skill governs automated financial tracking, market data retrieval, and corp
 ## 5. Historical Data & AI Predictors
 
 - **Incremental Sync**: Daily at 05:00, update all local CSVs with the latest 10 days of data using `scripts/daily_historical_sync.py`.
+- **Fast-Sync Pattern (EOD Analyzer)**: For time-sensitive analysis (e.g., 14:30 Portfolio Analysis), use the `--fast` flag with `daily_historical_sync.py`. This skips the full market scan (1,900+ tickers) and updates ONLY the core symbols in the monitoring watchlist, preventing timeouts.
 - **ML Signal Engine**: Focuses on Trend (SMA/EMA), Momentum (RSI/MACD), Volatility (ATR), and Volume Ratio. Targets 5-day forward return binary classification.

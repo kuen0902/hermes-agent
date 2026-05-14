@@ -112,10 +112,11 @@ def format_report(results, health):
         lines.append(f"- 價格：`{results['FITXP']['price']}`")
         lines.append("")
 
-    lines.append(f"----------------------------")
-    lines.append(f"🛡️ 健康檢查：`{health}`")
     return "\n".join(lines)
 
 if __name__ == "__main__":
     results, health = get_market_data()
-    print(format_report(results, health))
+    report = format_report(results, health)
+    if health != "Healthy":
+        report += f"\n----------------------------\n🛡️ 健康檢查：`{health}`"
+    print(report)

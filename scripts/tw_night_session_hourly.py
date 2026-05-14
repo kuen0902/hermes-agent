@@ -73,8 +73,7 @@ def get_night_session_status():
         f"",
         f"📈 **全日變動 (vs NY Open)**",
         f"{get_color_emoji(session_change)} 漲跌：`{session_change:+.1f}` ({session_pct:+.2f}%)",
-        f"----------------------------",
-        f"✅ 狀態：Healthy"
+        f"----------------------------"
     ]
     return "\n".join(msg)
 

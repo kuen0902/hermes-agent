@@ -1,11 +1,17 @@
 # TAIEX Sync & Monitoring Troubleshooting
 
 ## 1. Monitor Silence (No Messages Received)
-- **Cause A: Empty Central Cache**. If `taiex_central_data_sync.py` fails to read Numbers (e.g., Numbers is closed), the `personal_data` field in the central JSON becomes `{}`. Monitors reading this will have no tickers to check.
+- **Cause A: Shell Script Permissions**. Scripts like `run_portfolio_eod.sh` may lose executable bits if edited outside the terminal.
+    - **Fix**: Run `chmod +x /Users/bookid/.hermes/scripts/*.sh`.
+- **Cause B: Sync Timeouts (High Volume)**. Synchronizing 1,900+ stock CSVs can exceed 60s, causing cron failure (Exit Code 124).
+    - **Fix**: Use the `Fast Sync` mode (`--fast`). This restricts historical updates to tickers defined in the central cache.
+- **Cause C: Empty Central Cache**. If `taiex_central_data_sync.py` fails to read Numbers (e.g., Numbers is closed), the `personal_data` field in the central JSON becomes `{}`. Monitors reading this will have no tickers to check.
     - **Fix**: Check `pgrep Numbers`. Use `open StockTracking_Daily.numbers` to force it open.
 - **Cause B: Stale Telegram Token**. Even if the script finds 10+ changes, it will fail to send if the token is unauthorized (401).
     - **Fix**: Test the token with `curl https://api.telegram.org/bot<TOKEN>/getMe`.
-- **Cause C: Lock Files**. Check for `*.lock` files in `~/.hermes/data/`. If a script crashed before releasing a lock, it might skip the next run.
+- **Cause D: Missing Cost Basis (0.0)**. If `central_stock_data.json` shows cost as `0.0`, the P/L calculation in reports will be skewed or hidden.
+    - **Fix**: Ensure the Numbers file `Portfolio` sheet has valid numbers in Column 5. AppleScript may return `missing value` if cells are formatted as plain text or are empty. Check `taiex_central_data_sync.py` logs for `Numbers Fetch Error`.
+- **Cause E: Lock Files**. Check for `*.lock` files in `~/.hermes/data/`. If a script crashed before releasing a lock, it might skip the next run.
 
 ## 2. Numbers Extraction Index Errors
 - **Symptom**: `execution error: Numbers Creator Studio發生錯誤：無法取得「document 1」。索引錯誤。 (-1719)`

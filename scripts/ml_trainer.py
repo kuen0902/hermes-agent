@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-import pandas_ta as ta
+import pandas_ta_classic as ta
 import numpy as np
 import xgboost as xgb
 import joblib
@@ -29,7 +29,7 @@ def prepare_features(df):
     # MACD
     macd = ta.macd(df['Close'])
     if macd is not None:
-        df = pd.concat([df, macd], axis=1)
+        df = pd.concat([df, macd], axis=1)  # type: ignore
     
     # 3. Volatility & Volume
     df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)

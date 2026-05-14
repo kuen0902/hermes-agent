@@ -1,6 +1,26 @@
 import os
+import sys
+import subprocess
 import pandas as pd
-import pandas_ta as ta
+
+# Auto-install missing dependencies for cron execution
+missing_deps = []
+try:
+    import pandas_ta_classic
+except ImportError:
+    # The original pandas-ta is unmaintained and missing versions for Py3.10.
+    # 'pandas-ta-classic' is the community-maintained drop-in replacement.
+    missing_deps.append("pandas-ta-classic")
+try:
+    import joblib
+except ImportError:
+    missing_deps.append("joblib")
+
+if missing_deps:
+    print(f"Auto-installing missing dependencies: {', '.join(missing_deps)}...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install"] + missing_deps)
+
+import pandas_ta_classic as ta
 import joblib
 import json
 from datetime import datetime
@@ -64,6 +84,7 @@ def analyze_confluence():
 
     all_files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')]
     output = [
+        "[[as_document]]\n",
         f"🏛️ **AI Architect: 台股收盤綜合分析報告**",
         f"📅 日期：`{datetime.now().strftime('%Y-%m-%d')}`",
         f"💡 *分析維度：盤中量價微觀 + 歷史趨勢宏觀 + ML 訊號*",
@@ -88,8 +109,8 @@ def analyze_confluence():
         # Historical Stats
         hist_df['ATR_14'] = ta.atr(hist_df['High'], hist_df['Low'], hist_df['Close'], length=14)
         hist_df['VOL_SMA_20'] = ta.sma(hist_df['Volume'], length=20)
-        avg_atr = hist_df['ATR_14'].iloc[-1]
-        avg_vol = hist_df['VOL_SMA_20'].iloc[-1]
+        avg_atr = hist_df['ATR_14'].iloc[-1]  # type: ignore
+        avg_vol = hist_df['VOL_SMA_20'].iloc[-1]  # type: ignore
         
         # Intraday Summary
         intra = load_intraday_summary(code)
@@ -102,7 +123,7 @@ def analyze_confluence():
         hist_df['EMA_26'] = ta.ema(hist_df['Close'], length=26)
         hist_df['RSI_14'] = ta.rsi(hist_df['Close'], length=14)
         macd = ta.macd(hist_df['Close'])
-        if macd is not None: hist_df = pd.concat([hist_df, macd], axis=1)
+        if macd is not None: hist_df = pd.concat([hist_df, macd], axis=1)  # type: ignore
         hist_df['Ret_1'] = hist_df['Close'].pct_change(1)
         hist_df['Ret_5'] = hist_df['Close'].pct_change(5)
         hist_df['Vol_Ratio'] = hist_df['Volume'] / (avg_vol + 1e-9)

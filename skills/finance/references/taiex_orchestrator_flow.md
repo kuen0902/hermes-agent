@@ -26,6 +26,13 @@ The current TAIEX automation in this environment follows a multi-script, decoupl
         - Calculate unrealized P/L based on Numbers data.
         - Send to specific Telegram Chat IDs (Personal/William/Group).
 
+4. **The EOD Analyzer**: `/Users/bookid/.hermes/scripts/run_portfolio_eod.sh`
+    - **Trigger**: 14:30 Daily.
+    - **Logic**: 
+        - Runs `daily_historical_sync.py --fast` to sync history for core holdings.
+        - Runs `confluence_eod_analysis.py` to combine intraday volume momentum with ML macro trend signals.
+        - **Output**: Generates Markdown reports in `~/Documents/Reports/Analysis_Logs/Daily_Confluence/`.
+
 ## Data Schema Summary
 - **Primary Data**: `~/.hermes/data/central_stock_data.json`
 - **Delta/10M Tracking**: `~/.hermes/data/*_last_prices.json`

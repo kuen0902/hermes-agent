@@ -12,6 +12,7 @@ import subprocess
 import json
 import os
 import time
+import re
 from datetime import datetime
 import requests  # type: ignore
 import pandas as pd  # type: ignore
@@ -78,13 +79,16 @@ def get_personal_tickers():
         result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True, timeout=30)
         if result.returncode == 0:
             lines = result.stdout.strip().split('\n')
+            ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
             for line in lines:
                 parts = line.split('\t')
                 if len(parts) >= 4:
                     c = parts[0].strip().strip("'")
                     if "." in c and c.split(".")[-1] == "0": c = c.split(".")[0]
+                    raw_name = parts[1].strip()
+                    clean_name = ansi_escape.sub('', raw_name)
                     portfolio[c] = {
-                        "name": parts[1].strip(),
+                        "name": clean_name,
                         "qty": float(parts[2]) if parts[2] != "missing value" and parts[2].strip() else 0,
                         "avg": float(parts[3]) if parts[3] != "missing value" and parts[3].strip() else 0
                     }

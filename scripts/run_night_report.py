@@ -65,6 +65,10 @@ def main():
         full_msg = adri_report or futures_report
 
     if full_msg:
+        # Add final status if not present (only if everything is healthy)
+        if "健康檢查" not in full_msg:
+            full_msg += "\n✅ 狀態：Healthy"
+        
         print(f"DEBUG: Sending message:\n{full_msg}")
         # Send
         for cid in TARGET_CHATS:

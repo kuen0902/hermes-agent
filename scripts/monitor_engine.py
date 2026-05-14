@@ -69,16 +69,12 @@ def get_target_stocks(profile_name, central_store):
         return {"William觀察名單": ["8996", "5289", "4966", "3583", "8210", "2327", "5347", "2402", "6510", "3211", "6290", "6669", "6147", "7828", "7815", "7769", "6877", "6683", "3709"]}
     elif profile_name == "group":
         categories = {
-            "我的核心持股": list(personal_data.keys()),
             "Kim哥推薦組": ["1513", "2049", "5347", "6147", "3709"],
             "正體鍾文字組": ["2408", "2382", "2327"],
             "順風老師組": ["2313", "6285", "5289"],
             "進莫組": ["4543", "6125", "7828"],
             "大盤積分組": ["2330", "2454", "3037"]
         }
-        personal_keys = set(personal_data.keys())
-        for cat in ["Kim哥推薦組", "正體鍾文字組", "順風老師組", "進莫組", "大盤積分組"]:
-            categories[cat] = [c for c in categories[cat] if c not in personal_keys]
         return categories
     return {}
 

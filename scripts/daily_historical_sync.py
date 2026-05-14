@@ -56,19 +56,33 @@ def verify_health(file_path):
     except:
         return False
 
-def sync_all():
-    print(f"--- Starting Daily Historical Sync [{datetime.now().strftime('%Y-%m-%d %H:%M')}] ---")
+def sync_all(fast_mode=False):
+    print(f"--- Starting Daily Historical Sync [{'Fast' if fast_mode else 'Full'}] [{datetime.now().strftime('%Y-%m-%d %H:%M')}] ---")
     
-    # 1. Get latest stock list
-    symbols_map = get_tw_stock_list()
+    # 1. Get symbols to sync
+    symbols_map = {}
+    if fast_mode:
+        try:
+            with open(os.path.expanduser("~/.hermes/data/central_stock_data.json"), 'r') as f:
+                c_data = json.load(f)
+                symbols_map = {k + (".TW" if "." not in k else ""): v for k, v in c_data.get("full_mapping", {}).items()}
+        except:
+            print("Fast mode requested but central_stock_data.json missing. Falling back to full.")
+            symbols_map = get_tw_stock_list()
+    else:
+        symbols_map = get_tw_stock_list()
+    
     all_symbols = list(symbols_map.keys())
     
     # 2. Identify missing vs existing
     existing_files = {f.split('_')[0]: f for f in os.listdir(DATA_DIR) if f.endswith('.csv')}
     
-    # 3. Process existing (In batches of 100)
+    # 3. Process to update (Prioritize fast_mode symbols)
     to_update = [s for s in all_symbols if s in existing_files]
-    print(f"Updating {len(to_update)} existing records...")
+    if fast_mode:
+        print(f"Fast Sync: Updating {len(to_update)} core monitoring stocks...")
+    else:
+        print(f"Full Sync: Updating {len(to_update)} existing records...")
     
     # We download last 7 days to cover weekends/holidays/late settlements
     end_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -80,6 +94,10 @@ def sync_all():
         try:
             # Disable threads to prevent SQLite lock errors
             data = yf.download(chunk, start=start_date, end=end_date, group_by='ticker', threads=False, progress=False)
+            if data is None or data.empty:
+                print(f"Batch {i//chunk_size + 1} returned no data.")
+                continue
+                
             for ticker in chunk:
                 try:
                     new_data = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
@@ -108,8 +126,9 @@ def sync_all():
         for ticker in new_tickers:
             try:
                 # Try to get 15 years for new listings
-                t_data = yf.download(ticker, period="max", interval="1d", progress=False).dropna()
-                if not t_data.empty:
+                t_data = yf.download(ticker, period="max", interval="1d", progress=False)
+                if t_data is not None and not t_data.empty:
+                    t_data = t_data.dropna()
                     name = symbols_map.get(ticker, "Unknown").replace("/", "_")
                     file_path = os.path.join(DATA_DIR, f"{ticker}_{name}.csv")
                     t_data.to_csv(file_path)
@@ -119,4 +138,6 @@ def sync_all():
     print(f"--- Sync Complete ---")
 
 if __name__ == "__main__":
-    sync_all()
+    import sys
+    fast = "--fast" in sys.argv
+    sync_all(fast_mode=fast)

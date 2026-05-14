@@ -9,5 +9,5 @@ python3 /Users/bookid/.hermes/scripts/day_market_gatekeeper.py || {
     fi
 }
 set -e
-python3 /Users/bookid/.hermes/scripts/daily_historical_sync.py
+python3 /Users/bookid/.hermes/scripts/daily_historical_sync.py --fast
 python3 /Users/bookid/.hermes/scripts/confluence_eod_analysis.py

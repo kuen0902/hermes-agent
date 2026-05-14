@@ -2,9 +2,7 @@ Deep Analysis SOP: Extract 5 params (Rev, GM, OPM, Net, EPS) + Explain + Struct 
 §
 User has a specific interest in AI research tools and knowledge management, currently focusing on Google NotebookLM workflows.
 §
-User has a single lot (1000 shares) of MediaTek (2454) with a cost basis of 2655, and Unimicron (3037) with a cost basis of 514. Verified these against user's actual portfolio screenshots for 100% accuracy in calculations.
-§
-Monitoring Filter Rule: Use absolute percentage values for diff thresholds (e.g., |Price-PrevClose| > 3% or |Price-LastPrice| > 2%). Do not send reports with "Unhealthy" or "Error" tags; diagnose and verify health before delivery.
+User has holdings: MediaTek (2454) cost 3430, Kingboard (2368) cost 1410 (Purchased 05-12), Unimicron (3037) cost 514, ADATA (3260) cost 463.19. Sold: Advantech (2395) @ 474 (05-11), MTK old lot (2655) on 05-12. Verified against 'Portfolio' sheet. Email: kuen0902@gmail.com.
 §
 Primary stock monitoring scripts (stock_monitor.py, group_stock_monitor.py) are linked to the 'StockTracking_Daily.numbers' spreadsheet as the source of truth for the 22 core holdings and 39 monitored symbols.
 §
@@ -14,6 +12,6 @@ User workflow: Provides screenshots of mobile trading apps (e.g., "Today's Trade
 §
 User prefers having significant system administrative changes (like cron job removals) logged into persistent memory for auditing.
 §
-System Architecture: All TAIEX monitoring is now centralized via `taiex_orchestrator.py` (Job `f95f14b437ee`). Legacy individual monitor cron jobs are paused to ensure data consistency and prevent API 429 errors. Monitoring is filtered to report only |Price-PrevClose| > 3% or |Price-LastPrice| > 2%.
+System Architecture: All TAIEX monitoring is now centralized via `taiex_orchestrator.py` (Job `f95f14b437ee`). Legacy individual monitor cron jobs are paused. To balance sensitivity and privacy: (1) Alert threshold `TIERS` in `monitor_engine.py` is restored to `[3.0, 5.0, 7.0, 9.0]`, (2) The `group` profile is patched to never include `personal_data` (private holdings) in public reports. Monitoring is filtered to report only milestones. Sync frequency: 30m.
 §
 User has 1 lot (1000 shares) of ADATA (3260) with a cost basis of 463.19. (Note: Cost basis verified as 463.19 per user input 2026-05-13).

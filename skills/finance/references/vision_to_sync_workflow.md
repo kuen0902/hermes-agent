@@ -24,9 +24,11 @@ When the user sends a screenshot of a trade:
     - Cross-reference the current portfolio in Numbers.
     - Use **Backward Iteration** in AppleScript to delete the row matching the ticker.
     - Calculate finalized P/L: `(Sell Price - Buy Cost) * Qty * 1000`.
-- **For Buys**:
-    - Use the **Robust Append Logic** (`make new row at end of rows`).
-    - Col 1: Ticker, Col 2: Name, Col 3: Qty, Col 4: Cost.
+- **For Buys (New or Add-on)**:
+    - **Check Existing**: Search for the ticker in the `Portfolio` sheet first. 
+    - **Add-on Logic**: If the ticker exists, perform **Weighted Average Calculation** in the script: `newAvg = (oldQty * oldCost + newQty * newCost) / (oldQty + newQty)`. Update the existing row instead of adding a new one.
+    - **New Position**: If it doesn't exist, use the **Robust Append Logic** (`make new row at end of rows`).
+    - Col 1: Ticker, Col 2: Name, Col 3: Qty, Col 5: Cost. (Note: Col 5 is historically used for Avg Cost in this user's template).
 
 ## 4. Verification & Sync
 After updating the spreadsheet:

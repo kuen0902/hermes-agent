@@ -29,7 +29,8 @@ end tell
   end tell
   ```
 - **Row Iteration (Precision)**: Use when filtering or updating specific tickers. Search 'cell 1' for ticker -> Update 'cell X' in the same row.
-- **Safe Row Deletion (Backward Iteration)**: Always delete from bottom to top (e.g., `repeat with i from rowCount to 2 by -1`) to preserve index integrity.
+- **Robust Listing (Python + osascript)**: For complex output formatting, use `execute_code` with `subprocess.run` to call `osascript`. This prevents terminal output mangling.
+- **Safe Row Deletion**: Identify the row index first, then issue a `remove row {index}` command.
 - **Robust Append Logic**: Use `make new row at end of rows` to avoid calculation errors with `count + 1`.
 - **Object Hierarchy Safety**: Always nested `tell document X -> tell sheet Y -> tell table Z`. Avoid `document X of table Y` errors.
 - **Value Casting**: Explicitly cast using `as string` or `as real` for reliability in comparative logic.

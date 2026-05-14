@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-import pandas_ta as ta
+import pandas_ta_classic as ta
 import joblib
 import json
 from datetime import datetime
@@ -60,10 +60,10 @@ def analyze_portfolio():
             df['RSI_14'] = ta.rsi(df['Close'], length=14)
             macd = ta.macd(df['Close'])
             if macd is not None:
-                df = pd.concat([df, macd], axis=1)
+                df = pd.concat([df, macd], axis=1)  # type: ignore
             df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
             df['VOL_SMA_20'] = ta.sma(df['Volume'], length=20)
-            df['Vol_Ratio'] = df['Volume'] / (df['VOL_SMA_20'] + 1e-9)
+            df['Vol_Ratio'] = df['Volume'] / (df['VOL_SMA_20'] + 1e-9)  # type: ignore
             df['Ret_1'] = df['Close'].pct_change(1)
             df['Ret_5'] = df['Close'].pct_change(5)
             
