@@ -11,7 +11,10 @@ def run_script(name):
         # DO NOT remove locks here. Let the scripts handle their own pacing.
         # The orchestrator is just a trigger.
         
-        result = subprocess.run(["python3", path], capture_output=True, text=True)
+        if name.endswith(".swift"):
+            result = subprocess.run([path], capture_output=True, text=True)
+        else:
+            result = subprocess.run(["python3", path], capture_output=True, text=True)
         print(result.stdout)
         if result.stderr: print(f"Error: {result.stderr}")
     except Exception as e:
@@ -50,7 +53,7 @@ def main():
     sync_numbers_filename()
     
     # 1. Sync Data (The Gatherer)
-    run_script("taiex_central_data_sync.py")
+    run_script("hermes_sync.swift")
     
     # 2. Distribute (The Bots)
     # They will only send if they haven't sent in the last 8 minutes.

@@ -10,17 +10,19 @@
 # ///
 import subprocess
 import json
-import os
 import time
 import re
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 import requests  # type: ignore
 import pandas as pd  # type: ignore
 import urllib3  # type: ignore
 import yfinance as yf  # type: ignore
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def get_session():
+def get_session() -> requests.Session:
     session = requests.Session()
     session.headers.update({
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
@@ -28,13 +30,15 @@ def get_session():
     return session
 
 # Configuration
-NUMBERS_PATH = "/Users/bookid/Documents/StockTracking_Daily.numbers"
-CACHE_FILE = "/Users/bookid/.hermes/data/central_stock_data.json"
-HISTORY_LOG_FILE = "/Users/bookid/.hermes/data/intraday_data_log.csv"
+NUMBERS_PATH = Path("/Users/bookid/Documents/StockTracking_Daily.numbers")
+CACHE_FILE = Path("/Users/bookid/.hermes/data/central_stock_data.json")
+HISTORY_LOG_FILE = Path("/Users/bookid/.hermes/data/intraday_data_log.csv")
 
-def get_personal_tickers():
+type PortfolioDict = dict[str, dict[str, Any]]
+
+def get_personal_tickers() -> PortfolioDict:
     """Fetches Ticker, Name, Qty, and Avg Cost from Numbers 'Portfolio' sheet."""
-    portfolio = {}
+    portfolio: PortfolioDict = {}
     script = """
     set output to ""
     tell application "Numbers"
@@ -73,7 +77,7 @@ def get_personal_tickers():
         process_check = subprocess.run(['pgrep', 'Numbers'], capture_output=True)
         if process_check.returncode != 0:
             print("Numbers is not running. Attempting to open...")
-            subprocess.run(['open', NUMBERS_PATH])
+            subprocess.run(['open', str(NUMBERS_PATH)])
             time.sleep(5)
 
         result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True, timeout=30)
@@ -96,21 +100,21 @@ def get_personal_tickers():
         print(f"Numbers Fetch Error: {e}")
     return portfolio
 
-def log_to_csv(data, codes_mapping):
+def log_to_csv(data: dict[str, dict[str, Any]], codes_mapping: dict[str, str]) -> None:
     """Logs intraday data to a persistent CSV for reference."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    file_exists = os.path.exists(HISTORY_LOG_FILE)
-    os.makedirs(os.path.dirname(HISTORY_LOG_FILE), exist_ok=True)
-    with open(HISTORY_LOG_FILE, 'a') as f:
+    file_exists = HISTORY_LOG_FILE.exists()
+    HISTORY_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with HISTORY_LOG_FILE.open('a') as f:
         if not file_exists:
             f.write("timestamp,code,name,price,volume,pct_change\n")
         for code, info in data.items():
             name = codes_mapping.get(code, "Unknown")
             f.write(f"{now},{code},{name},{info['price']},{info['volume']},{info['pct']:.4f}\n")
 
-def fetch_twse_data(codes):
+def fetch_twse_data(codes: list[str]) -> dict[str, dict[str, Any]]:
     """Fetches real-time data from TWSE/OTC API."""
-    results = {}
+    results: dict[str, dict[str, Any]] = {}
     session = get_session()
     ex_ch_list = []
     for code in codes:
@@ -133,7 +137,7 @@ def fetch_twse_data(codes):
                     if price_str == '-': price_str = item.get('o', '-')
                     try:
                         price = float(price_str)
-                    except:
+                    except ValueError:
                         continue
                     yclose = float(item.get('y', price))
                     volume = int(item.get('v', 0))
@@ -153,9 +157,9 @@ def fetch_twse_data(codes):
             print(f"API Fetch Error: {e}")
     return results
 
-def fetch_yfinance_fallback(codes):
+def fetch_yfinance_fallback(codes: list[str]) -> dict[str, dict[str, Any]]:
     """Fetches data via yfinance for tickers that failed TWSE API."""
-    results = {}
+    results: dict[str, dict[str, Any]] = {}
     if not codes: return results
     for c in codes:
         for suffix in [".TW", ".TWO"]:
@@ -177,11 +181,11 @@ def fetch_yfinance_fallback(codes):
                         "time": datetime.now().isoformat()
                     }
                     break
-            except:
+            except Exception:
                 continue
     return results
 
-def sync():
+def sync() -> None:
     print("Starting Central Stock Data Sync (TWSE API + YF Fallback)...")
     personal_data = get_personal_tickers()
     william_defaults = {
@@ -235,10 +239,13 @@ def sync():
         "full_mapping": mapping,
         "data": market_data
     }
-    os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
-    with open(CACHE_FILE, 'w') as f:
-        json.dump(output, f, indent=2, ensure_ascii=False)
+    CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    CACHE_FILE.write_text(json.dumps(output, indent=2, ensure_ascii=False))
     print(f"Sync Complete: {healthy_count} stocks updated. Status: {status}")
 
 if __name__ == "__main__":
+    import time
+    start_time = time.time()
     sync()
+    end_time = time.time()
+    print(f"Process Time: {end_time - start_time:.2f}s")
