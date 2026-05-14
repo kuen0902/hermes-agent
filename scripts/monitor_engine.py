@@ -6,6 +6,7 @@ from datetime import datetime
 import ssl
 from pathlib import Path
 from typing import Any
+import subprocess
 
 # Profile Configurations
 type ProfileConfig = dict[str, str]
@@ -48,6 +49,17 @@ def get_current_tier(pct: float) -> int:
         if abs_pct >= t:
             crossed = int(t)
     return crossed * (1 if pct >= 0 else -1)
+
+def send_mac_notification(title: str, subtitle: str, message: str) -> None:
+    try:
+        clean_msg = message.replace("**", "").replace("`", "").replace("*", "")
+        clean_title = title.replace("**", "").replace("`", "").replace("*", "")
+        if len(clean_msg) > 200:
+            clean_msg = clean_msg[:197] + "..."
+        exe_path = str(Path("~/.hermes/scripts/swift_notifier_exe").expanduser())
+        subprocess.Popen([exe_path, clean_title, subtitle, clean_msg])
+    except Exception as e:
+        print(f"Mac Notification Error: {e}")
 
 def send_telegram(token: str, chat_id: str, message: str) -> bool:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -129,6 +141,7 @@ def run(profile_name: str, capture_only: bool = False) -> None:
             if send_telegram(cfg["token"], cfg["chat_id"], header + body):
                 open_file_path.write_text(json.dumps({"date": today_str}))
                 cache_file_path.write_text(json.dumps(current_cache))
+            send_mac_notification(cfg["header_open"], today_str, body)
         else:
             print(header + body)
         return
@@ -177,6 +190,7 @@ def run(profile_name: str, capture_only: bool = False) -> None:
         if not capture_only:
             send_telegram(cfg["token"], cfg["chat_id"], report_content)
             cache_file_path.write_text(json.dumps(current_cache))
+            send_mac_notification(cfg["header_alert"], "里程碑突破", "".join(report_lines))
         else:
             print(report_content)
     else:
