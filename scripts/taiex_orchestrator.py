@@ -4,17 +4,17 @@ import time
 
 SCRIPTS_DIR = "/Users/bookid/.hermes/scripts"
 
-def run_script(name):
+def run_script(name, *args):
     path = os.path.join(SCRIPTS_DIR, name)
-    print(f"--- Executing {name} ---")
+    print(f"--- Executing {name} {' '.join(args)} ---")
     try:
         # DO NOT remove locks here. Let the scripts handle their own pacing.
         # The orchestrator is just a trigger.
         
         if name.endswith(".swift"):
-            result = subprocess.run([path], capture_output=True, text=True)
+            result = subprocess.run([path] + list(args), capture_output=True, text=True)
         else:
-            result = subprocess.run(["python3", path], capture_output=True, text=True)
+            result = subprocess.run(["python3", path] + list(args), capture_output=True, text=True)
         print(result.stdout)
         if result.stderr: print(f"Error: {result.stderr}")
     except Exception as e:
@@ -56,10 +56,10 @@ def main():
     run_script("hermes_sync.swift")
     
     # 2. Distribute (The Bots)
-    # They will only send if they haven't sent in the last 8 minutes.
-    run_script("stock_monitor.py")
-    run_script("william_stock_monitor.py")
-    run_script("group_stock_monitor.py")
+    # They will only send if they cross a tier threshold.
+    run_script("hermes_monitor.swift", "--profile", "personal")
+    run_script("hermes_monitor.swift", "--profile", "william")
+    run_script("hermes_monitor.swift", "--profile", "group")
 
 if __name__ == "__main__":
     main()

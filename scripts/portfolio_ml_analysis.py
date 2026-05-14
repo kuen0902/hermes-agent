@@ -1,40 +1,39 @@
-import os
 import pandas as pd
 import pandas_ta_classic as ta
 import joblib
 import json
 from datetime import datetime
+from pathlib import Path
+from typing import Any
 
 # Configuration
-DATA_DIR = os.path.expanduser("~/Documents/StockData_History_Final")
-MODEL_DIR = os.path.expanduser("~/.hermes/models")
-PORTFOLIO_JSON = os.path.expanduser("~/.hermes/data/central_stock_data.json")
+DATA_DIR = Path("~/Documents/StockData_History_Final").expanduser()
+MODEL_DIR = Path("~/.hermes/models").expanduser()
+PORTFOLIO_JSON = Path("~/.hermes/data/central_stock_data.json").expanduser()
 
-def analyze_portfolio():
+def analyze_portfolio() -> None:
     print("--- AI Architect: Portfolio ML Deep Dive ---")
     
     # 1. Load Models
     try:
-        model_buy = joblib.load(os.path.join(MODEL_DIR, "buy_signal_v1.pkl"))
-        model_sell = joblib.load(os.path.join(MODEL_DIR, "sell_signal_v1.pkl"))
-        with open(os.path.join(MODEL_DIR, "model_meta.json"), 'r') as f:
-            meta = json.load(f)
-            feature_cols = meta["features"]
+        model_buy = joblib.load(MODEL_DIR / "buy_signal_v1.pkl")
+        model_sell = joblib.load(MODEL_DIR / "sell_signal_v1.pkl")
+        meta = json.loads((MODEL_DIR / "model_meta.json").read_text())
+        feature_cols = meta["features"]
     except Exception as e:
         print(f"Failed to load models: {e}")
         return
 
     # 2. Load Portfolio
     try:
-        with open(PORTFOLIO_JSON, 'r') as f:
-            portfolio_data = json.load(f)
+        portfolio_data = json.loads(PORTFOLIO_JSON.read_text())
         holdings = portfolio_data.get("personal_data", {})
     except Exception as e:
         print(f"Failed to load portfolio: {e}")
         return
 
-    all_files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv')]
-    results = []
+    all_files = [f.name for f in DATA_DIR.glob('*.csv')]
+    results: list[dict[str, Any]] = []
 
     for code, info in holdings.items():
         match_f = None
@@ -47,7 +46,7 @@ def analyze_portfolio():
         if not match_f: 
             continue
         
-        path = os.path.join(DATA_DIR, match_f)
+        path = DATA_DIR / match_f
         try:
             df = pd.read_csv(path)
             if len(df) < 70: continue
@@ -71,8 +70,8 @@ def analyze_portfolio():
             X = latest[feature_cols]
             
             # ML Probs
-            prob_buy = model_buy.predict_proba(X)[0][1]
-            prob_sell = model_sell.predict_proba(X)[0][1]
+            prob_buy = float(model_buy.predict_proba(X)[0][1])
+            prob_sell = float(model_sell.predict_proba(X)[0][1])
             
             current_price = float(latest['Close'].iloc[0])
             avg_cost = float(info.get('avg', 0))
@@ -87,7 +86,8 @@ def analyze_portfolio():
                 "buy_conf": prob_buy,
                 "sell_conf": prob_sell
             })
-        except: continue
+        except Exception as e:
+            continue
 
     # 3. Format Output
     output = [

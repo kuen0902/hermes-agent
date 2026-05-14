@@ -1,41 +1,43 @@
 import json
 import urllib.request
 import urllib.parse
-import sys
 import os
-import time
 from datetime import datetime
 import ssl
+from pathlib import Path
+from typing import Any
 
 # Profile Configurations
-PROFILES = {
+type ProfileConfig = dict[str, str]
+
+PROFILES: dict[str, ProfileConfig] = {
     "personal": {
         "token": "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU", # Star Platinum
         "chat_id": "6326497055",
-        "cache_file": "/Users/bookid/.hermes/data/user_stock_last_prices.json",
-        "open_file": "/Users/bookid/.hermes/data/user_day_open_report_sent.json",
+        "cache_file": str(Path("~/.hermes/data/user_stock_last_prices.json").expanduser()),
+        "open_file": str(Path("~/.hermes/data/user_day_open_report_sent.json").expanduser()),
         "header_open": "🎖️ **黃金體驗 - 09:00 開盤決報**",
         "header_alert": "⚖️ **白金之星 - 精密階梯波動警戒**",
     },
     "william": {
         "token": "8678817340:AAHLd6ObYqUUTfygY-fPf57Rw6SfOO2WEGQ", # William Bot
         "chat_id": "8695583357",
-        "cache_file": "/Users/bookid/.hermes/data/william_stock_last_prices.json",
-        "open_file": "/Users/bookid/.hermes/data/william_day_open_report_sent.json",
+        "cache_file": str(Path("~/.hermes/data/william_stock_last_prices.json").expanduser()),
+        "open_file": str(Path("~/.hermes/data/william_day_open_report_sent.json").expanduser()),
         "header_open": "🔷 **小智 (William) - 09:00 開盤快報**",
         "header_alert": "🔷 **小智 (William) - 階梯波動注意**",
     },
     "group": {
         "token": "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU", # Star Platinum
         "chat_id": "-1003744330314",
-        "cache_file": "/Users/bookid/.hermes/data/group_stock_last_prices.json",
-        "open_file": "/Users/bookid/.hermes/data/day_open_report_sent.json",
+        "cache_file": str(Path("~/.hermes/data/group_stock_last_prices.json").expanduser()),
+        "open_file": str(Path("~/.hermes/data/day_open_report_sent.json").expanduser()),
         "header_open": "☀️ **09:00 開盤即時戰報**",
         "header_alert": "⚡ **盤中階梯變動追蹤**",
     }
 }
 
-CENTRAL_DATA_FILE = "/Users/bookid/.hermes/data/central_stock_data.json"
+CENTRAL_DATA_FILE = Path("~/.hermes/data/central_stock_data.json").expanduser()
 TIERS = [3.0, 5.0, 7.0, 9.0]
 
 def get_current_tier(pct: float) -> int:
@@ -47,7 +49,7 @@ def get_current_tier(pct: float) -> int:
             crossed = int(t)
     return crossed * (1 if pct >= 0 else -1)
 
-def send_telegram(token, chat_id, message):
+def send_telegram(token: str, chat_id: str, message: str) -> bool:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     ctx = ssl._create_unverified_context()
     payload = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
@@ -60,7 +62,7 @@ def send_telegram(token, chat_id, message):
         print(f"Telegram Error: {e}")
         return False
 
-def get_target_stocks(profile_name, central_store):
+def get_target_stocks(profile_name: str, central_store: dict[str, Any]) -> dict[str, list[str]]:
     personal_data = central_store.get("personal_data", {})
     if profile_name == "personal":
         keys = list(personal_data.keys())
@@ -78,14 +80,14 @@ def get_target_stocks(profile_name, central_store):
         return categories
     return {}
 
-def run(profile_name: str, capture_only=False):
+def run(profile_name: str, capture_only: bool = False) -> None:
     if profile_name not in PROFILES:
         print(f"Invalid profile: {profile_name}")
         return
         
     cfg = PROFILES[profile_name]
-    if not os.path.exists(CENTRAL_DATA_FILE): return
-    with open(CENTRAL_DATA_FILE, 'r') as f: central_store = json.load(f)
+    if not CENTRAL_DATA_FILE.exists(): return
+    central_store = json.loads(CENTRAL_DATA_FILE.read_text())
     
     mapping = central_store.get("full_mapping", {})
     market_data = central_store.get("data", {})
@@ -95,15 +97,18 @@ def run(profile_name: str, capture_only=False):
     today_str = now.strftime("%Y-%m-%d")
     is_opening = now.hour == 9 and 0 <= now.minute <= 10
     
+    open_file_path = Path(cfg["open_file"])
+    cache_file_path = Path(cfg["cache_file"])
+    
     # 1. OPENING REPORT LOGIC
-    open_state = {}
-    if os.path.exists(cfg["open_file"]):
-        with open(cfg["open_file"], 'r') as f: open_state = json.load(f)
+    open_state: dict[str, Any] = {}
+    if open_file_path.exists():
+        open_state = json.loads(open_file_path.read_text())
         
     if is_opening and open_state.get("date") != today_str:
         header = f"{cfg['header_open']}\n📅 日期：`{today_str}`\n"
         body = ""
-        current_cache = {}
+        current_cache: dict[str, Any] = {}
         for cat, codes in target_categories.items():
             if profile_name == "group": body += f"\n📌 **{cat}**\n"
             for code in codes:
@@ -122,23 +127,23 @@ def run(profile_name: str, capture_only=False):
                 
         if not capture_only:
             if send_telegram(cfg["token"], cfg["chat_id"], header + body):
-                with open(cfg["open_file"], 'w') as f: json.dump({"date": today_str}, f)
-                with open(cfg["cache_file"], 'w') as f: json.dump(current_cache, f)
+                open_file_path.write_text(json.dumps({"date": today_str}))
+                cache_file_path.write_text(json.dumps(current_cache))
         else:
             print(header + body)
         return
 
     # 2. TIERED MILESTONE MONITORING
-    last_cache = {}
-    if os.path.exists(cfg["cache_file"]):
-        with open(cfg["cache_file"], 'r') as f: last_cache = json.load(f)
+    last_cache: dict[str, Any] = {}
+    if cache_file_path.exists():
+        last_cache = json.loads(cache_file_path.read_text())
         
     # Migrate legacy float dictionary to new dict with {"price", "tier"}
     for k, v in last_cache.items():
-        if isinstance(v, float) or isinstance(v, int):
+        if isinstance(v, (float, int)):
             last_cache[k] = {"price": v, "tier": 0}
             
-    report_lines = []
+    report_lines: list[str] = []
     current_cache = last_cache.copy()
     
     for codes in target_categories.values():
@@ -171,7 +176,7 @@ def run(profile_name: str, capture_only=False):
         report_content = header + "".join(report_lines)
         if not capture_only:
             send_telegram(cfg["token"], cfg["chat_id"], report_content)
-            with open(cfg["cache_file"], 'w') as f: json.dump(current_cache, f)
+            cache_file_path.write_text(json.dumps(current_cache))
         else:
             print(report_content)
     else:
