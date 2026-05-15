@@ -136,6 +136,9 @@ func main() {
     runScript(name: "hermes_monitor", args: ["--profile", "personal"])
     runScript(name: "hermes_monitor", args: ["--profile", "william"])
     runScript(name: "hermes_monitor", args: ["--profile", "group"])
+    
+    // 3. Intraday Risk Monitor (Stop-Loss/Take-Profit check)
+    runScript(name: "intraday_risk_monitor.py")
 }
 
 // Execute
