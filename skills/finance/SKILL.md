@@ -17,6 +17,7 @@ This skill governs automated financial tracking, market data retrieval, and corp
 - **Telegram Bot Triage**: `references/telegram_bot_triage.md` (401/403 errors, sync triage, shell formatting rules).
 - **Numbers Automation**: `references/numbers_applescript.md` (Dynamic document discovery, row iteration, AppleScript safe operations).
 - **MOPS & Earnings Guidelines**: `references/mops_guidelines.md` (Taiwan MOPS scraping rules, Bot detection traps, CDN fallbacks, Calendar dates).
+- **The TAIEX Gatekeeper**: `references/taiex_gatekeeper_implementation.md` (Robust logic for market status checking).
 - **Night Session Rules**: `references/night_session_rules.md` (Script hardening, 05:00 Archive settlement, Gatekeeper logic).
 - **Script Hardening & Compatibility**: `references/script_hardening_automation.md` (Absolute paths, Python 3.11 vs 3.12 syntax, Cron PATH issues).
 - **Historical Reference**: `references/deep_analysis_template.md` (Obsidian report structure).
@@ -24,7 +25,10 @@ This skill governs automated financial tracking, market data retrieval, and corp
 
 ## 1. Market Data Retrieval (Yahoo Finance & TWSE API)
 
-- **The Market Open Gatekeeper (TAIEX)**: ⚠️ Mandatory for cron jobs. If `2330.TW` last index date != today (Taipei time), exit immediately.
+- **The Market Open Gatekeeper (TAIEX)**: ⚠️ Mandatory for cron jobs. Do not rely solely on simple chart dates.
+  - **TSMC Quote Method (Preferred)**: Check `2330.TW` via `quoteResponse`. 
+  - **Logic**: Proceed if `marketState` is `REGULAR`, `POST`, or `PRE`, or if `regularMarketTime` matches the local date.
+  - **Fallback**: Default to "OPEN" during Mon-Fri (08:30-15:30) if the API is unreachable to prevent automation stalls.
 - **The Hybrid Fallback Pattern**: Use TWSE API as primary. If a ticker returns `None`, trigger `yfinance` fallback.
 - **The Resilient Bridge (Anti-429 Defense)**: When Yahoo Finance returns 429/Empty, navigate to Google Finance/HiStock, and cache results in `/Users/bookid/.hermes/data/market_prices_bridge.json`.
 

@@ -31,6 +31,13 @@ def generate_signals():
         path = os.path.join(DATA_DIR, filename)
         try:
             df = pd.read_csv(path)
+            
+            # Ensure numeric types for price/volume
+            for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            df = df.dropna(subset=['High', 'Low', 'Close', 'Volume'])
+            
             if len(df) < 70: continue
             
             # Prepare latest data point

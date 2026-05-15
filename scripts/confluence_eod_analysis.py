@@ -104,6 +104,13 @@ def analyze_confluence():
 
         
         hist_df = pd.read_csv(os.path.join(DATA_DIR, match_f))
+        
+        # Ensure numeric types for price/volume
+        for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
+            if col in hist_df.columns:
+                hist_df[col] = pd.to_numeric(hist_df[col], errors='coerce')
+        hist_df = hist_df.dropna(subset=['High', 'Low', 'Close', 'Volume'])
+        
         if len(hist_df) < 30: continue
         
         # Historical Stats

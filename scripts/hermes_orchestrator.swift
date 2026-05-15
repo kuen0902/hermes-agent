@@ -18,7 +18,7 @@ func runScript(name: String, args: [String] = []) {
         process.arguments = args
     } else {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["python3", scriptPath] + args
+        process.arguments = ["/Users/bookid/workspace/hermes-agent/venv_314/bin/python", scriptPath] + args
     }
     
     let pipe = Pipe()
