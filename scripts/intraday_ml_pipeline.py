@@ -6,8 +6,15 @@ from datetime import datetime
 import urllib.request
 import urllib.parse
 import ssl
+import requests
+import matplotlib.pyplot as plt
+import matplotlib
 from sklearn.ensemble import RandomForestClassifier
 import joblib
+
+# 設定 matplotlib 支援中文 (macOS)
+plt.rcParams['font.sans-serif'] = ['PingFang TC', 'Arial Unicode MS', 'Heiti TC']
+plt.rcParams['axes.unicode_minus'] = False
 
 DATA_DIR = os.path.expanduser("~/.hermes/data")
 INTRADAY_LOG = os.path.join(DATA_DIR, "intraday_data_log.csv")
@@ -30,6 +37,16 @@ def send_telegram(message):
         urllib.request.urlopen(req, context=ctx, timeout=10)
     except Exception as e:
         print(f"Telegram failed: {e}")
+
+def send_telegram_photo(caption, image_path):
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+    try:
+        with open(image_path, 'rb') as f:
+            files = {'photo': f}
+            data = {'chat_id': CHAT_ID, 'caption': caption, 'parse_mode': 'Markdown'}
+            requests.post(url, data=data, files=files, timeout=15)
+    except Exception as e:
+        print(f"Telegram Photo failed: {e}")
 
 def load_predictions():
     if os.path.exists(PREDICTIONS_FILE):
@@ -60,11 +77,11 @@ def run_intraday_pipeline():
         print("今日無交易紀錄，跳過 ML 運算。")
         return
 
-    # 將時間序列切分為 10 分鐘級別 (Bins)
-    df_today['10m_bin'] = df_today['timestamp'].dt.floor('10T')
+    # 將時間序列切分為 5 分鐘級別 (Bins)
+    df_today['5m_bin'] = df_today['timestamp'].dt.floor('5min')
     
-    # 根據代碼與 10 分鐘區間進行分組聚合
-    grouped = df_today.groupby(['code', '10m_bin']).agg({
+    # 根據代碼與 5 分鐘區間進行分組聚合
+    grouped = df_today.groupby(['code', '5m_bin']).agg({
         'price': 'last', 
         'volume': 'sum',
         'name': 'first'
@@ -76,22 +93,53 @@ def run_intraday_pipeline():
     X_infer = []
     codes_infer = []
     
+    import pandas_ta_classic as ta
+    
     for code, group in grouped.groupby('code'):
-        group = group.sort_values('10m_bin')
+        group = group.sort_values('5m_bin')
         if len(group) < 5: continue
         
         prices = group['price'].values
         vols = group['volume'].values
         name = group['name'].values[0]
         
-        # 計算 10 分鐘區間漲跌幅與成交量變化
+        # 計算 5 分鐘區間漲跌幅與成交量變化
         returns = np.diff(prices) / prices[:-1]
         vol_changes = np.diff(vols) / (vols[:-1] + 1e-9)
         
         if len(returns) < 5: continue
         
-        # 擷取最後 5 個 10 分鐘區間作為短期動能特徵
+        # 擷取最後 5 個 5 分鐘區間作為短期動能特徵
         features = list(returns[-5:]) + list(vol_changes[-5:])
+        
+        # 計算技術指標
+        close_series = pd.Series(prices)
+        
+        # RSI(14)
+        if len(close_series) > 14:
+            rsi_series = ta.rsi(close_series, length=14)  # type: ignore
+            if rsi_series is not None and not rsi_series.empty:
+                rsi_val = rsi_series.iloc[-1]
+                if pd.isna(rsi_val): rsi_val = 50.0
+            else:
+                rsi_val = 50.0
+        else:
+            rsi_val = 50.0
+            
+        # MACD(12, 26, 9)
+        if len(close_series) > 26:
+            macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)  # type: ignore
+            if macd_df is not None and not macd_df.empty:
+                macd_line = macd_df.iloc[-1, 0]
+                macd_hist = macd_df.iloc[-1, 1]
+                if pd.isna(macd_line): macd_line = 0.0
+                if pd.isna(macd_hist): macd_hist = 0.0
+            else:
+                macd_line, macd_hist = 0.0, 0.0
+        else:
+            macd_line, macd_hist = 0.0, 0.0
+            
+        features.extend([rsi_val, macd_line, macd_hist])
         
         var = 0.0
         var_str = "無歷史紀錄"
@@ -160,12 +208,44 @@ def run_intraday_pipeline():
 
     save_predictions(new_predictions)
     
+    # 圖表產生邏輯
+    if codes_infer:
+        codes_infer.sort(key=lambda x: new_predictions[x[0]]['prob'])
+        y_labels = [f"{x[1]}({x[0]})" for x in codes_infer]
+        x_probs = [new_predictions[x[0]]['prob'] * 100 for x in codes_infer]
+        colors = []
+        for p in x_probs:
+            if p > 55: colors.append('red')
+            elif p < 45: colors.append('green')
+            else: colors.append('lightgray')
+            
+        plt.figure(figsize=(10, 8))
+        plt.barh(y_labels, x_probs, color=colors)
+        plt.axvline(x=50, color='black', linestyle='--', alpha=0.5)
+        plt.title(f"10-Min ML 盤後預測勝率分佈 ({today.strftime('%Y-%m-%d')})")
+        plt.xlabel("偏多勝率 (%)")
+        plt.xlim(0, 100)
+        
+        for i, v in enumerate(x_probs):
+            plt.text(v + 1, i, f"{v:.1f}%", va='center')
+            
+        image_path = os.path.join(DATA_DIR, "daily_ml_prediction.png")
+        plt.tight_layout()
+        plt.savefig(image_path)
+        plt.close()
+    
+    # 發送純文字訊息 (保留舊版)
     if report_lines:
-        msg = "🤖 **10-Min ML 盤後機器學習預測報告**\n\n"
-        msg += "整合當日 10 分鐘 K 線動能與預測誤差 (Variance)，重新計算明日漲跌預判：\n\n"
+        msg = "🤖 **5-Min ML 盤後機器學習預測報告**\n\n"
+        msg += "整合當日 5 分鐘 K 線動能與預測誤差 (Variance)，重新計算明日漲跌預判：\n\n"
         msg += "\n".join(report_lines)
         send_telegram(msg)
-        print("已發送 Telegram 預測報告。")
+        print("已發送 Telegram 純文字報告。")
+        
+        # 發送圖表訊息
+        if os.path.exists(image_path):
+            send_telegram_photo("📈 5-Min ML 全商品勝率分佈圖", image_path)
+            print("已發送 Telegram 圖表報告。")
     else:
         print("今日無強烈預測訊號。")
 

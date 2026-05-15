@@ -17,7 +17,7 @@ git add scripts/*.sh
 git add -f cron/jobs.json
 
 echo "📌 提交本次架構升級的版本紀錄..."
-git commit -m "feat(orchestrator): Migrate to Swift Native Binaries and Implement 10-Min Intraday ML Pipeline & Gatekeeper"
+git commit -m "feat(ml): Upgrade to 5-Min high frequency pipeline and implement RSI/MACD feature engineering"
 
 echo "📌 推送至遠端 FEATURE-IMPLEMENT_SWIFT 分支..."
 git push origin FEATURE-IMPLEMENT_SWIFT
