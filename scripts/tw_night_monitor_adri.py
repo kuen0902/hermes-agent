@@ -8,7 +8,18 @@ import json
 # Configuration
 SAVE_FILE = os.path.expanduser("~/.hermes/data/night_session_last.json")
 BRIDGE_FILE = os.path.expanduser("~/.hermes/data/market_prices_bridge.json")
+CACHE_FILE = os.path.expanduser("~/.hermes/data/night_session_tier_cache.json")
 os.makedirs(os.path.dirname(SAVE_FILE), exist_ok=True)
+
+TIERS = [3.0, 5.0, 7.0, 9.0]
+
+def get_current_tier(pct: float) -> int:
+    abs_pct = abs(pct)
+    crossed = 0
+    for t in TIERS:
+        if abs_pct >= t:
+            crossed = int(t)
+    return crossed * (1 if pct >= 0 else -1)
 
 def get_bridge_data():
     if os.path.exists(BRIDGE_FILE):
@@ -75,48 +86,68 @@ def format_report(results, health):
     taipei_tz = pytz.timezone('Asia/Taipei')
     now = datetime.now(taipei_tz).strftime("%Y-%m-%d %H:%M")
     
-    lines = [
-        f"🌌 **台股夜盤監測 (美股領先指標)**",
-        f"⏰ 時間：`{now}`",
-        f"----------------------------"
-    ]
+    # Load Cache
+    cache = {}
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r') as f:
+                cache = json.load(f)
+        except:
+            pass
+
+    delivery_data = {}
+    lines = []
     
     def get_emoji(val):
-        if val > 0.05: return "🔴" 
-        if val < -0.05: return "🟢" 
+        if val > 0: return "🔴" 
+        if val < 0: return "🟢" 
         return "⚪️"
+
+    lines.append(f"🌌 **台股夜盤監測 (階梯突破)**")
+    lines.append(f"⏰ 時間：`{now}`")
+    lines.append(f"💡 *條件：跨越 ±3%, ±5%, ±7%, ±9%*")
+    lines.append(f"----------------------------")
+    
+    for sym, val in results.items():
+        pct = val['session_delta']
+        current_tier = get_current_tier(pct)
+        last_tier = cache.get(sym, 0)
+        
+        # Only trigger if crossed a NEW tier (and not 0)
+        if current_tier != 0 and current_tier != last_tier:
+            delivery_data[sym] = {
+                "name": val['name'],
+                "price": val['price'],
+                "pct": pct,
+                "tier": current_tier
+            }
+            trend = "🚀" if abs(current_tier) > abs(last_tier) else "📉"
+            lines.append(f"{get_emoji(pct)}{trend} **{val['name']}** ({sym})")
+            lines.append(f"   ▸ 價格：`${val['price']:.2f}` (via {val['source']})")
+            lines.append(f"   ▸ 較昨收：`{pct:+.2f}%` (突破 `{current_tier}%` 門檻)")
+            lines.append("")
+            
+        cache[sym] = current_tier
+
+    # Save Cache
+    with open(CACHE_FILE, 'w') as f:
+        json.dump(cache, f)
+
+    if not delivery_data:
+        return "[SILENT]", False
 
     # Integration with delivery module
     try:
         from lib_market_delivery import deliver_market_report
-        # Prepare structured data (use current prices from results)
-        delivery_data = {
-            "FITXP": {"price": results.get("FITXP", {}).get("price", 0), "pct": 0.0},
-            "TSM": {"price": results.get("TSM", {}).get("price", 0), "pct": results.get("TSM", {}).get("session_delta", 0)},
-            "NVDA": {"price": results.get("NVDA", {}).get("price", 0), "pct": results.get("NVDA", {}).get("session_delta", 0)},
-            "SYNA": {"price": results.get("SYNA", {}).get("price", 0), "pct": results.get("SYNA", {}).get("session_delta", 0)}
-        }
         deliver_market_report(delivery_data)
     except Exception as e:
         print(f"Delivery error: {e}")
 
-    for sym, val in results.items():
-        if sym == "FITXP": continue
-        lines.append(f"**{val['name']} ({sym})**")
-        lines.append(f"- 價格：`${val['price']:.2f}` (via {val['source']})")
-        lines.append(f"- 較昨收：{get_emoji(val['session_delta'])} `{val['session_delta']:+.2f}%` ")
-        lines.append("")
-
-    if "FITXP" in results:
-        lines.append(f"📌 **台指期 (夜盤)**")
-        lines.append(f"- 價格：`{results['FITXP']['price']}`")
-        lines.append("")
-
-    return "\n".join(lines)
+    return "\n".join(lines), True
 
 if __name__ == "__main__":
     results, health = get_market_data()
-    report = format_report(results, health)
-    if health != "Healthy":
+    report, delivered = format_report(results, health)
+    if delivered and health != "Healthy":
         report += f"\n----------------------------\n🛡️ 健康檢查：`{health}`"
     print(report)
