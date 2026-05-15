@@ -9,6 +9,7 @@ import ssl
 import requests
 import matplotlib.pyplot as plt
 import matplotlib
+import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier
 import joblib
 
@@ -87,6 +88,25 @@ def run_intraday_pipeline():
         'name': 'first'
     }).reset_index()
     
+    # 抓取今日大盤 (TAIEX) 5 分鐘線
+    taiex_features = [0.0] * 5
+    try:
+        taiex_data = yf.download("^TWII", period="5d", interval="5m", progress=False)
+        if not taiex_data.empty:
+            if taiex_data.index.tz is not None:
+                taiex_data.index = taiex_data.index.tz_convert('Asia/Taipei').tz_localize(None)
+            
+            taiex_today = taiex_data[taiex_data.index.date == today]
+            if len(taiex_today) >= 6:
+                taiex_prices = taiex_today['Close'].values
+                if len(taiex_prices.shape) > 1:
+                    taiex_prices = taiex_prices[:, 0]
+                taiex_returns = np.diff(taiex_prices) / taiex_prices[:-1]
+                if len(taiex_returns) >= 5:
+                    taiex_features = list(taiex_returns[-5:])
+    except Exception as e:
+        print(f"無法抓取大盤資料: {e}")
+        
     # 載入前一日預判結果，進行 Variance 比較
     old_preds = load_predictions()
     
@@ -140,6 +160,9 @@ def run_intraday_pipeline():
             macd_line, macd_hist = 0.0, 0.0
             
         features.extend([rsi_val, macd_line, macd_hist])
+        
+        # 注入大盤特徵
+        features.extend(taiex_features)
         
         var = 0.0
         var_str = "無歷史紀錄"

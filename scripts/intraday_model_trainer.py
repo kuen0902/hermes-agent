@@ -14,17 +14,35 @@ CORE_SYMBOLS = [
     "2330.TW", "2454.TW", "3037.TW", "2382.TW", "2327.TW",
     "8996.TW", "5289.TWO", "4966.TWO", "3583.TW", "8210.TW",
     "5347.TWO", "6510.TWO", "3211.TWO", "6290.TWO", "6669.TW",
-    "1513.TW", "2049.TW", "2408.TW", "2313.TW", "6285.TW"
+    "1513.TW", "2049.TW", "2408.TW", "2313.TW", "6285.TW", "^TWII"
 ]
 
 def train_model():
-    print("--- 啟動歷史 10 分鐘 K 線預訓練引擎 (Pre-training) ---")
+    print("--- 啟動歷史 5 分鐘 K 線預訓練引擎 (Pre-training) ---")
     print(f"目標股票數量：{len(CORE_SYMBOLS)}")
+    
+    # 預先抓取大盤資料
+    print("正在抓取大盤 (^TWII) 過去 60 天的 5 分鐘高頻資料...")
+    try:
+        taiex_df = yf.download("^TWII", period="60d", interval="5m", progress=False)
+        if isinstance(taiex_df.columns, pd.MultiIndex):
+            taiex_df.columns = taiex_df.columns.get_level_values(0)
+        taiex_df = taiex_df[['Close']].dropna().reset_index()
+        taiex_df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+        if taiex_df['timestamp'].dt.tz is not None:
+            taiex_df['timestamp'] = taiex_df['timestamp'].dt.tz_convert('Asia/Taipei').dt.tz_localize(None)
+        taiex_df['5m_bin'] = taiex_df['timestamp'].dt.floor('5min')
+        taiex_df['date'] = taiex_df['timestamp'].dt.date
+        taiex_grouped = taiex_df.groupby(['date', '5m_bin']).agg({'Close': 'last'}).reset_index()
+    except Exception as e:
+        print(f"大盤資料抓取失敗: {e}")
+        taiex_grouped = pd.DataFrame(columns=['date', '5m_bin', 'Close'])
     
     all_X = []
     all_y = []
     
     for symbol in CORE_SYMBOLS:
+        if symbol == "^TWII": continue
         print(f"正在抓取 {symbol} 過去 60 天的 5 分鐘高頻資料...")
         try:
             # Download 60 days of 5-minute data
@@ -46,7 +64,7 @@ def train_model():
             if df['timestamp'].dt.tz is not None:
                 df['timestamp'] = df['timestamp'].dt.tz_convert('Asia/Taipei').dt.tz_localize(None)
                 
-            # Group into 5-minute bins
+            # Group into 5-minute bins for Stocks
             df['5m_bin'] = df['timestamp'].dt.floor('5min')
             df['date'] = df['timestamp'].dt.date
             
@@ -65,6 +83,15 @@ def train_model():
                 today = dates[i]
                 tomorrow = dates[i+1]
                 
+                # Extract TAIEX features for today
+                taiex_features = [0.0] * 5
+                taiex_day_data = taiex_grouped[taiex_grouped['date'] == today].sort_values('5m_bin')
+                if len(taiex_day_data) >= 6:
+                    t_prices = taiex_day_data['Close'].values
+                    t_returns = np.diff(t_prices) / t_prices[:-1]
+                    if len(t_returns) >= 5:
+                        taiex_features = list(t_returns[-5:])
+                        
                 day_data = grouped[grouped['date'] == today].sort_values('5m_bin')
                 tomorrow_data = grouped[grouped['date'] == tomorrow].sort_values('5m_bin')
                 
@@ -112,6 +139,9 @@ def train_model():
                     macd_line, macd_hist = 0.0, 0.0
                     
                 features.extend([rsi_val, macd_line, macd_hist])
+                
+                # Append TAIEX features
+                features.extend(taiex_features)
                 
                 # Variance Calculation
                 # Actual return today
