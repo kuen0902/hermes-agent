@@ -43,7 +43,7 @@ def get_confluence_line(code: str, name: str, model_buy: Any, model_sell: Any, f
         # Ensure numeric types for price/volume
         for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
             if col in hist_df.columns:
-                hist_df[col] = pd.to_numeric(hist_df[col], errors='coerce')
+                hist_df[col] = pd.to_numeric(hist_df[col], errors='coerce').astype('float64')
         hist_df = hist_df.dropna(subset=['High', 'Low', 'Close', 'Volume'])
         
         if len(hist_df) < 30: return f"⚪ {name} ({code}): ⚠️ 歷史數據不足"

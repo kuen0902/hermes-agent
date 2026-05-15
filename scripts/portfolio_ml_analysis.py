@@ -53,7 +53,7 @@ def analyze_portfolio() -> None:
             # Ensure numeric types for price/volume
             for col in ['Open', 'High', 'Low', 'Close', 'Volume']:
                 if col in df.columns:
-                    df[col] = pd.to_numeric(df[col], errors='coerce')
+                    df[col] = pd.to_numeric(df[col], errors='coerce').astype('float64')
             df = df.dropna(subset=['High', 'Low', 'Close', 'Volume'])
             
             if len(df) < 70: continue

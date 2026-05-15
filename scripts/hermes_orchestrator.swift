@@ -96,17 +96,46 @@ func syncNumbersFilename() {
     }
 }
 
+func checkMarketOpen() -> Bool {
+    let scriptPath = scriptsDir.appendingPathComponent("day_market_gatekeeper.py").path
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = ["/Users/bookid/workspace/hermes-agent/venv_314/bin/python", scriptPath]
+    
+    do {
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    } catch {
+        print("Gatekeeper check failed: \(error.localizedDescription)")
+        return false
+    }
+}
+
 func main() {
+    let now = Date()
+    let calendar = Calendar.current
+    let hour = calendar.component(.hour, from: now)
+    let minute = calendar.component(.minute, from: now)
+    
+    let isLiveHours = (hour >= 9 && hour < 13) || (hour == 13 && minute <= 40)
+    if isLiveHours {
+        if !checkMarketOpen() {
+            print("Market is closed. Orchestrator exiting gracefully.")
+            return
+        }
+    }
+
     // 0. Sync Numbers Filename
     syncNumbersFilename()
     
     // 1. Sync Data (The Gatherer)
-    runScript(name: "hermes_sync.swift")
+    runScript(name: "hermes_sync")
     
     // 2. Distribute (The Bots)
-    runScript(name: "hermes_monitor.swift", args: ["--profile", "personal"])
-    runScript(name: "hermes_monitor.swift", args: ["--profile", "william"])
-    runScript(name: "hermes_monitor.swift", args: ["--profile", "group"])
+    runScript(name: "hermes_monitor", args: ["--profile", "personal"])
+    runScript(name: "hermes_monitor", args: ["--profile", "william"])
+    runScript(name: "hermes_monitor", args: ["--profile", "group"])
 }
 
 // Execute

@@ -35,3 +35,9 @@ sessions.db
 skills/.curator_backups/
 skills/**/.curator_backups/
 *.json
+scripts/hermes_orchestrator
+scripts/hermes_sync
+scripts/hermes_monitor
+scripts/hermes_orchestrator
+scripts/hermes_sync
+scripts/hermes_monitor

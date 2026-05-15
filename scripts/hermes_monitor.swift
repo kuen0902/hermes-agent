@@ -34,7 +34,7 @@ let PROFILES: [String: ProfileConfig] = [
     ),
     "group": ProfileConfig(
         token: "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU",
-        chatId: "-1003744330314",
+        chatId: "6326497055",
         cacheFile: dataDir.appendingPathComponent("group_stock_last_prices.json"),
         openFile: dataDir.appendingPathComponent("day_open_report_sent.json"),
         headerOpen: "☀️ **09:00 開盤即時戰報**",
