@@ -17,7 +17,7 @@ git add scripts/*.sh
 git add -f cron/jobs.json
 
 echo "📌 提交本次架構升級的版本紀錄..."
-git commit -m "feat(ml): Upgrade to 5-Min high frequency pipeline and implement RSI/MACD feature engineering"
+git commit -m "feat(ml): Integrate 22-dimensional institutional data pipeline for intraday prediction"
 
 echo "📌 推送至遠端 FEATURE-IMPLEMENT_SWIFT 分支..."
 git push origin FEATURE-IMPLEMENT_SWIFT

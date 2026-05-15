@@ -21,6 +21,15 @@ def train_model():
     print("--- 啟動歷史 5 分鐘 K 線預訓練引擎 (Pre-training) ---")
     print(f"目標股票數量：{len(CORE_SYMBOLS)}")
     
+    import json
+    inst_file = os.path.join(os.path.expanduser("~/.hermes/data"), "institutional_data.json")
+    try:
+        with open(inst_file, "r") as f:
+            inst_db = json.load(f)
+    except:
+        print("警告：找不到 institutional_data.json，籌碼特徵將補 0")
+        inst_db = {}
+        
     # 預先抓取大盤資料
     print("正在抓取大盤 (^TWII) 過去 60 天的 5 分鐘高頻資料...")
     try:
@@ -79,9 +88,15 @@ def train_model():
             prev_pred_prob = 0.5
             import pandas_ta_classic as ta
             
-            for i in range(len(dates) - 1):
+            for i in range(1, len(dates) - 1):
+                yesterday = dates[i-1]
                 today = dates[i]
                 tomorrow = dates[i+1]
+                
+                # Extract Institutional Features for yesterday
+                yesterday_iso = yesterday.isoformat()
+                inst_data = inst_db.get(yesterday_iso, {}).get(symbol, {"foreign": 0, "trust": 0, "dealer": 0})
+                inst_features = [inst_data.get("foreign", 0), inst_data.get("trust", 0), inst_data.get("dealer", 0)]
                 
                 # Extract TAIEX features for today
                 taiex_features = [0.0] * 5
@@ -142,6 +157,9 @@ def train_model():
                 
                 # Append TAIEX features
                 features.extend(taiex_features)
+                
+                # Append Institutional features (3 dims)
+                features.extend(inst_features)
                 
                 # Variance Calculation
                 # Actual return today

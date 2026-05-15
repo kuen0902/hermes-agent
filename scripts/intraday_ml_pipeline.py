@@ -107,6 +107,24 @@ def run_intraday_pipeline():
     except Exception as e:
         print(f"無法抓取大盤資料: {e}")
         
+    # 載入籌碼資料庫 (Institutional Data)
+    inst_file = os.path.join(DATA_DIR, "institutional_data.json")
+    try:
+        with open(inst_file, 'r') as f:
+            inst_db = json.load(f)
+    except:
+        inst_db = {}
+        
+    available_dates = sorted([d for d in inst_db.keys() if d < today.isoformat()], reverse=True)
+    latest_inst_date = available_dates[0] if available_dates else None
+    
+    if latest_inst_date:
+        print(f"載入籌碼資料日期：{latest_inst_date}")
+        today_inst_db = inst_db[latest_inst_date]
+    else:
+        print("警告：無法找到最近的籌碼資料！")
+        today_inst_db = {}
+        
     # 載入前一日預判結果，進行 Variance 比較
     old_preds = load_predictions()
     
@@ -163,6 +181,14 @@ def run_intraday_pipeline():
         
         # 注入大盤特徵
         features.extend(taiex_features)
+        
+        # 注入籌碼特徵
+        inst_data = today_inst_db.get(f"{code}.TW", {})
+        if not inst_data:
+            inst_data = today_inst_db.get(f"{code}.TWO", {})
+            
+        inst_features = [inst_data.get("foreign", 0), inst_data.get("trust", 0), inst_data.get("dealer", 0)]
+        features.extend(inst_features)
         
         var = 0.0
         var_str = "無歷史紀錄"

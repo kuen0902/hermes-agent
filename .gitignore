@@ -53,3 +53,6 @@ scripts/hermes_monitor
 scripts/hermes_orchestrator
 scripts/hermes_sync
 scripts/hermes_monitor
+scripts/hermes_orchestrator
+scripts/hermes_sync
+scripts/hermes_monitor
