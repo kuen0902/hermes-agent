@@ -14,10 +14,11 @@ echo "📌 將所有 Python、Swift、Shell 與 JSON 設定檔加入追蹤..."
 git add scripts/*.py
 git add scripts/*.swift
 git add scripts/*.sh
+git add -u scripts/
 git add -f cron/jobs.json
 
 echo "📌 提交本次架構升級的版本紀錄..."
-git commit -m "feat(ml): Integrate 22-dimensional institutional data pipeline for intraday prediction"
+git commit -m "refactor(core): Complete Swift Migration for monitoring engine and implement Night Session Tiered Threshold Monitor"
 
 echo "📌 推送至遠端 FEATURE-IMPLEMENT_SWIFT 分支..."
 git push origin FEATURE-IMPLEMENT_SWIFT

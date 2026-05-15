@@ -9,7 +9,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/stock_monitor.py",
+      "script": "/Users/bookid/.hermes/scripts/hermes_monitor --profile personal",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -140,7 +140,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/william_stock_monitor.py",
+      "script": "/Users/bookid/.hermes/scripts/hermes_monitor --profile william",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -182,7 +182,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/group_stock_monitor.py",
+      "script": "/Users/bookid/.hermes/scripts/hermes_monitor --profile group",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -841,7 +841,49 @@
       "origin": null,
       "enabled_toolsets": null,
       "workdir": null
+    },
+    {
+      "id": "9d128cdf-7d6",
+      "name": "Night Session Tiered Monitor",
+      "prompt": null,
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "/Users/bookid/.hermes/scripts/night_session_threshold_monitor.py",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "*/5 15-23,0-5 * * *",
+        "display": "*/5 15-23,0-5 * * *"
+      },
+      "schedule_display": "*/5 15-23,0-5 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 1
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-16T01:29:21.424550+08:00",
+      "next_run_at": "2026-05-16T01:35:00+08:00",
+      "last_run_at": "2026-05-16T01:30:58.301025+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [],
+      "workdir": null
     }
   ],
-  "updated_at": "2026-05-16T01:02:02.661903+08:00"
+  "updated_at": "2026-05-16T01:30:58.301362+08:00"
 }
