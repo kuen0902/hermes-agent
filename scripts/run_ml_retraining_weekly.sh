@@ -1,7 +1,7 @@
 #!/bin/bash
 # Weekly ML Retraining Pipeline
 # Scheduled to run on Weekends (Saturday 02:00 AM)
-PYTHON="/Users/bookid/workspace/hermes-agent/venv_314/bin/python"
+PYTHON="/Users/bookid/.hermes/.venv/bin/python"
 
 echo "1. Fetching historical data backfills (Delta Mode)..."
 $PYTHON /Users/bookid/.hermes/scripts/fetch_tw_historical_all.py

@@ -18,7 +18,7 @@ func runScript(name: String, args: [String] = []) {
         process.arguments = args
     } else {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = ["/Users/bookid/workspace/hermes-agent/venv_314/bin/python", scriptPath] + args
+        process.arguments = ["/Users/bookid/.hermes/.venv/bin/python", scriptPath] + args
     }
     
     let pipe = Pipe()
@@ -100,7 +100,7 @@ func checkMarketOpen() -> Bool {
     let scriptPath = scriptsDir.appendingPathComponent("day_market_gatekeeper.py").path
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-    process.arguments = ["/Users/bookid/workspace/hermes-agent/venv_314/bin/python", scriptPath]
+    process.arguments = ["/Users/bookid/.hermes/.venv/bin/python", scriptPath]
     
     do {
         try process.run()

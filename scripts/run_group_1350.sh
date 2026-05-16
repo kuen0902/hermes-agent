@@ -1,5 +1,5 @@
 #!/bin/bash
-PYTHON="/Users/bookid/workspace/hermes-agent/venv_314/bin/python"
+PYTHON="/Users/bookid/.hermes/.venv/bin/python"
 SWIFT="/usr/bin/swift"
 SCRIPTS="/Users/bookid/.hermes/scripts"
 

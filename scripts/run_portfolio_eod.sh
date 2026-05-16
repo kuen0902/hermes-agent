@@ -1,5 +1,5 @@
 #!/bin/bash
-PYTHON="/Users/bookid/workspace/hermes-agent/venv_314/bin/python"
+PYTHON="/Users/bookid/.hermes/.venv/bin/python"
 $PYTHON /Users/bookid/.hermes/scripts/day_market_gatekeeper.py || {
     RET=$?
     if [ $RET -eq 1 ]; then
