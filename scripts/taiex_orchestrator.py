@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import os
 import time
 
@@ -14,7 +15,7 @@ def run_script(name, *args):
         if name.endswith(".swift"):
             result = subprocess.run([path] + list(args), capture_output=True, text=True)
         else:
-            result = subprocess.run(["python3", path] + list(args), capture_output=True, text=True)
+            result = subprocess.run([sys.executable, path] + list(args), capture_output=True, text=True)
         print(result.stdout)
         if result.stderr: print(f"Error: {result.stderr}")
     except Exception as e:

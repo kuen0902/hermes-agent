@@ -4,6 +4,7 @@ import urllib.request
 import urllib.parse
 import ssl
 import subprocess
+import sys
 from datetime import datetime
 import pytz
 import yfinance as yf
@@ -59,7 +60,7 @@ def save_state(state):
 def check_gatekeeper():
     try:
         gatekeeper_path = "/Users/bookid/.hermes/scripts/night_market_gatekeeper.py"
-        result = subprocess.run(["python3", gatekeeper_path], capture_output=True)
+        result = subprocess.run([sys.executable, gatekeeper_path], capture_output=True)
         if result.returncode != 0:
             return False
         return True

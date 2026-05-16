@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import urllib.request
 import urllib.parse
 import os
@@ -34,7 +35,7 @@ def send_telegram(message, chat_id):
 
 def run_script(path):
     try:
-        result = subprocess.run(['python3', path], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, path], capture_output=True, text=True)
         return result.stdout.strip() if result.returncode == 0 else ""
     except:
         return ""
@@ -43,7 +44,7 @@ def main():
     # 0. Gatekeeper: Ensure Taiwan Night Session is active
     try:
         gatekeeper_path = "/Users/bookid/.hermes/scripts/night_market_gatekeeper.py"
-        result = subprocess.run(["python3", gatekeeper_path], capture_output=True)
+        result = subprocess.run([sys.executable, gatekeeper_path], capture_output=True)
         if result.returncode != 0:
             print("Taiwan Night Session is not active (Holiday or out of hours). Skipping.")
             return

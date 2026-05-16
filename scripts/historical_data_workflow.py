@@ -10,7 +10,7 @@ def run_workflow():
     
     for script in scripts:
         print(f"==> Executing: {os.path.basename(script)}")
-        result = subprocess.run(["python3", script], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, script], capture_output=True, text=True)
         print(result.stdout)
         if result.returncode != 0:
             print(f"Error executing {script}:")

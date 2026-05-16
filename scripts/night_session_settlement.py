@@ -4,6 +4,7 @@ from datetime import datetime
 import pytz
 import shutil
 import subprocess
+import sys
 
 # Paths
 REPORTS_ROOT = os.path.expanduser("~/Documents/Reports")
@@ -20,7 +21,7 @@ def run_report_scripts():
     report_parts = []
     for s in scripts:
         try:
-            res = subprocess.run(["python3", s], capture_output=True, text=True)
+            res = subprocess.run([sys.executable, s], capture_output=True, text=True)
             if res.returncode == 0:
                 report_parts.append(res.stdout.strip())
         except Exception as e:
