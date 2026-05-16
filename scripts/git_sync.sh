@@ -15,6 +15,7 @@ git add scripts/*.py
 git add scripts/*.swift
 git add scripts/*.sh
 git add -u scripts/
+git add -A skills/
 git add -f cron/jobs.json
 
 echo "📌 提交本次架構升級的版本紀錄..."

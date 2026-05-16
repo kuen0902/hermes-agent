@@ -1,9 +1,9 @@
 {
-  "last_report_path": "/Users/bookid/.hermes/logs/curator/20260508-192921",
-  "last_run_at": "2026-05-08T19:29:21.730230+00:00",
-  "last_run_duration_seconds": 91.5572,
-  "last_run_summary": "auto: no changes; llm: I have completed the umbrella-building consolidation pass. I identified and processed three major prefix clusters (**Apple**, **Data**, and **Finance**) and one utility skill, absorbing 13 narrow agent-created skills into 4 class-level umbr…",
+  "last_report_path": "/Users/bookid/.hermes/logs/curator/20260515-194319",
+  "last_run_at": "2026-05-15T19:43:19.287140+00:00",
+  "last_run_duration_seconds": 252.673551,
+  "last_run_summary": "auto: no changes; llm: I have completed the CURATOR pass on the skill library. The primary focus was on \"umbrella-ification\" — consolidating narrow, session-specific or framework-specific skills into broad, class-level umbrellas to improve discoverability and mai…\narchived 1 skill(s):\n  • apple-mail — pruned (stale)\nfull report: hermes curator status",
   "last_run_summary_shown_at": "2026-05-08T19:29:21.730230+00:00",
   "paused": false,
-  "run_count": 1
+  "run_count": 2
 }

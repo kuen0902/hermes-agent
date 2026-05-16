@@ -28,7 +28,20 @@ This core skill covers general macOS system automation, terminal fallbacks, and 
   - **mdcat**: Default tool for opening `.md` files in iTerm2 (`/opt/homebrew/bin/mdcat`).
   - **Rich Alignment**: For complex tables mixing CJK and Emojis, use Python's `rich` library or a manual PIL drawing script to guarantee column alignment.
 
-## 2. Permissions & Diagnostics (TCC)
+## 2. Native App Automation (Mail & Calendar)
+
+### Apple Mail (`apple-mail`)
+- **Composition Patterns**:
+  - **Draft & Verify**: When composing, set `visible: true` and use `activate` to allow manual review if automated `send` is blocked by TCC.
+  - **Attachments**: Always use `posix file "/path/to/file"` coercion.
+- **TCC Pitfalls**: The `send` command often fails; fallback to showing the window instead of failing silently.
+
+### Apple Calendar (`apple-calendar`)
+- **Date String Locales**: Dates in AppleScript are locale-sensitive; avoid raw string parsing.
+- **Verification Probe**: Use "List Calendars" before creation to ensure exact name matching.
+- **Robust Creation**: Construct dates property-by-property or use `make new event` with clear types.
+
+## 3. Permissions & Diagnostics (TCC)
 
 When tools fail with "Permission denied", "Execution error", or "Not authorized":
 1. **Setup**: Guide user to **System Settings > Privacy & Security > Automation** and ensure the terminal/app has permissions.
@@ -47,6 +60,13 @@ end tell
 """
 result = subprocess.run(['osascript', '-e', script], capture_output=True, text=True)
 ```
+
+### Swift-Mac-Automation Bridge
+- **When to use**: Use Swift when AppleScript is too slow or `pyobjc` is too bloated.
+- **Rules**:
+  - **Swift-to-Python**: Use absolute paths for the Python executable (e.g., `/Users/bookid/workspace/hermes-agent/venv_314/bin/python`).
+  - **Cron Execution**: Wrap `.swift` scripts in a `.sh` file and call via `/usr/bin/swift` to avoid the agent misidentifying the file as Python.
+  - **Notification Bypass**: Prefer calling `NSAppleScript` from Swift to send notifications without a Bundle ID.
 
 ### macOS Home Profile Access (Environment Mapping)
 When a user refers to a name that matches their current username (e.g., `bookid`), they mean their Home Directory (`~`).

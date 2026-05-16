@@ -33,10 +33,12 @@ Monitor consumption of search, crawl, and extract credits.
 - **Pitfall (CJK Width)**: `mdcat` often fails to align tables correctly when mixed with Chinese characters or Emojis. Switch to `glow` automatically if the user complains about "messy tables".
 
 ### Visual Media & Screenshots
-- **Persistence Policy**: Screenshots should be treated as ephemeral.
-    - **Action**: Generate image -> provide `MEDIA` link -> (optional) delete local file if requested.
-    - **No-Archive Policy**: Do not save screenshots to `Desktop` or `Downloads` unless explicitly told (e.g., "save to my desktop for an email").
-- **Screenshot Generation**: When simulated iTerm2 captures are needed, use Python's `PIL` to render high-contrast, dark-mode images with **PingFang** or **Heiti** fonts to avoid CJK tofu characters.
+- **Persistence Policy**: Screenshots are ephemeral; save to `~/.hermes/scratch/` and use `MEDIA:`. 
+- **High-Precision Rendering**:
+  - **Fallback for CJK**: When `mdcat` or `glow` fail on CJK table alignment, use the PIL-based rendering engine.
+  - **Font**: Use `/System/Library/Fonts/PingFang.ttc` or `/Library/Fonts/Arial Unicode.ttf`.
+  - **Dynamic Height**: Calculate height based on wrapped lines to prevent clipping.
+  - **Templates**: `templates/render_md_v2.py`.
 
 ## 3. Logistics & Travel Strategies
 See `references/japan_travel_strategy.md` for specific regional optimizations (e.g., Okinawa, Taiwan HSR-Airport transfers).

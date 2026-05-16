@@ -42,6 +42,16 @@ This skill governs automated financial tracking, market data retrieval, and corp
   - **@kuenmingBot (GER)**: Core Architect. 1-on-1 Dialogue. "無駄無駄無駄！" style.
 - **Precision Reporting Rule**: All reports MUST include: **[Current Price] + [Spread (Current - Prev Close)] + [Delta %] + [Tier Triggered]**.
 
+### Active Portfolio Management (The `/stock` command)
+- **Menu Protocol**: When the user types `/stock`, reply with a menu: `1️⃣ 查詢`, `2️⃣ 更新持股`, `3️⃣ 觀測股管理`.
+- **CRITICAL Rules**:
+  - **No Guessing**: Never assume Code, Price, or QTY. Ask for clarification if missing.
+  - **Environment**: Use `/Users/bookid/workspace/hermes-agent/venv_314/bin/python` for `portfolio_tool.py` calls.
+- **Commands**:
+  - **Check**: `python3 ~/.hermes/scripts/portfolio_tool.py --action check`
+  - **Buy/Sell**: `python3 ~/.hermes/scripts/portfolio_tool.py --action buy/sell --code <Code> --qty <Qty> --price <Price>`
+  - **Watchlist**: `python3 ~/.hermes/scripts/portfolio_tool.py --action watch_add/watch_rm --code <Code>`
+
 ## 3. Data Integrity & Quality Control
 
 - **The "Silent Diagnosis" Gate**: NEVER deliver a report containing "ERROR". If a health check fails, perform background investigation, fix, and then deliver.
