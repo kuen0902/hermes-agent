@@ -105,17 +105,17 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 11
+        "completed": 12
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-05-16T06:00:00+08:00",
-      "last_run_at": "2026-05-15T06:02:16.615213+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-17T06:00:00+08:00",
+      "last_run_at": "2026-05-16T06:03:42.795368+08:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 429: 429 Too Many Requests: you (kuen0902) have reached your weekly usage limit, upgrade for higher limits: https://ollama.com/upgrade (ref: 09036a53-edd3-4619-94dc-9fab241c21d6)",
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -278,15 +278,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 159
+        "completed": 162
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-16T03:00:00+08:00",
-      "last_run_at": "2026-05-16T02:01:15.947597+08:00",
+      "next_run_at": "2026-05-16T15:00:00+08:00",
+      "last_run_at": "2026-05-16T05:04:37.438889+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -323,17 +323,17 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 12
+        "completed": 13
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-05-16T08:00:00+08:00",
-      "last_run_at": "2026-05-15T08:01:49.859625+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-17T08:00:00+08:00",
+      "last_run_at": "2026-05-16T08:01:04.926835+08:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 429: 429 Too Many Requests: you (kuen0902) have reached your weekly usage limit, upgrade for higher limits: https://ollama.com/upgrade (ref: 4774449e-a103-4d16-9e76-d348adc30aab)",
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -541,15 +541,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 8
+        "completed": 9
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-05-16T05:00:00+08:00",
-      "last_run_at": "2026-05-15T05:04:16.037764+08:00",
+      "next_run_at": "2026-05-17T05:00:00+08:00",
+      "last_run_at": "2026-05-16T05:04:37.851804+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -709,15 +709,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T23:44:58.197993+08:00",
-      "next_run_at": "2026-05-16T05:00:00+08:00",
-      "last_run_at": "2026-05-15T05:00:28.782118+08:00",
+      "next_run_at": "2026-05-17T05:00:00+08:00",
+      "last_run_at": "2026-05-16T05:00:45.314542+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -788,15 +788,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 2
+        "completed": 3
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-05-16T04:00:00+08:00",
-      "last_run_at": "2026-05-15T04:00:17.015946+08:00",
+      "next_run_at": "2026-05-17T04:00:00+08:00",
+      "last_run_at": "2026-05-16T04:00:24.831729+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -862,15 +862,15 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 14
+        "completed": 54
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-16T02:40:00+08:00",
-      "last_run_at": "2026-05-16T02:35:33.494076+08:00",
+      "next_run_at": "2026-05-16T15:00:00+08:00",
+      "last_run_at": "2026-05-16T05:55:58.256958+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -885,5 +885,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-16T02:35:33.494444+08:00"
+  "updated_at": "2026-05-16T08:01:04.927490+08:00"
 }

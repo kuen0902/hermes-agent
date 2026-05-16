@@ -9,3 +9,5 @@ Docs: Obsidian-compatible Markdown in vault. Reader: High-precision PIL renderin
 User prefers mapping financial reports to Calendar Quarters (CQ/日曆季) instead of company-specific Fiscal Years (FY) for archiving.
 §
 Primary contact/data export email is kuen0902@gmail.com.
+§
+User follows TAIEX color conventions: Red (🔴) for price increase (漲), Green (🟢) for price decrease (跌).
