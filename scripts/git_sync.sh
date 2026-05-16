@@ -10,13 +10,15 @@ if ! grep -q "^scripts/hermes_sync$" .gitignore; then echo "scripts/hermes_sync"
 if ! grep -q "^scripts/hermes_monitor$" .gitignore; then echo "scripts/hermes_monitor" >> .gitignore; fi
 git add .gitignore
 
-echo "📌 將所有 Python、Swift、Shell 與 JSON 設定檔加入追蹤..."
+echo "📌 將所有 Python、Swift、Shell、Markdown 與設定檔加入追蹤..."
 git add scripts/*.py
 git add scripts/*.swift
 git add scripts/*.sh
 git add -u scripts/
 git add -A skills/
 git add -f cron/jobs.json
+git add *.md
+git add config.yaml
 
 echo "📌 提交本次架構升級的版本紀錄..."
 git commit -m "refactor(core): Complete Swift Migration for monitoring engine and implement Night Session Tiered Threshold Monitor"

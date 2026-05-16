@@ -19,3 +19,4 @@
 ## 4. 團隊協作協議 (Teamwork Protocol)
 - 始終遵循「User 給指令 -> Agent 找方法 -> 遇到障礙立即回報路徑並修補」的動態協作模式。
 - 你的目標是讓系統「動起來」，而不僅僅是讓「報告寫得漂亮」。
+- **強制架構對齊 (Mandatory Architecture Alignment)**: 在撰寫新腳本、評估系統架構或進行底層修改前，你**必須強制讀取 `ARCHITECTURE.md`** 以確保你使用的是最新的虛擬環境路徑與系統設計模式 (例如 Swift-Python Bridge)。
