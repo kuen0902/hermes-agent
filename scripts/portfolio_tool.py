@@ -6,8 +6,8 @@ import argparse
 import yfinance as yf
 from datetime import datetime
 import unicodedata
-import requests
-from requests.adapters import HTTPAdapter
+import requests  # type: ignore[import-untyped]
+from requests.adapters import HTTPAdapter  # type: ignore[import-untyped]
 from urllib3.util.retry import Retry
 import time
 
@@ -55,8 +55,8 @@ def get_yf_session():
         status_forcelist=(429, 500, 502, 503, 504),
     )
     adapter = HTTPAdapter(max_retries=retry)
-    session.mount('http://', adapter)
-    session.mount('https://', adapter)
+    session.mount('http://', adapter)  # type: ignore[arg-type]
+    session.mount('https://', adapter)  # type: ignore[arg-type]
     return session
 
 def display_len(s):
@@ -78,6 +78,25 @@ def pad_str(s, width, align='left'):
 DATA_FILE = os.path.expanduser('~/.hermes/data/central_stock_data.json')
 BACKUP_FILE = os.path.expanduser('~/.hermes/data/central_stock_data.json.bak')
 
+_mis_opener = None
+
+def get_mis_opener():
+    global _mis_opener
+    if _mis_opener is None:
+        import urllib.request
+        import urllib.error
+        import ssl
+        from http.cookiejar import CookieJar
+        context = ssl._create_unverified_context()
+        cj = CookieJar()
+        _mis_opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(cj), urllib.request.HTTPSHandler(context=context))
+        req_session = urllib.request.Request("https://mis.twse.com.tw/stock/index.jsp", headers={'User-Agent': 'Mozilla/5.0'})
+        try:
+            _mis_opener.open(req_session, timeout=5)
+        except Exception:
+            pass
+    return _mis_opener
+
 def load_data():
     if not os.path.exists(DATA_FILE):
         return {"personal_data": {}, "group_codes": [], "william_codes": [], "full_mapping": {}, "data": {}}
@@ -92,21 +111,41 @@ def save_data(data):
 
 def fetch_live_price(symbol):
     session = get_yf_session()
+    
+    for suffix in [".TW", ".TWO"]:
+        try:
+            yf_symbol = f"{symbol}{suffix}"
+            ticker = yf.Ticker(yf_symbol)
+            history = ticker.history(period="5d")
+            if not history.empty:
+                return float(history['Close'].iloc[-1])
+        except Exception:
+            continue
+            
+    # Ultimate Fallback: TWSE/TPEx Official MIS API
     try:
-        yf_symbol = f"{symbol}.TW"
-        ticker = yf.Ticker(yf_symbol, session=session)
-        history = ticker.history(period="1d")
-        if not history.empty:
-            return float(history['Close'].iloc[-1])
-        
-        # Fallback to TWO
-        yf_symbol = f"{symbol}.TWO"
-        ticker = yf.Ticker(yf_symbol, session=session)
-        history = ticker.history(period="1d")
-        if not history.empty:
-            return float(history['Close'].iloc[-1])
+        opener = get_mis_opener()
+        for market in ["tse", "otc"]:
+            url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={market}_{symbol}.tw&json=1&delay=0"
+            try:
+                import urllib.request
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'})
+                with opener.open(req, timeout=5) as response:
+                    res = json.loads(response.read().decode('utf-8'))
+                    msgArray = res.get("msgArray", [])
+                    if msgArray:
+                        stock = msgArray[0]
+                        z = stock.get("z", "-")
+                        y = stock.get("y", 0)
+                        
+                        price = float(z) if z != "-" else float(y)
+                        if price > 0:
+                            return price
+            except Exception:
+                continue
     except Exception:
         pass
+        
     return None
 
 def check_portfolio(data):
@@ -116,8 +155,8 @@ def check_portfolio(data):
     total_cost = 0.0
     total_value = 0.0
     
-    print("【📈 目前持股狀況】")
-    print("-" * 95)
+    items_to_print = []
+    
     for code, info in personal.items():
         name = info.get("name", "Unknown")
         qty_shares = info.get("qty", 0) * 1000  # 張 -> 股
@@ -127,7 +166,6 @@ def check_portfolio(data):
             continue
             
         cost_basis = qty_shares * avg_cost
-        total_cost += cost_basis
         
         # Get current price
         current_price = None
@@ -137,10 +175,13 @@ def check_portfolio(data):
             current_price = fetch_live_price(code)
             
         qty_str = f"{qty_shares/1000:g}張"
+        
+        pnl_amt = 0
+        pnl_str = ""
+        current_value = cost_basis
             
         if current_price:
             current_value = qty_shares * current_price
-            total_value += current_value
             pnl_pct = ((current_price - avg_cost) / avg_cost) * 100 if avg_cost > 0 else 0
             pnl_amt = current_value - cost_basis
             
@@ -148,12 +189,32 @@ def check_portfolio(data):
             pnl_amt_str = f"({'+' if pnl_amt >= 0 else ''}{int(pnl_amt):,})"
             
             pnl_str = f"🔴 {pnl_pct_str:>8} {pnl_amt_str:>12}" if pnl_pct >= 0 else f"🟢 {pnl_pct_str:>8} {pnl_amt_str:>12}"
-            print(f"[{code:<6}] {pad_str(name, 14)} | {pad_str(qty_str, 6, 'right')} | 成本: {avg_cost:>8.2f} | 現價: {current_price:>8.2f} | 損益: {pnl_str}")
-        else:
-            print(f"[{code:<6}] {pad_str(name, 14)} | {pad_str(qty_str, 6, 'right')} | 成本: {avg_cost:>8.2f} | 現價: {'暫無資料':>8} |")
-            total_value += cost_basis # Use cost as placeholder if no price
             
-    print("-" * 95)
+        total_cost += cost_basis
+        total_value += current_value
+            
+        items_to_print.append({
+            "code": code,
+            "name": name,
+            "qty_str": qty_str,
+            "avg_cost": avg_cost,
+            "current_price": current_price,
+            "pnl_str": pnl_str,
+            "pnl_amt": pnl_amt
+        })
+        
+    items_to_print.sort(key=lambda x: x["pnl_amt"], reverse=True)
+    
+    print("【📈 目前持股狀況】")
+    print("-" * 48)
+    for item in items_to_print:
+        print(f"[{item['code']:<6}] {item['name']} ({item['qty_str']})")
+        if item['current_price']:
+            print(f"均: {item['avg_cost']:>7.2f} | 現: {item['current_price']:>7.2f} | {item['pnl_str']}")
+        else:
+            print(f"均: {item['avg_cost']:>7.2f} | 現: {'-':>7} | {'-':>24}")
+            
+    print("-" * 48)
     overall_pnl = total_value - total_cost
     overall_pct = (overall_pnl / total_cost * 100) if total_cost > 0 else 0
     sign = "🔴" if overall_pnl >= 0 else "🟢"
@@ -161,14 +222,35 @@ def check_portfolio(data):
     print(f"💵 總目前現值: {int(total_value):,}")
     print(f"📊 總未實現損益: {sign} {int(overall_pnl):,} ({overall_pct:.2f}%)")
 
+def resolve_stock_name(code, fallback_dict=None):
+    if fallback_dict is None:
+        fallback_dict = {}
+    name = f"股票_{code}"
+    try:
+        mapping_file = os.path.expanduser("~/.hermes/data/stock_mapping.json")
+        if os.path.exists(mapping_file):
+            import json
+            with open(mapping_file, 'r', encoding='utf-8') as f:
+                stock_mapping = json.load(f)
+                reversed_mapping = {}
+                for k, v in stock_mapping.items():
+                    reversed_mapping[str(v).strip()] = str(k).strip()
+                
+                safe_code = str(code).strip()
+                if safe_code in reversed_mapping:
+                    return reversed_mapping[safe_code]
+    except Exception:
+        pass
+        
+    return fallback_dict.get(code, name)
+
 def buy_stock(data, code, name, qty, price):
     personal = data.setdefault("personal_data", {})
     mapping = data.setdefault("full_mapping", {})
     
-    if name:
-        mapping[code] = name
-    else:
-        name = mapping.get(code, f"股票_{code}")
+    if not name:
+        name = resolve_stock_name(code, mapping)
+    mapping[code] = name
         
     qty_張 = float(qty)
     buy_price = float(price)
@@ -204,22 +286,54 @@ def sell_stock(data, code, qty, price):
         print(f"❌ 錯誤: 找不到持股 {code}。")
         return
         
-    name = personal[code].get("name", code)
+    name = personal[code].get("name")
+    if not name or name.startswith("股票_") or name == code:
+        name = resolve_stock_name(code, data.get("full_mapping", {}))
+    
     old_qty = float(personal[code].get("qty", 0))
     sell_qty = float(qty)
+    avg_cost = float(personal[code].get("avg", 0.0))
+    sell_price = float(price)
     
     if sell_qty > old_qty:
         print(f"⚠️ 警告: 賣出張數 ({sell_qty}) 大於現有持股張數 ({old_qty})。將全部清倉。")
         sell_qty = old_qty
         
     new_qty = old_qty - sell_qty
+    realized_pnl = (sell_price - avg_cost) * sell_qty * 1000
+    pnl_ratio = ((sell_price - avg_cost) / avg_cost) * 100 if avg_cost > 0 else 0
     
     if new_qty <= 0:
         del personal[code]
-        print(f"✅ 已全數清倉 {name}({code})。賣出均價: {price}")
+        print(f"✅ 已全數清倉 {name}({code})。賣出均價: {sell_price}")
+        print(f"📊 已實現損益: {int(realized_pnl):,} (損益比: {pnl_ratio:.2f}%)")
+        print("\n=== TRANSACTION_METRICS ===")
+        print(json.dumps({
+            "status": "cleared",
+            "code": code,
+            "name": name,
+            "sell_price": sell_price,
+            "quantity": sell_qty,
+            "realized_pnl": int(realized_pnl),
+            "pnl_ratio_percent": round(pnl_ratio, 2)
+        }, ensure_ascii=False))
+        print("===========================")
     else:
         personal[code]["qty"] = new_qty
-        print(f"✅ 已減碼 {name}({code}): 賣出 {sell_qty}張 @ {price}。剩餘張數: {new_qty}張。")
+        print(f"✅ 已減碼 {name}({code}): 賣出 {sell_qty}張 @ {sell_price}。剩餘張數: {new_qty}張。")
+        print(f"📊 本次實現損益: {int(realized_pnl):,} (損益比: {pnl_ratio:.2f}%)")
+        print("\n=== TRANSACTION_METRICS ===")
+        print(json.dumps({
+            "status": "partial_sell",
+            "code": code,
+            "name": name,
+            "sell_price": sell_price,
+            "quantity": sell_qty,
+            "realized_pnl": int(realized_pnl),
+            "pnl_ratio_percent": round(pnl_ratio, 2),
+            "remaining_qty": new_qty
+        }, ensure_ascii=False))
+        print("===========================")
         
     save_data(data)
 
@@ -227,10 +341,9 @@ def watch_add(data, code, name, group):
     target = data.setdefault(group, [])
     mapping = data.setdefault("full_mapping", {})
     
-    if name:
-        mapping[code] = name
-    else:
-        name = mapping.get(code, f"股票_{code}")
+    if not name:
+        name = resolve_stock_name(code, mapping)
+    mapping[code] = name
         
     if code not in target:
         target.append(code)
@@ -244,18 +357,37 @@ def watch_rm(data, code, group):
     if code in target:
         target.remove(code)
         save_data(data)
-        name = data.get("full_mapping", {}).get(code, code)
+        name = resolve_stock_name(code, data.get("full_mapping", {}))
         print(f"✅ 已將 {name}({code}) 從觀測清單 [{group}] 移除")
     else:
         print(f"ℹ️ 觀測清單 [{group}] 找不到 {code}")
 
+def list_watchlist(data):
+    groups = {
+        "group_codes": "主要觀測清單",
+        "william_codes": "William 觀測清單"
+    }
+    found_any = False
+    for group_key, group_name in groups.items():
+        codes = data.get(group_key, [])
+        if codes:
+            found_any = True
+            print(f"【{group_name}】")
+            print("-" * 48)
+            for code in codes:
+                name = resolve_stock_name(code, data.get("full_mapping", {}))
+                print(f"[{code:<6}] {name}")
+            print()
+    
+    if not found_any:
+        print("ℹ️ 目前觀測清單是空的。")
+
 def quote_stock(data, code):
     personal = data.get("personal_data", {})
-    mapping = data.get("full_mapping", {})
     william = data.get("william_codes", [])
     group = data.get("group_codes", [])
     
-    name = mapping.get(code, f"股票_{code}")
+    name = resolve_stock_name(code, data.get("full_mapping", {}))
     watchlist = set(personal.keys()) | set(william) | set(group)
     
     current_price = None
@@ -283,7 +415,7 @@ def quote_stock(data, code):
         session = get_yf_session()
         for suffix in [".TW", ".TWO"]:
             try:
-                ticker = yf.Ticker(f"{code}{suffix}", session=session)
+                ticker = yf.Ticker(f"{code}{suffix}")
                 history = ticker.history(period="5d")
                 if not history.empty and len(history) >= 2:
                     current_price = float(history['Close'].iloc[-1])
@@ -295,6 +427,35 @@ def quote_stock(data, code):
                     break
             except Exception:
                 continue
+                
+        # Ultimate Fallback: TWSE/TPEx Official MIS API
+        if not current_price:
+            try:
+                opener = get_mis_opener()
+                import urllib.request
+                for market in ["tse", "otc"]:
+                    url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch={market}_{code}.tw&json=1&delay=0"
+                    try:
+                        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                        with opener.open(req, timeout=5) as response:
+                            res = json.loads(response.read().decode('utf-8'))
+                            msgArray = res.get("msgArray", [])
+                            if msgArray:
+                                stock = msgArray[0]
+                                z = stock.get("z", "-")
+                                y = float(stock.get("y", 0))
+                                temp_price = float(z) if z != "-" else y
+                                if temp_price > 0:
+                                    current_price = temp_price
+                                    prev_close = y
+                                    mis_name = stock.get("n", "")
+                                    if mis_name:
+                                        name = mis_name
+                                    break
+                    except Exception:
+                        continue
+            except Exception:
+                pass
             
     if not current_price:
         print(f"❌ 無法取得 {code} 的報價資料。")
@@ -319,7 +480,7 @@ def quote_stock(data, code):
 
 def main():
     parser = argparse.ArgumentParser(description="Hermes Portfolio Manager")
-    parser.add_argument("--action", required=True, choices=["check", "buy", "sell", "watch_add", "watch_rm", "quote"])
+    parser.add_argument("--action", required=True, choices=["check", "buy", "sell", "watch_add", "watch_rm", "quote", "watch_list"])
     parser.add_argument("--code", help="股票代號 (e.g. 2330)")
     parser.add_argument("--name", help="股票名稱")
     parser.add_argument("--qty", type=float, help="張數 (1張=1000股)")
@@ -351,6 +512,8 @@ def main():
             print("❌ --watch_rm 需要 --code")
             return
         watch_rm(data, args.code, args.group)
+    elif args.action == "watch_list":
+        list_watchlist(data)
     elif args.action == "quote":
         if not args.code:
             print("❌ --quote 需要 --code")
