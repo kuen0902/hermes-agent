@@ -9,7 +9,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/hermes_monitor --profile personal",
+      "script": "run_hermes_monitor_personal.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -20,15 +20,15 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 45
+        "completed": 67
       },
-      "enabled": false,
-      "state": "paused",
-      "paused_at": "2026-05-13T10:35:56.966545+08:00",
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T08:41:40.695235+08:00",
-      "next_run_at": "2026-05-13T10:40:00+08:00",
-      "last_run_at": "2026-05-13T10:30:51.206863+08:00",
+      "next_run_at": "2026-05-19T09:00:00+08:00",
+      "last_run_at": "2026-05-18T12:50:39.654341+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -68,7 +68,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:34.551416+08:00",
-      "next_run_at": "2026-05-17T09:00:00+08:00",
+      "next_run_at": "2026-05-24T09:00:00+08:00",
       "last_run_at": "2026-05-10T09:02:41.825258+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -105,17 +105,17 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 12
+        "completed": 13
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-05-17T06:00:00+08:00",
-      "last_run_at": "2026-05-16T06:03:42.795368+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: HTTP 429: 429 Too Many Requests: you (kuen0902) have reached your weekly usage limit, upgrade for higher limits: https://ollama.com/upgrade (ref: 09036a53-edd3-4619-94dc-9fab241c21d6)",
+      "next_run_at": "2026-05-19T06:00:00+08:00",
+      "last_run_at": "2026-05-18T06:04:47.949701+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -140,7 +140,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/hermes_monitor --profile william",
+      "script": "run_hermes_monitor_william.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -151,15 +151,15 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 32
+        "completed": 54
       },
-      "enabled": false,
-      "state": "paused",
-      "paused_at": "2026-05-13T10:35:57.987391+08:00",
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T13:29:06.436235+08:00",
-      "next_run_at": "2026-05-13T10:40:00+08:00",
-      "last_run_at": "2026-05-13T10:30:50.850474+08:00",
+      "next_run_at": "2026-05-19T09:00:00+08:00",
+      "last_run_at": "2026-05-18T12:50:39.658460+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -182,7 +182,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/hermes_monitor --profile group",
+      "script": "run_hermes_monitor_group.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -193,19 +193,19 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 15
+        "completed": 39
       },
-      "enabled": false,
-      "state": "paused",
-      "paused_at": "2026-05-13T10:35:55.901671+08:00",
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T14:08:46.741723+08:00",
-      "next_run_at": "2026-05-13T10:40:00+08:00",
-      "last_run_at": "2026-05-13T10:30:59.719455+08:00",
+      "next_run_at": "2026-05-19T09:00:00+08:00",
+      "last_run_at": "2026-05-18T12:50:41.843288+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
-      "deliver": "local",
+      "last_delivery_error": "delivery error: Telegram send failed: Chat not found",
+      "deliver": "telegram:-1003744330314",
       "origin": {
         "platform": "telegram",
         "chat_id": "6326497055",
@@ -234,19 +234,19 @@
       "schedule_display": "30 13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 10
+        "completed": 11
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T18:15:42.884626+08:00",
-      "next_run_at": "2026-05-18T13:30:00+08:00",
-      "last_run_at": "2026-05-15T13:40:10.180957+08:00",
+      "next_run_at": "2026-05-19T13:30:00+08:00",
+      "last_run_at": "2026-05-18T14:08:33.567580+08:00",
       "last_status": "ok",
       "last_error": null,
-      "last_delivery_error": null,
-      "deliver": "telegram:6326497055",
+      "last_delivery_error": "delivery error: Telegram send failed: Chat not found",
+      "deliver": "telegram:-1003744330314",
       "origin": {
         "platform": "telegram",
         "chat_id": "6326497055",
@@ -278,15 +278,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 169
+        "completed": 179
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-16T23:00:00+08:00",
-      "last_run_at": "2026-05-16T21:05:02.194074+08:00",
+      "next_run_at": "2026-05-18T23:00:00+08:00",
+      "last_run_at": "2026-05-18T22:01:44.433232+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -323,17 +323,17 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 13
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-05-17T08:00:00+08:00",
-      "last_run_at": "2026-05-16T08:01:04.926835+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: HTTP 429: 429 Too Many Requests: you (kuen0902) have reached your weekly usage limit, upgrade for higher limits: https://ollama.com/upgrade (ref: 4774449e-a103-4d16-9e76-d348adc30aab)",
+      "next_run_at": "2026-05-19T08:00:00+08:00",
+      "last_run_at": "2026-05-18T08:23:33.264360+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -357,7 +357,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/hermes_orchestrator",
+      "script": "run_taiex_orchestrator.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -368,15 +368,15 @@
       "schedule_display": "*/5 9-13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 187
+        "completed": 245
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T09:44:30.413848+08:00",
-      "next_run_at": "2026-05-18T09:00:00+08:00",
-      "last_run_at": "2026-05-15T14:04:39.493559+08:00",
+      "next_run_at": "2026-05-19T09:00:00+08:00",
+      "last_run_at": "2026-05-18T13:33:02.112034+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -411,15 +411,15 @@
       "schedule_display": "30 8 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 9
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T23:20:43.390627+08:00",
-      "next_run_at": "2026-05-18T08:30:00+08:00",
-      "last_run_at": "2026-05-15T08:30:59.313837+08:00",
+      "next_run_at": "2026-05-19T08:30:00+08:00",
+      "last_run_at": "2026-05-18T08:30:40.569651+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -454,15 +454,15 @@
       "schedule_display": "0 14 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 7
+        "completed": 8
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T23:20:47.078400+08:00",
-      "next_run_at": "2026-05-18T14:00:00+08:00",
-      "last_run_at": "2026-05-15T14:00:31.334233+08:00",
+      "next_run_at": "2026-05-19T14:00:00+08:00",
+      "last_run_at": "2026-05-18T14:08:56.617562+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -502,7 +502,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-06T21:58:27.890264+08:00",
-      "next_run_at": "2026-05-16T23:30:00+08:00",
+      "next_run_at": "2026-05-18T23:30:00+08:00",
       "last_run_at": "2026-05-14T23:31:31.495637+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -541,15 +541,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 9
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-05-17T05:00:00+08:00",
-      "last_run_at": "2026-05-16T05:04:37.851804+08:00",
+      "next_run_at": "2026-05-19T05:00:00+08:00",
+      "last_run_at": "2026-05-18T05:04:54.854107+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -583,19 +583,19 @@
       "schedule_display": "30 14 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:21:57.694271+08:00",
-      "next_run_at": "2026-05-18T14:30:00+08:00",
-      "last_run_at": "2026-05-15T14:31:00.610471+08:00",
-      "last_status": "error",
-      "last_error": "Script exited with code 1\nstderr:\nHTTP Error 404: {\"quoteSummary\":{\"result\":null,\"error\":{\"code\":\"Not Found\",\"description\":\"Quote not found for symbol: 3709.TW\"}}}\n$3709.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['3709.TW']: possibly delisted; no timezone found\nHTTP Error 404: {\"quoteSummary\":{\"result\":null,\"error\":{\"code\":\"Not Found\",\"description\":\"Quote not found for symbol: 5289.TW\"}}}\n$5289.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['5289.TW']: possibly delisted; no timezone found\n$3211.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['3211.TW']: possibly delisted; no timezone found\n$6877.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['6877.TW']: possibly delisted; no timezone found\n$6125.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['6125.TW']: possibly delisted; no timezone found\n$7815.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['7815.TW']: possibly delisted; no timezone found\n$3260.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['3260.TW']: possibly delisted; no timezone found\n$6147.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['6147.TW']: possibly delisted; no timezone found\n$7828.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['7828.TW']: possibly delisted; no timezone found\n$5347.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['5347.TW']: possibly delisted; no timezone found\n$6510.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['6510.TW']: possibly delisted; no timezone found\n$4966.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['4966.TW']: possibly delisted; no timezone found\n$6683.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['6683.TW']: possibly delisted; no timezone found\n$6290.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['6290.TW']: possibly delisted; no timezone found\n$4543.TW: possibly delisted; no timezone found\n\n1 Failed download:\n['4543.TW']: possibly delisted; no timezone found\nTraceback (most recent call last):\n  File \"/Users/bookid/.hermes/scripts/confluence_eod_analysis.py\", line 196, in <module>\n    analyze_confluence()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/Users/bookid/.hermes/scripts/confluence_eod_analysis.py\", line 110, in analyze_confluence\n    hist_df['ATR_14'] = ta.atr(hist_df['High'], hist_df['Low'], hist_df['Close'], length=14)\n                        ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas_ta_classic/volatility/atr.py\", line 42, in atr\n    tr = true_range(high=high, low=low, close=close, drift=drift)\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas_ta_classic/volatility/true_range.py\", line 36, in true_range\n    high_low_range = non_zero_range(high, low)\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas_ta_classic/utils/_core.py\", line 61, in non_zero_range\n    diff = high - low\n           ~~~~~^~~~~\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/ops/common.py\", line 85, in new_method\n    return method(self, other)\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/arraylike.py\", line 198, in __sub__\n    return self._arith_method(other, operator.sub)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/series.py\", line 6751, in _arith_method\n    return base.IndexOpsMixin._arith_method(self, other, op)\n           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/base.py\", line 1644, in _arith_method\n    result = ops.arithmetic_op(lvalues, rvalues, op)\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/ops/array_ops.py\", line 279, in arithmetic_op\n    res_values = op(left, right)\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/ops/common.py\", line 85, in new_method\n    return method(self, other)\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/arraylike.py\", line 198, in __sub__\n    return self._arith_method(other, operator.sub)\n           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/bookid/workspace/hermes-agent/venv_314/lib/python3.14/site-packages/pandas/core/arrays/string_.py\", line 1218, in _cmp_method\n    result[valid] = op(self._ndarray[valid], other)\n                    ~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: unsupported operand type(s) for -: 'str' and 'str'\nstdout:\nAPI Check failed (HTTP Error 401: Unauthorized), defaulting to weekday/hours logic.\n--- Starting Daily Historical Sync [Fast] [2026-05-15 14:30] ---\nFast Sync: Updating 23 core monitoring stocks...\nSynced 23/23 existing stocks.\nDetected 17 new listings. Creating initial history...\nCreated record for 00965.TW\nCreated record for 00981A.TW\n--- Sync Complete ---\n--- AI Architect: Confluence EOD Analysis (Micro + Macro) ---",
-      "last_delivery_error": null,
-      "deliver": "telegram:6326497055",
+      "next_run_at": "2026-05-19T14:30:00+08:00",
+      "last_run_at": "2026-05-18T14:30:40.040706+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": "delivery error: Telegram send failed: Chat not found",
+      "deliver": "telegram:-1003744330314",
       "origin": {
         "platform": "telegram",
         "chat_id": "6326497055",
@@ -625,19 +625,19 @@
       "schedule_display": "50 13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 7
+        "completed": 8
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:25:25.947235+08:00",
-      "next_run_at": "2026-05-18T13:50:00+08:00",
-      "last_run_at": "2026-05-15T13:50:29.992092+08:00",
+      "next_run_at": "2026-05-19T13:50:00+08:00",
+      "last_run_at": "2026-05-18T14:09:17.156113+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Telegram send failed: Chat not found",
-      "deliver": "telegram:6326497055",
+      "deliver": "local",
       "origin": {
         "platform": "telegram",
         "chat_id": "6326497055",
@@ -667,19 +667,19 @@
       "schedule_display": "00 15 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T15:14:22.198385+08:00",
-      "next_run_at": "2026-05-18T15:00:00+08:00",
-      "last_run_at": "2026-05-15T15:00:12.457357+08:00",
+      "next_run_at": "2026-05-19T15:00:00+08:00",
+      "last_run_at": "2026-05-18T15:00:52.144656+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": "delivery error: Telegram send failed: Chat not found",
-      "deliver": "telegram:6326497055",
+      "deliver": "local",
       "origin": {
         "platform": "telegram",
         "chat_id": "6326497055",
@@ -709,15 +709,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 6
+        "completed": 7
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T23:44:58.197993+08:00",
-      "next_run_at": "2026-05-17T05:00:00+08:00",
-      "last_run_at": "2026-05-16T05:00:45.314542+08:00",
+      "next_run_at": "2026-05-19T05:00:00+08:00",
+      "last_run_at": "2026-05-18T05:00:37.962704+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -788,15 +788,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 3
+        "completed": 4
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-05-17T04:00:00+08:00",
-      "last_run_at": "2026-05-16T04:00:24.831729+08:00",
+      "next_run_at": "2026-05-19T04:00:00+08:00",
+      "last_run_at": "2026-05-18T04:00:16.969246+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -832,7 +832,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T10:00:00+08:00",
-      "next_run_at": "2026-05-17T03:00:00+08:00",
+      "next_run_at": "2026-05-24T03:00:00+08:00",
       "last_run_at": null,
       "last_status": "ok",
       "last_error": null,
@@ -862,15 +862,57 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 142
+        "completed": 261
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-16T22:40:00+08:00",
-      "last_run_at": "2026-05-16T22:35:25.047488+08:00",
+      "next_run_at": "2026-05-18T22:45:00+08:00",
+      "last_run_at": "2026-05-18T22:40:19.793893+08:00",
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [],
+      "workdir": null
+    },
+    {
+      "id": "diaggate1234",
+      "name": "morning-diagnostic-gatekeeper",
+      "prompt": null,
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "/Users/bookid/.hermes/scripts/run_diagnostic_cron.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "40 8 * * *",
+        "display": "40 8 * * *"
+      },
+      "schedule_display": "40 8 * * *",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-18T09:45:00+08:00",
+      "next_run_at": "2026-05-19T08:40:00+08:00",
+      "last_run_at": null,
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -885,5 +927,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-16T22:35:25.047787+08:00"
+  "updated_at": "2026-05-18T22:40:19.794605+08:00"
 }

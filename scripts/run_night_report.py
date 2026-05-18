@@ -11,6 +11,7 @@ from datetime import datetime
 BOT_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
 # TARGET_CHATS: [Jojo, Group]
 TARGET_CHATS = ["6326497055", "-1003744330314"] 
+# SILENCED: -1003744330314 (高潮不斷) 
 
 def send_telegram(message, chat_id):
     # Disable SSL verification

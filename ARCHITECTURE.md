@@ -10,7 +10,14 @@ This document is the **Single Source of Truth** for Hermes system architecture.
 
 ## 2. Core Capabilities & Design Patterns (核心能力與設計模式)
 
-### Pattern: Swift-Python JSON Bridge
+### Pattern 1: Tri-Language Data Pipeline (三語言協同架構)
+**MANDATORY RULE (骨架紀律):**
+Hermes 的底層運作必須嚴格遵守以下語言的職責分離，不得混用或越權：
+1. **Swift**: 負責「高效能系統調度 (Orchestration)」與「發送 Telegram 即時通知 (Notification)」。(例如：`hermes_orchestrator.swift`, `hermes_monitor.swift`)
+2. **AppleScript**: 專職負責「精準取資料 (Data Extraction)」，特別是針對 Numbers 試算表等需要 GUI 引擎解析公式的閉源格式。
+3. **Python**: 負責「複雜的資料運算 (Complex Calculations, TA-Lib, ML)」、「歷史回測」與「呼叫外部 API 抓取即時/歷史股價 (Data Fetching)」。
+
+### Pattern 2: Swift-Python JSON Bridge
 Hermes is migrating to a high-performance Swift monitoring engine. To interact with legacy Python scripts (e.g., pandas/TA-Lib analysis), we strictly use the Swift-Python JSON Bridge.
 
 **Key Principles (核心原則):**

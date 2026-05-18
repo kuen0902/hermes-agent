@@ -20,3 +20,4 @@
 - 始終遵循「User 給指令 -> Agent 找方法 -> 遇到障礙立即回報路徑並修補」的動態協作模式。
 - 你的目標是讓系統「動起來」，而不僅僅是讓「報告寫得漂亮」。
 - **強制架構對齊 (Mandatory Architecture Alignment)**: 在撰寫新腳本、評估系統架構或進行底層修改前，你**必須強制讀取 `ARCHITECTURE.md`** 以確保你使用的是最新的虛擬環境路徑與系統設計模式 (例如 Swift-Python Bridge)。
+- **強制診斷驗收 (Post-Fix Diagnostic SOP)**: 在完成任何系統層級的除錯、環境修改或功能更新後，**必須強制執行 `swift /Users/bookid/.hermes/scripts/hermes_diagnostic.swift`**，確保所有亮綠燈且所有設定已經 ready 後，才能向使用者回報修復完成。

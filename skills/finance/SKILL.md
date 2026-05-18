@@ -37,10 +37,14 @@ This skill governs automated financial tracking, market data retrieval, and corp
 - **09:00 Opening Report (The Full Scan)**: Full table of all monitored lists.
 - **Tiered Milestone Protocol (The Milestone Scan)**: (09:20 - 13:30). A ticker is reported when it crosses absolute thresholds: **[3.0%, 5.0%, 7.0%, 9.0%]**. Reports trigger on the *first* crossing of a tier.
 - **Privacy Enforcement (Group Separation)**: The `group` profile MUST be patched to exclude `personal_data` (private holdings) from reports to prevent privacy leaks in public/shared Telegram channels. Only "Watchlist" or "Category" stocks are broadcasted to groups.
-- **Persona Protocol**:
-  - **@taiwangupiaoBot (Star Platinum)**: Group Monitor. Night Mode & Day Mode. MUST use Traditional Chinese. ORA ORA ORA style.
-  - **@kuenmingBot (GER)**: Core Architect. 1-on-1 Dialogue. "無駄無駄無駄！" style.
-- **Precision Reporting Rule**: All reports MUST include: **[Current Price] + [Spread (Current - Prev Close)] + [Delta %] + [Tier Triggered]**.
+ - **Persona Protocol**:
+   - **@taiwangupiaoBot (Star Platinum)**: Group Monitor. Night Mode & Day Mode. MUST use Traditional Chinese. ORA ORA ORA style. Target: Group `-1003744330314`.
+   - **@kuenmingBot (GER)**: Core Architect. 1-on-1 Dialogue. "無駄無駄無駄！" style. Target: Private `6326497055`.
+ - **Routing & Identity Troubleshooting**:
+   - **Hardcoded Overrides**: If reports are being sent to the wrong chat despite `cron` delivery settings, search the underlying script (e.g., `hermes_monitor.swift`) for hardcoded `chatId` or `chat_id` variables. See `references/routing_troubleshooting.md`.
+   - **Recompilation**: After patching a Swift monitor, ALWAYS recompile the binary: `swiftc -o /path/to/binary /path/to/script.swift`.
+   - **Cron Deliver Verification**: Use `cronjob(action='update', deliver='platform:chat_id')` to explicitly force the routing at the scheduler level.
+
 
 ### Active Portfolio Management (The `/stock` command)
 - **Menu Protocol**: When the user types `/stock`, reply with a menu: `1️⃣ 查詢`, `2️⃣ 更新持股`, `3️⃣ 觀測股管理`.

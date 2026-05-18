@@ -3,6 +3,7 @@ import Foundation
 import AppKit
 
 // MARK: - Configuration
+// CHAOS TESTING: This comment makes the source newer than the binary!
 let homeDir = FileManager.default.homeDirectoryForCurrentUser.path
 let NUMBERS_PATH = "\(homeDir)/Documents/StockTracking_Daily.numbers"
 let CACHE_FILE = "\(homeDir)/.hermes/data/central_stock_data.json"
@@ -38,141 +39,38 @@ struct OutputJSON: Codable {
     let william_codes: [String]
     let group_codes: [String]
     let full_mapping: [String: String]
+    let stock_private_flag: Bool
     let data: [String: StockData]
 }
 
 // MARK: - Numbers AppleScript
-func getPersonalTickers() -> [String: PortfolioItem] {
+func fetchPortfolio() async -> [String: PortfolioItem] {
     var portfolio = [String: PortfolioItem]()
+    print("Fetching personal portfolio from SQLite (portfolio_tool.py)...")
     
-    // Check if Numbers is running via pgrep
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: "/usr/bin/pgrep")
-    task.arguments = ["Numbers"]
-    
-    let pipe = Pipe()
-    task.standardOutput = pipe
-    
-    var isNumbersRunning = false
-    do {
-        try task.run()
-        task.waitUntilExit()
-        isNumbersRunning = task.terminationStatus == 0
-    } catch {
-        print("Failed to check if Numbers is running.")
-    }
-    
-    if !isNumbersRunning {
-        print("Numbers is not running. Attempting to open...")
-        let openTask = Process()
-        openTask.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        openTask.arguments = [NUMBERS_PATH]
-        do {
-            try openTask.run()
-        } catch {}
-        print("Waiting 5 seconds for Numbers to launch and load the document...")
-        Thread.sleep(forTimeInterval: 5.0)
-    }
-    
-    let scriptString = """
-    tell application "Numbers"
-        set docPath to POSIX file "\(NUMBERS_PATH)"
-        open docPath
-        
-        set targetDoc to missing value
-        repeat with i from 1 to 10
-            set allDocs to name of every document
-            repeat with d in allDocs
-                if d starts with "StockTracking" then
-                    set targetDoc to d
-                    exit repeat
-                end if
-            end repeat
-            
-            if targetDoc is not missing value then
-                exit repeat
-            end if
-            delay 0.5
-        end repeat
-        
-        if targetDoc is missing value then
-            return "ERROR: Document not found or not loaded in time"
-        end if
-        
-        set outputStr to ""
-        tell document targetDoc to tell sheet "Portfolio" to tell table 1
-            set rCount to row count
-            if rCount > 200 then set rCount to 200
-            
-            repeat with i from 2 to rCount
-                set code to value of cell 1 of row i
-                if code is not missing value and code is not "" then
-                    try
-                        set nameVal to value of cell 2 of row i
-                        set qtyVal to value of cell 3 of row i
-                        set avgVal to value of cell 5 of row i
-                        if nameVal is missing value then set nameVal to ""
-                        if qtyVal is missing value then set qtyVal to 0
-                        if avgVal is missing value then set avgVal to 0
-                        set outputStr to outputStr & code & tab & nameVal & tab & qtyVal & tab & avgVal & linefeed
-                    end try
-                end if
-            end repeat
-        end tell
-        return outputStr
-    end tell
-    """
-    
-    let osaTask = Process()
-    osaTask.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-    osaTask.arguments = ["-e", scriptString]
-    
-    let outPipe = Pipe()
-    let errPipe = Pipe()
-    osaTask.standardOutput = outPipe
-    osaTask.standardError = errPipe
+    let portTask = Process()
+    portTask.executableURL = URL(fileURLWithPath: "/Users/bookid/.hermes/.venv/bin/python")
+    portTask.arguments = ["/Users/bookid/.hermes/scripts/portfolio_tool.py", "--export-json"]
+    let portOutPipe = Pipe()
+    portTask.standardOutput = portOutPipe
     
     do {
-        try osaTask.run()
-        osaTask.waitUntilExit()
-        
-        let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
-        let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
-        
-        if osaTask.terminationStatus == 0 {
-            if let output = String(data: outData, encoding: .utf8) {
-                if output.hasPrefix("ERROR:") {
-                    print("Numbers Fetch Error (AppleScript): \\(output.trimmingCharacters(in: .whitespacesAndNewlines))")
-                } else {
-                    let lines = output.components(separatedBy: "\n")
-                    for line in lines {
-                        let parts = line.components(separatedBy: "\t")
-                        if parts.count >= 4 {
-                            var code = parts[0].trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "'", with: "")
-                            if code.contains("."), code.hasSuffix(".0") {
-                                code = String(code.split(separator: ".")[0])
-                            }
-                            
-                            let rawName = parts[1].trimmingCharacters(in: .whitespacesAndNewlines)
-                            let cleanName = rawName.replacingOccurrences(of: "\u{1B}\\[[0-9;]*m", with: "", options: .regularExpression)
-                            
-                            let qtyStr = parts[2]
-                            let avgStr = parts[3]
-                            
-                            let qty = (qtyStr != "missing value" && !qtyStr.isEmpty) ? (Double(qtyStr) ?? 0.0) : 0.0
-                            let avg = (avgStr != "missing value" && !avgStr.isEmpty) ? (Double(avgStr) ?? 0.0) : 0.0
-                            
-                            portfolio[code] = PortfolioItem(name: cleanName, qty: qty, avg: avg)
-                        }
-                    }
+        try portTask.run()
+        portTask.waitUntilExit()
+        let portData = portOutPipe.fileHandleForReading.readDataToEndOfFile()
+        if let json = try JSONSerialization.jsonObject(with: portData) as? [String: Any] {
+            for (code, infoRaw) in json {
+                if let info = infoRaw as? [String: Any],
+                   let name = info["name"] as? String,
+                   let qty = info["qty"] as? Double,
+                   let avg = info["avg"] as? Double {
+                    portfolio[code] = PortfolioItem(name: name, qty: qty, avg: avg)
                 }
             }
-        } else {
-            let errorStr = String(data: errData, encoding: .utf8) ?? "Unknown error"
-            print("Numbers Fetch Error (Exit \(osaTask.terminationStatus)): \(errorStr)")
+            print("✓ 成功從 SQLite 載入 \(portfolio.count) 檔持股。")
         }
     } catch {
-        print("Failed to run osascript: \(error)")
+        print("⚠️ 無法載入 SQLite 持股資料: \(error)")
     }
     
     return portfolio
@@ -372,36 +270,58 @@ func sync() async {
     let startTime = CFAbsoluteTimeGetCurrent()
     print("Starting Central Stock Data Sync (Swift Native Engine)...")
     let t0 = CFAbsoluteTimeGetCurrent()
-    let personalData = getPersonalTickers()
+    var personalData = await fetchPortfolio()
     let t1 = CFAbsoluteTimeGetCurrent()
-    print("✓ Numbers AppleScript Time: \(String(format: "%.2fs", t1 - t0))")
+    print("✓ SQLite (portfolio_tool.py) 讀取時間: \(String(format: "%.2fs", t1 - t0))")
     
-    let williamDefaults: [String: String] = [
-        "8996": "高力", "5289": "宜鼎", "4966": "譜瑞", "3583": "辛耘", 
-        "8210": "勤誠", "2327": "國巨", "5347": "世界", "2402": "毅嘉", 
-        "6510": "精測", "3211": "順達", "6290": "良維", "6669": "緯穎", 
-        "6147": "頎邦", "7828": "創新服務", "7815": "家登自動", "7769": "進能服", 
-        "6877": "鏵友益", "6683": "雍智科技", "3709": "鑫聯大"
-    ]
-    let groupDefaults: [String: String] = [
-        "1513": "中興電", "2049": "上銀", "5347": "世界", "6147": "頎邦", "3709": "鑫聯大",
-        "2408": "南亞科", "2382": "廣達", "2327": "國巨",
-        "2313": "華通", "6285": "啟碁", "5289": "宜鼎",
-        "4543": "萬在", "6125": "廣運", "7828": "創新服務",
-        "2330": "台積電", "2454": "聯發科", "3037": "欣興"
-    ]
-    let extraStocks: [String: String] = [
-        "0050": "元大台灣50",
-        "0052": "富邦科技",
-        "00981A": "中信優息投資級債",
-        "00965": "元大高股息",
-        "2002": "中鋼",
-        "2344": "華邦電",
-        "2368": "金像電",
-        "2413": "環科",
-        "3260": "威剛",
-        "1802": "台玻"
-    ]
+    if personalData.isEmpty {
+        let cacheUrl = URL(fileURLWithPath: CACHE_FILE)
+        if let data = try? Data(contentsOf: cacheUrl),
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let existingPersonal = json["personal_data"] as? [String: Any] {
+            
+            for (code, infoObj) in existingPersonal {
+                if let info = infoObj as? [String: Any],
+                   let name = info["name"] as? String {
+                   let qty = info["qty"] as? Double ?? 0.0
+                   let avg = info["avg"] as? Double ?? 0.0
+                   personalData[code] = PortfolioItem(name: name, qty: qty, avg: avg)
+                }
+            }
+            print("⚠️ AppleScript returned empty or timed out. Restored \(personalData.count) personal stocks from cache.")
+        }
+    }
+    
+    // Read from master_stock_registry.json
+    let registryUrl = URL(fileURLWithPath: "/Users/bookid/.hermes/data/master_stock_registry.json")
+    var williamDefaults = [String: String]()
+    var groupDefaults = [String: String]()
+    var extraStocks = [String: String]()
+    var officialNames = [String: String]()
+    
+    if let data = try? Data(contentsOf: registryUrl),
+       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+        
+        if let names = json["official_names"] as? [String: String] {
+            officialNames = names
+        }
+        
+        if let wCodes = json["william_codes"] as? [String] {
+            wCodes.forEach { williamDefaults[$0] = officialNames[$0] ?? $0 }
+        }
+        
+        if let gCats = json["group_categories"] as? [String: [String]] {
+            for (_, codes) in gCats {
+                codes.forEach { groupDefaults[$0] = officialNames[$0] ?? $0 }
+            }
+        }
+        
+        if let eCodes = json["extra_codes"] as? [String] {
+            eCodes.forEach { extraStocks[$0] = officialNames[$0] ?? $0 }
+        }
+    } else {
+        print("⚠️ Failed to load master_stock_registry.json")
+    }
     
     var allCodesSet = Set<String>()
     personalData.keys.forEach { allCodesSet.insert($0) }
@@ -466,6 +386,7 @@ func sync() async {
         william_codes: Array(williamDefaults.keys),
         group_codes: Array(groupDefaults.keys),
         full_mapping: mapping,
+        stock_private_flag: true,
         data: marketData
     )
     

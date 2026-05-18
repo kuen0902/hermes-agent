@@ -15,6 +15,7 @@ STATE_FILE = os.path.join(DATA_DIR, "night_threshold_state.json")
 BOT_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
 # TARGET_CHATS: [Jojo, Group]
 TARGET_CHATS = ["6326497055", "-1003744330314"] 
+# SILENCED: -1003744330314 (高潮不斷) 依據用戶指令恢復
 
 THRESHOLDS = [1.5, 3.0, 5.0]
 

@@ -21,15 +21,35 @@ DATA_DIR = os.path.expanduser("~/.hermes/data")
 INTRADAY_LOG = os.path.join(DATA_DIR, "intraday_data_log.csv")
 PREDICTIONS_FILE = os.path.join(DATA_DIR, "intraday_predictions.json")
 MODEL_FILE = os.path.expanduser("~/.hermes/models/intraday_model.pkl")
+CENTRAL_DATA_FILE = os.path.join(DATA_DIR, "central_stock_data.json")
 
-TELEGRAM_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
-CHAT_ID = "6326497055"
+# Profiles Configuration
+PROFILES = {
+    "personal": {
+        "token": "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU", # Star Platinum
+        "chat_id": "6326497055",
+        "data_key": "personal_data",
+        "title": "個人"
+    },
+    "group": {
+        "token": "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU", # Star Platinum
+        "chat_id": "-1003744330314",
+        "data_key": "group_codes",
+        "title": "高潮不斷群組"
+    },
+    "william": {
+        "token": "8678817340:AAHLd6ObYqUUTfygY-fPf57Rw6SfOO2WEGQ", # William Bot
+        "chat_id": "8695583357",
+        "data_key": "william_codes",
+        "title": "小智"
+    }
+}
 
-def send_telegram(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+def send_telegram(token, chat_id, message):
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     ctx = ssl._create_unverified_context()
     data = urllib.parse.urlencode({
-        'chat_id': CHAT_ID,
+        'chat_id': chat_id,
         'text': message,
         'parse_mode': 'Markdown'
     }).encode('utf-8')
@@ -39,12 +59,12 @@ def send_telegram(message):
     except Exception as e:
         print(f"Telegram failed: {e}")
 
-def send_telegram_photo(caption, image_path):
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
+def send_telegram_photo(token, chat_id, caption, image_path):
+    url = f"https://api.telegram.org/bot{token}/sendPhoto"
     try:
         with open(image_path, 'rb') as f:
             files = {'photo': f}
-            data = {'chat_id': CHAT_ID, 'caption': caption, 'parse_mode': 'Markdown'}
+            data = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'}
             requests.post(url, data=data, files=files, timeout=15)
     except Exception as e:
         print(f"Telegram Photo failed: {e}")
@@ -61,6 +81,15 @@ def load_predictions():
 def save_predictions(preds):
     with open(PREDICTIONS_FILE, 'w') as f:
         json.dump(preds, f, indent=2, ensure_ascii=False)
+
+def load_central_data():
+    if os.path.exists(CENTRAL_DATA_FILE):
+        try:
+            with open(CENTRAL_DATA_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
 
 def run_intraday_pipeline():
     print("--- 啟動 10 分鐘級別盤中 ML 預判系統 ---")
@@ -192,8 +221,8 @@ def run_intraday_pipeline():
         
         var = 0.0
         var_str = "無歷史紀錄"
-        if code in old_preds:
-            prev_prob = old_preds[code].get('prob', 0.5)
+        if str(code) in old_preds:
+            prev_prob = old_preds[str(code)].get('prob', 0.5)
             prev_signal = "UP" if prev_prob > 0.55 else ("DOWN" if prev_prob < 0.45 else "FLAT")
             
             actual_pct = (prices[-1] - prices[0]) / prices[0]
@@ -209,7 +238,7 @@ def run_intraday_pipeline():
         features.append(var)
         
         X_infer.append(features)
-        codes_infer.append((code, name, prices[-1], var_str))
+        codes_infer.append((str(code), name, prices[-1], var_str))
 
     if not X_infer:
         print("特徵萃取數量不足。")
@@ -233,70 +262,126 @@ def run_intraday_pipeline():
         os.makedirs(os.path.dirname(MODEL_FILE), exist_ok=True)
         joblib.dump(model, MODEL_FILE)
     else:
-        # 在這裡實作增量學習或權重更新邏輯 (若模型支援)
-        # RF 在 sklearn 中不支援 partial_fit，此處暫以載入進行 Inference
         pass
         
     preds = model.predict_proba(X_infer)[:, 1]
     
+    # Save overall predictions
     new_predictions = {}
-    report_lines = []
-    
     for i, (code, name, price, var_str) in enumerate(codes_infer):
-        prob = preds[i]
-        signal = "🔴 偏多" if prob > 0.55 else ("🟢 偏空" if prob < 0.45 else "⚪ 盤整")
-        
         new_predictions[code] = {
             "date": today.isoformat(),
             "price": price,
-            "prob": float(prob)
+            "prob": float(preds[i])
         }
-        
-        if prob > 0.6 or prob < 0.4:
-            report_lines.append(f"▸ **{name}** (`{code}`): 明日 {signal} (勝率: {prob*100:.1f}%) | 昨驗證: {var_str}")
-
     save_predictions(new_predictions)
     
-    # 圖表產生邏輯
-    if codes_infer:
-        codes_infer.sort(key=lambda x: new_predictions[x[0]]['prob'])
-        y_labels = [f"{x[1]}({x[0]})" for x in codes_infer]
-        x_probs = [new_predictions[x[0]]['prob'] * 100 for x in codes_infer]
+    # Load central data to split by profile
+    central_data = load_central_data()
+    
+    # Load registry for grouping
+    registry_file = os.path.join(DATA_DIR, "master_stock_registry.json")
+    try:
+        with open(registry_file, 'r') as f:
+            registry = json.load(f)
+    except:
+        registry = {}
+        
+    group_categories = registry.get("group_categories", {})
+    code_to_category = {}
+    for cat_name, codes in group_categories.items():
+        for c in codes:
+            code_to_category[c] = cat_name
+
+    # Process and send for each profile
+    for p_key, p_cfg in PROFILES.items():
+        data_val = central_data.get(p_cfg['data_key'])
+        if isinstance(data_val, dict):
+            profile_stocks = list(data_val.keys())
+        elif isinstance(data_val, list):
+            profile_stocks = data_val
+        else:
+            profile_stocks = []
+            
+        # If chaos_backup is present because of our earlier chaos testing, fallback to it if empty
+        if not profile_stocks and p_key == "personal":
+            profile_stocks = list(central_data.get("chaos_backup", {}).keys())
+            
+        if not profile_stocks:
+            continue
+            
+        p_codes_infer = []
+        p_probs = []
+        p_report_lines = []
+        p_report_grouped = {}
+        
+        for i, (code, name, price, var_str) in enumerate(codes_infer):
+            if code not in profile_stocks:
+                continue
+                
+            prob = preds[i]
+            p_codes_infer.append((code, name, price, var_str))
+            p_probs.append(prob)
+            
+            signal = "🔴 偏多" if prob > 0.55 else ("🟢 偏空" if prob < 0.45 else "⚪ 盤整")
+            line_str = f"▸ **{name}** (`{code}`): 明日 {signal} (看多機率: {prob*100:.1f}%) | 昨驗證: {var_str}"
+            
+            if p_key == "group":
+                cat = code_to_category.get(code, "其他群組關注")
+                if cat not in p_report_grouped:
+                    p_report_grouped[cat] = []
+                p_report_grouped[cat].append(line_str)
+            else:
+                p_report_lines.append(line_str)
+                
+        if p_key == "group":
+            for cat, lines in p_report_grouped.items():
+                p_report_lines.append(f"\n📂 **【{cat}】**")
+                p_report_lines.extend(lines)
+        
+        
+        if not p_codes_infer:
+            print(f"今日 {p_cfg['title']} 無強烈預測訊號。")
+            continue
+            
+        # Sort and Plot for this profile
+        # Sort by prob
+        sorted_indices = np.argsort(p_probs)
+        y_labels = [f"{p_codes_infer[idx][1]}({p_codes_infer[idx][0]})" for idx in sorted_indices]
+        x_probs = [p_probs[idx] * 100 for idx in sorted_indices]
+        
         colors = []
         for p in x_probs:
             if p > 55: colors.append('red')
             elif p < 45: colors.append('green')
             else: colors.append('lightgray')
             
-        plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(10, max(6, len(y_labels)*0.5)))
         plt.barh(y_labels, x_probs, color=colors)
         plt.axvline(x=50, color='black', linestyle='--', alpha=0.5)
-        plt.title(f"10-Min ML 盤後預測勝率分佈 ({today.strftime('%Y-%m-%d')})")
-        plt.xlabel("偏多勝率 (%)")
+        plt.title(f"10-Min ML 盤後預測看多機率分佈 - {p_cfg['title']} ({today.strftime('%Y-%m-%d')})")
+        plt.xlabel("看多機率 (%)")
         plt.xlim(0, 100)
         
         for i, v in enumerate(x_probs):
             plt.text(v + 1, i, f"{v:.1f}%", va='center')
             
-        image_path = os.path.join(DATA_DIR, "daily_ml_prediction.png")
+        image_path = os.path.join(DATA_DIR, f"daily_ml_prediction_{p_key}.png")
         plt.tight_layout()
         plt.savefig(image_path)
         plt.close()
-    
-    # 發送純文字訊息 (保留舊版)
-    if report_lines:
-        msg = "🤖 **5-Min ML 盤後機器學習預測報告**\n\n"
-        msg += "整合當日 5 分鐘 K 線動能與預測誤差 (Variance)，重新計算明日漲跌預判：\n\n"
-        msg += "\n".join(report_lines)
-        send_telegram(msg)
-        print("已發送 Telegram 純文字報告。")
         
-        # 發送圖表訊息
-        if os.path.exists(image_path):
-            send_telegram_photo("📈 5-Min ML 全商品勝率分佈圖", image_path)
-            print("已發送 Telegram 圖表報告。")
-    else:
-        print("今日無強烈預測訊號。")
+        # Send messages
+        if p_report_lines:
+            msg = f"🤖 **5-Min ML 盤後機器學習預測報告 ({p_cfg['title']})**\n\n"
+            msg += "整合當日 5 分鐘 K 線動能與預測誤差 (Variance)，重新計算明日漲跌預判：\n\n"
+            msg += "\n".join(p_report_lines)
+            send_telegram(p_cfg['token'], p_cfg['chat_id'], msg)
+            print(f"已發送 {p_cfg['title']} Telegram 純文字報告。")
+            
+            if os.path.exists(image_path):
+                send_telegram_photo(p_cfg['token'], p_cfg['chat_id'], f"📈 5-Min ML {p_cfg['title']}商品看多機率分佈圖", image_path)
+                print(f"已發送 {p_cfg['title']} Telegram 圖表報告。")
 
 if __name__ == "__main__":
     run_intraday_pipeline()

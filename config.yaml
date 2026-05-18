@@ -290,7 +290,7 @@ memory:
 model:
     api_key: ollama
     base_url: http://127.0.0.1:11434/v1
-    default: qwen3.5:122b
+    default: gemini-3-flash-preview
     provider: ollama-launch
 model_catalog:
     enabled: true
@@ -354,8 +354,9 @@ prompt_caching:
 providers:
     ollama-launch:
         api: http://127.0.0.1:11434/v1
-        default_model: qwen3.5:122b
+        default_model: gemini-3-flash-preview
         models:
+            - gemini-3-flash-preview
             - qwen3.5:122b
             - qwen3.6:35b
             - gemini-3-flash-preview:latest
@@ -413,7 +414,6 @@ stt:
 telegram:
     allowed_channels:
         - "6326497055"
-        - "-1003744330314"
     allowed_chats: ""
     auto_source_bashrc: true
     backend: local

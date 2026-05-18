@@ -46,7 +46,7 @@ ORA ORA ORA! 數據雜訊已被悉數抹除。
         price_fmt = f"{info['price']:,.2f}" if isinstance(info['price'], (float, int)) else info['price']
         sp_msg += f"- **{info['name']}** ({sym}): `{price_fmt}` ({info['pct']:+.2f}%) 突破 `{info['tier']}%`\n"
 
-    sp_msg += "\n💡 *備註：當前連結狀態穩定。*"
+    # 1. Star Platinum Group Report
     send_telegram(STAR_PLATINUM_TOKEN, GROUP_ID, sp_msg)
 
     # 2. GER Private Report

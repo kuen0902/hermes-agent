@@ -48,7 +48,24 @@ The **"Sync-Store-Dispatch"** pattern prevents API rate-limiting and ensures con
 Prevent flooding and redundant bursts by checking a `.lock` timestamp.
 - **Recommended Window**: 8 minutes (`480s`) for 10-minute cron jobs.
 
+### Swift Mach-O Binary Wrapping
+When Cron jobs or orchestrators fail to run Swift-compiled Mach-O executables (common with `no_agent=True` scripts):
+1. **Do NOT assume Python interpreter**: If a script has no extension (or is `.swift` but compiled to binary), **do not** invoke `python` or `python3`.
+2. **Create a `.sh` wrapper**: Use `#!/bin/bash` directly calling the binary or Swift executable path.
+   ```bash
+   #!/bin/bash
+   /path/to/SwiftBinary arg1 arg2
+   ```
+3. **Handle Empty Output in `no_agent` Mode**: Cron jobs with `no_agent=True` mark `error` if stdout is empty.
+   - **Fix**: Add a fallback `echo "Status: OK - No alerts triggered"` if the binary produces no output.
+4. **Orchestrator Logic Update**: If the orchestration script (Swift/Python) dynamically executes children, ensure it detects file types:
+   - `.sh` → run with `/bin/bash`
+   - `.py` → run with venv python
+   - No extension / `.swift` binary → run directly
+   - `.swift` source → run with `swift`
+
 ## Pitfalls
-- **`__main__` Guard Corruption**: Ensure code generation correctly parses `"__main__"` without escaping errors.
-- **File-Write Races**: Re-read file content before writing if sibling agents are active.
-- **Sandbox Limits**: Use `terminal` for large-scale processing to leverage the user's local Python environment (Pandas/NumPy).
+- `__main__` Guard Corruption: Ensure code generation correctly parses `"__main__"` without escaping errors.
+- File-Write Races: Re-read file content before writing if sibling agents are active.
+- Sandbox Limits: Use `terminal` for large-scale processing to leverage the user's local Python environment (Pandas/NumPy).
+- Silent Failures in `no_agent` Mode: Always ensure scripts produce *some* stdout output, even if just "OK" or "No changes", to prevent Cron from marking the job as failed.

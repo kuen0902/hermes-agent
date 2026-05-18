@@ -10,10 +10,10 @@ User workflow: Provides screenshots of mobile trading apps (e.g., "Today's Trade
 §
 2026-05-15: Upgraded to Python 3.14.4 (venv_314) with PEP 695 support. Fixed 09:00 Cron failure where Swift scripts were misidentified as Python by wrapping the Orchestrator (f95f14b437ee) in run_taiex_orchestrator.sh. Future finance automation prioritized for native Swift.
 §
-User prefers having significant system administrative changes (like cron job removals) logged into persistent memory for auditing.
-§
-Sys Arch: TAIEX monitoring via run_taiex_orchestrator.sh (Job f95f14b437ee) runs every 10 minutes (*/10 9-13). Tiers: [3,5,7,9]. Python env: venv_314. Swift scripts must be wrapped in .sh for Cron stability to avoid Python misidentification.
+TAIEX Monitor: Runs */10 9-12. Group ID: -1003744330314, Private ID: 6326497055. Swift binary at ~/.hermes/scripts/hermes_monitor. ADATA (3260) cost: 463.19. Confirmed price/qty required before transactions.
 §
 User has 1 lot (1000 shares) of ADATA (3260) with a cost basis of 463.19. (Note: Cost basis verified as 463.19 per user input 2026-05-13).
 §
 Portfolio management requires explicit confirmation of Stock Code, Price, and Quantity; never assume default values for transactions.
+§
+Profile Hierarchy: `.env` override > `config.yaml`. To silence bot in groups while reporting, remove chat ID from `allowed_channels` and ensure `.env` is restrictive. Direct API scripts bypass Gateway silence.

@@ -38,4 +38,5 @@ skills/**/.curator_backups/
 scripts/hermes_orchestrator
 scripts/hermes_sync
 scripts/hermes_monitor
-
+node_modules/
+lsp/node_modules/

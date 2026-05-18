@@ -16,9 +16,18 @@ func runScript(name: String, args: [String] = []) {
     if name.hasSuffix(".swift") {
         process.executableURL = URL(fileURLWithPath: scriptPath)
         process.arguments = args
-    } else {
+    } else if name.hasSuffix(".sh") {
+        // Shell scripts: use bash
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = [scriptPath] + args
+    } else if name.hasSuffix(".py") {
+        // Python scripts: use venv python
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = ["/Users/bookid/.hermes/.venv/bin/python", scriptPath] + args
+    } else {
+        // No extension (likely Swift Mach-O executables): run directly
+        process.executableURL = URL(fileURLWithPath: scriptPath)
+        process.arguments = args
     }
     
     let pipe = Pipe()
