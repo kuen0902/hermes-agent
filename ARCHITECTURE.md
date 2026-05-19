@@ -8,6 +8,11 @@ This document is the **Single Source of Truth** for Hermes system architecture.
 - **Python Runtime Path**: `/Users/bookid/.hermes/.venv/bin/python`
   - *Detail*: 所有 Python 腳本**必須**使用此絕對路徑的虛擬環境執行。嚴禁使用系統原生的 `python3` 或舊版工作區路徑，以避免環境相依性錯誤。
 
+- **Repository Structure (Dual-Repo Strategy)**:
+  - 系統採用雙儲存庫隔離設計，嚴格區分「底層框架」與「業務邏輯」。
+  - `~/workspace/hermes-agent`: 專職作為上游框架引擎 (Engine)，保持乾淨以便隨時從官方拉取更新，不存放任何個人客製化腳本。
+  - `~/.hermes`: 作為實體層與大腦 (Instance & Brain)，統一管理所有客製化 Swift 橋接、Cron 排程、股票分析技能與系統記憶庫。
+
 ## 2. Core Capabilities & Design Patterns (核心能力與設計模式)
 
 ### Pattern 1: Tri-Language Data Pipeline (三語言協同架構)

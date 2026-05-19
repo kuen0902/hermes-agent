@@ -122,9 +122,16 @@ Run once to gather evidence showing WHERE it breaks.
 THEN analyze evidence to identify the failing component.
 THEN investigate that specific component.
 
-### 5. Trace Data Flow
+### 6. 3-Consecutive-Failure Protocol
+**WHEN an automated task or script fails 3 times in a row:**
+- **STOP blindly retrying.**
+- **DIAGNOSE via Web**: Perform a `web_search` for the specific error code, API provider status, or library version changes.
+- **IDENTIFY Service Drift**: Check if the API endpoint has moved or if the token/key format has changed (e.g., bot migration, 2FA requirements).
 
-**WHEN error is deep in the call stack:**
+### 7. Avoid Shell Quoting Hell
+**WHEN testing API tokens or sensitive strings via terminal:**
+- Avoid `terminal(command="curl ...")` if tokens contain special characters (`:`, `)`, `$`, etc.).
+- **PREFER `execute_code`**: Use Python's `urllib` or `requests` inside a script to handle authentication. This prevents shell expansion and syntax errors.
 
 - Where does the bad value originate?
 - What called this function with the bad value?

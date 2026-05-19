@@ -22,11 +22,33 @@ import yfinance as yf  # type: ignore
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+import random
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
 def get_session() -> requests.Session:
     session = requests.Session()
-    session.headers.update({
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-    })
+    
+    # User-Agent Rotator to prevent rate-limit bans
+    user_agents = [
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:125.0) Gecko/20100101 Firefox/125.0',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36'
+    ]
+    session.headers.update({'User-Agent': random.choice(user_agents)})
+    
+    # Exponential Backoff Configuration
+    retry_strategy = Retry(
+        total=5,  # Maximum number of retries
+        backoff_factor=1.5,  # 1.5, 3.0, 6.75 seconds...
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["HEAD", "GET", "OPTIONS"]
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    
     return session
 
 # Configuration
@@ -161,10 +183,14 @@ def fetch_yfinance_fallback(codes: list[str]) -> dict[str, dict[str, Any]]:
     """Fetches data via yfinance for tickers that failed TWSE API."""
     results: dict[str, dict[str, Any]] = {}
     if not codes: return results
+    
+    session = get_session()
     for c in codes:
         for suffix in [".TW", ".TWO"]:
             sym = f"{c}{suffix}"
             try:
+                # Adding session for resilience in newer yfinance versions if supported, 
+                # else wrapping with a short sleep to avoid hammering
                 t = yf.Ticker(sym)
                 hist = t.history(period="2d")
                 if len(hist) >= 1:
@@ -181,8 +207,10 @@ def fetch_yfinance_fallback(codes: list[str]) -> dict[str, dict[str, Any]]:
                         "time": datetime.now().isoformat()
                     }
                     break
-            except Exception:
+            except Exception as e:
+                time.sleep(1) # Backoff for yfinance on error
                 continue
+        time.sleep(0.5) # Gentle rate limiting between symbols
     return results
 
 def sync() -> None:

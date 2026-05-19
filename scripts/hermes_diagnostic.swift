@@ -376,6 +376,196 @@ if fm.fileExists(atPath: envPath) {
 }
 print("")
 
+// ---------------------------------------------------------
+// 8. 通訊分流協議與路由隔離檢查 (Information Segregation Check)
+// ---------------------------------------------------------
+print("--- 8. 通訊分流協議與路由隔離檢查 ---")
+if fm.fileExists(atPath: "\(scriptsDir)/intraday_risk_monitor.py") {
+    let routeScript = """
+import sys
+sys.path.append('\(scriptsDir)')
+try:
+    import intraday_risk_monitor as irm
+    p = irm.PROFILES
+    assert p['personal']['chat_id'] == '6326497055', 'Personal Chat ID mismatch'
+    assert p['group']['chat_id'] == '-1003744330314', 'Group Chat ID mismatch'
+    assert p['william']['chat_id'] == '8695583357', 'William Chat ID mismatch'
+    assert p['personal']['token'].startswith('8737'), 'Personal Token mismatch'
+    assert p['group']['token'].startswith('8737'), 'Group Token mismatch'
+    assert p['william']['token'].startswith('8678'), 'William Token mismatch'
+    print("OK")
+except Exception as e:
+    print(f"FAIL: {e}")
+"""
+    let routeProcess = Process()
+    routeProcess.executableURL = URL(fileURLWithPath: venvPython)
+    routeProcess.arguments = ["-c", routeScript]
+    let routePipe = Pipe()
+    routeProcess.standardOutput = routePipe
+    routeProcess.standardError = routePipe
+    
+    do {
+        try routeProcess.run()
+        routeProcess.waitUntilExit()
+        let routeData = routePipe.fileHandleForReading.readDataToEndOfFile()
+        if let output = String(data: routeData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if output == "OK" {
+                reportPass("通訊分流協議完整！(個人/群組/William 路由皆已隔離)")
+            } else {
+                reportFail("通訊分流協議異常", advice: "PROFILES 字典參數遭竄改或設定錯誤：\(output)")
+            }
+        }
+    } catch {
+        reportFail("無法驗證通訊分流", advice: error.localizedDescription)
+    }
+} else {
+    reportWarn("找不到 intraday_risk_monitor.py", advice: "跳過通訊分流協議檢查。")
+}
+print("")
+
+// ---------------------------------------------------------
+// 9. 多重路由 Token 活體驗證 (Multi-Token Liveness Check)
+// 10. 群組在籍與發送權限驗證 (Membership & Access Check)
+// ---------------------------------------------------------
+print("--- 9 & 10. 多重路由 Token 與群組權限驗證 ---")
+if fm.fileExists(atPath: "\(scriptsDir)/intraday_risk_monitor.py") {
+    let multiTokenScript = """
+import sys
+import json
+import urllib.request
+import ssl
+
+sys.path.append('\(scriptsDir)')
+try:
+    import intraday_risk_monitor as irm
+    profiles = irm.PROFILES
+    ctx = ssl._create_unverified_context()
+    
+    errors = []
+    
+    for name, cfg in profiles.items():
+        token = cfg.get('token', '')
+        chat_id = cfg.get('chat_id', '')
+        
+        # 1. 驗證 Token (/getMe)
+        getme_url = f"https://api.telegram.org/bot{token}/getMe"
+        try:
+            req = urllib.request.Request(getme_url)
+            with urllib.request.urlopen(req, context=ctx, timeout=5) as resp:
+                data = json.loads(resp.read().decode())
+                if not data.get('ok'):
+                    errors.append(f"[{name}] Token 驗證失敗")
+        except Exception as e:
+            errors.append(f"[{name}] Token 無效 (HTTP 401/404)或網路錯誤")
+            continue
+            
+        # 2. 驗證權限 (/getChat)
+        getchat_url = f"https://api.telegram.org/bot{token}/getChat?chat_id={chat_id}"
+        try:
+            req = urllib.request.Request(getchat_url)
+            with urllib.request.urlopen(req, context=ctx, timeout=5) as resp:
+                data = json.loads(resp.read().decode())
+                if not data.get('ok'):
+                    errors.append(f"[{name}] 無法存取 Chat ID {chat_id}")
+        except Exception as e:
+            errors.append(f"[{name}] Chat ID {chat_id} 找不到或無權限存取 (404/403)")
+            
+    if errors:
+        print("FAIL|" + " ; ".join(errors))
+    else:
+        print("OK")
+except Exception as e:
+    print(f"FAIL|Script execution error: {e}")
+"""
+    let tokenProcess = Process()
+    tokenProcess.executableURL = URL(fileURLWithPath: venvPython)
+    tokenProcess.arguments = ["-c", multiTokenScript]
+    let tokenPipe = Pipe()
+    tokenProcess.standardOutput = tokenPipe
+    tokenProcess.standardError = tokenPipe
+    
+    do {
+        try tokenProcess.run()
+        tokenProcess.waitUntilExit()
+        let tokenData = tokenPipe.fileHandleForReading.readDataToEndOfFile()
+        if let output = String(data: tokenData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if output == "OK" {
+                reportPass("多重路由 Token 皆有效，且全部成功綁定對應的 Chat ID！")
+            } else if output.hasPrefix("FAIL|") {
+                let errs = output.replacingOccurrences(of: "FAIL|", with: "")
+                reportFail("通訊層連線或權限異常", advice: errs)
+            } else {
+                reportFail("未知的驗證錯誤", advice: output)
+            }
+        }
+    } catch {
+        reportFail("無法驗證多重 Token", advice: error.localizedDescription)
+    }
+} else {
+    reportWarn("找不到 intraday_risk_monitor.py", advice: "跳過 Token 驗證。")
+}
+print("")
+
+// ---------------------------------------------------------
+// 11. 股名 Markdown 地雷掃描 (Markdown Payload Check)
+// ---------------------------------------------------------
+print("--- 11. 股名 Markdown 地雷掃描 ---")
+if fm.fileExists(atPath: "\(dataDir)/master_stock_registry.json") {
+    let mdScript = """
+import json
+import sys
+
+registry_path = '\(dataDir)/master_stock_registry.json'
+try:
+    with open(registry_path, 'r') as f:
+        data = json.load(f)
+    
+    names = data.get('official_names', {}).values()
+    dangerous_chars = ['*', '_', '`', '[']
+    
+    issues = []
+    for name in names:
+        for char in dangerous_chars:
+            if char in name:
+                issues.append(name)
+                break
+                
+    if issues:
+        print("WARN|" + ",".join(issues))
+    else:
+        print("OK")
+except Exception as e:
+    print(f"FAIL|Error parsing registry: {e}")
+"""
+    let mdProcess = Process()
+    mdProcess.executableURL = URL(fileURLWithPath: venvPython)
+    mdProcess.arguments = ["-c", mdScript]
+    let mdPipe = Pipe()
+    mdProcess.standardOutput = mdPipe
+    mdProcess.standardError = mdPipe
+    
+    do {
+        try mdProcess.run()
+        mdProcess.waitUntilExit()
+        let mdData = mdPipe.fileHandleForReading.readDataToEndOfFile()
+        if let output = String(data: mdData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if output == "OK" {
+                reportPass("無發現 Markdown 危險股名字元。")
+            } else if output.hasPrefix("WARN|") {
+                let stocks = output.replacingOccurrences(of: "WARN|", with: "")
+                reportWarn("發現可能導致 Telegram 崩潰的股名", advice: "這些股名包含特殊符號 (*, _, [, `)：\(stocks)")
+            } else {
+                reportFail("Markdown 檢查失敗", advice: output)
+            }
+        }
+    } catch {
+        reportFail("無法執行 Markdown 掃描", advice: error.localizedDescription)
+    }
+} else {
+    reportWarn("找不到 registry", advice: "跳過掃描。")
+}
+print("")
+
 print("==================================================")
 if criticalFailures.isEmpty {
     print("🌟 診斷完成：系統全鏈路完美健康，三語言協同架構運作正常！")

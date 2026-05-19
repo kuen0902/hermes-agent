@@ -18,10 +18,12 @@ This skill governs automated financial tracking, market data retrieval, and corp
 - **Numbers Automation**: `references/numbers_applescript.md` (Dynamic document discovery, row iteration, AppleScript safe operations).
 - **MOPS & Earnings Guidelines**: `references/mops_guidelines.md` (Taiwan MOPS scraping rules, Bot detection traps, CDN fallbacks, Calendar dates).
 - **The TAIEX Gatekeeper**: `references/taiex_gatekeeper_implementation.md` (Robust logic for market status checking).
+- **Intraday ML Grouping**: `references/intraday_ml_grouping.md` (Profile-based alert partitioning).
 - **Night Session Rules**: `references/night_session_rules.md` (Script hardening, 05:00 Archive settlement, Gatekeeper logic).
 - **Script Hardening & Compatibility**: `references/script_hardening_automation.md` (Absolute paths, Python 3.11 vs 3.12 syntax, Cron PATH issues).
 - **Historical Reference**: `references/deep_analysis_template.md` (Obsidian report structure).
 - **Multi-Bot Routing**: `references/multi_bot_routing_map.md` (Bot Tokens, Chat IDs).
+- **Swift Mapping Auditor**: `references/swift_mapping_auditor.md` (Handling missing names in Swift monitor alerts).
 
 ## 1. Market Data Retrieval (Yahoo Finance & TWSE API)
 
@@ -36,8 +38,11 @@ This skill governs automated financial tracking, market data retrieval, and corp
 
 - **09:00 Opening Report (The Full Scan)**: Full table of all monitored lists.
 - **Tiered Milestone Protocol (The Milestone Scan)**: (09:20 - 13:30). A ticker is reported when it crosses absolute thresholds: **[3.0%, 5.0%, 7.0%, 9.0%]**. Reports trigger on the *first* crossing of a tier.
+- **Alert Grouping & Identity Isolation (Bubble Separation)**: When sending real-time AI risk alerts, do NOT mix categories in a single message.
+  - **Logic**: Alerts must be split into independent message bubbles based on their category: `💎 Core (Personal)`, `👨‍💻 William List`, and `🔍 Others`.
+  - **Verification**: Use `central_stock_data.json` as the source of truth for categorization.
 - **Privacy Enforcement (Group Separation)**: The `group` profile MUST be patched to exclude `personal_data` (private holdings) from reports to prevent privacy leaks in public/shared Telegram channels. Only "Watchlist" or "Category" stocks are broadcasted to groups.
- - **Persona Protocol**:
+
    - **@taiwangupiaoBot (Star Platinum)**: Group Monitor. Night Mode & Day Mode. MUST use Traditional Chinese. ORA ORA ORA style. Target: Group `-1003744330314`.
    - **@kuenmingBot (GER)**: Core Architect. 1-on-1 Dialogue. "無駄無駄無駄！" style. Target: Private `6326497055`.
  - **Routing & Identity Troubleshooting**:

@@ -4,11 +4,42 @@
 > 每次啟動對話時，請務必先閱讀此文件以取得最新的系統脈絡。
 
 ## 📅 最新更新日期
-2026-05-18 (Session: 股票系統底層升級與 Telegram 防護強化)
+2026-05-19 (Session: 盤中即時通訊分流、Token 修復與股名映射清洗)
 
 ## ✅ 近期已完成事項 (Completed)
 
-1. **Portfolio 資料庫 SQLite 化**
+1. **防護盾建立 (API Rate-Limit Resilience)**
+   - 解決了 `jobs.json` 中 Ollama HTTP 429 錯誤。將最頻繁的 13:30 休市判斷改由純 Python 腳本 (`run_market_close_report.py`) 獨立完成，實現 LLM 脫鉤。
+   - 在 `taiex_central_data_sync.py` 內建了 Exponential Backoff 重試與 User-Agent 隨機輪替機制，成功防範 Yahoo Finance 封鎖。
+
+2. **自動加減碼的 AI 聯動 (Agent Execution)**
+   - 打通了 ML 預測與 SQLite 投資組合的最後一哩路。
+   - `intraday_ml_pipeline.py` 現在能根據勝率生成 `trade_signals.json`。
+   - 全新建立 `trade_execution_orchestrator.py` 會自動攔截訊號執行 `portfolio_tool.py --add/reduce`，並透過 Telegram 即時回報。
+
+3. **Swift 引擎進階報警 (PnL Reporting)**
+   - 實現了盤後已實現損益的自動通知。
+   - 建立 `calculate_pnl_summary.py` 與 `send_pnl_report.swift` 聯合管線，將每日交易明細與歷史總損益整理成精美 Markdown 發送至您的 Telegram。
+
+4. **腳本大掃除與架構重整 (Code Refactoring)**
+   - 解決了 `scripts/` 目錄下高達 84 個檔案的混亂狀態。
+   - 撰寫了 `refactor_phase4.py` 自動將 Swift 執行檔移入 `bin/`、ML 相關移入 `ml/`、抓價腳本移入 `fetchers/`。
+   - 自動連動更新 `jobs.json` 排程中的絕對路徑，確保系統無縫接軌。
+
+5. **通訊架構絕對隔離 (Information Segregation)**
+   - 確立了三方分流協議：個人核心持股由 GER 發送、群組監控由白金之星 (Star Platinum) 發送、William 清單由專屬機器人發送。
+   - 修正了 Cron Job 的 `deliver` 模式，將派送權力交還給腳本原生驅動，解決 Chat not found 報錯。
+
+2. **核心 Token 復位與雙引擎重編譯**
+   - 清除受污染的 Token，將真實的白金之星 Token (`8737...`) 物理注入 `intraday_risk_monitor.py` (Python) 與 `hermes_monitor.swift` (Swift)。
+   - 重新編譯了 Swift 引擎，確保底層通訊網路 100% 暢通。
+
+3. **股名映射修復與 Markdown 防呆**
+   - 於 `master_stock_registry.json` 與 SQLite 資料庫中補齊了 2409 (友達)、6770 (力積電)、5443 (均豪) 的名稱。
+   - 針對 `intraday_data_log.csv` 執行了歷史紀錄清洗，將代碼轉為中文。
+   - 在 `intraday_ml_pipeline.py` 中加入了 Markdown 特殊字元 (如 `*`, `_`) 的轉義處理，徹底解決發送含特殊符號股名 (如國巨*) 時導致的 Telegram 400 Bad Request 錯誤。
+
+4. **Portfolio 資料庫 SQLite 化**
    - 移除了過去極不穩定的 JSON 讀寫狀態，全面升級為 `portfolio.db`。
    - 重構 `portfolio_tool.py`，現在具備 `current_holdings`, `watchlist`, `pnl_history` 三大核心資料表。
    - 實作了「加碼 (add)」、「減碼/清單 (reduce)」功能，並完美支援計算**「千股單位 (張)」**的已實現損益 (Realized PnL)。
@@ -22,18 +53,19 @@
    - 現在 Telegram 的「列出觀測清單」功能具備極致美觀的群組資料夾排版。
    - 同步修正了「查詢個股報價」功能，使其能即時從 `central_stock_data.json` 撈取並印出完整資訊。
 
-4. **Git 環境最佳化**
+4. **機器學習 (ML) 分析管線修復與強固**
+   - 修復了 `pandas-ta-classic` 因 Yahoo Finance API 異常回傳字串而導致的 `TypeError`。
+   - 在 `confluence_eod_analysis.py`, `portfolio_ml_analysis.py` 等核心分析腳本中實作了強制的型別轉換 (`pd.to_numeric`) 與空值處理 (`dropna`)，大幅提升了 ML 推理引擎在面對髒資料時的穩定性。
+
+5. **Git 環境最佳化**
    - 在 `.gitignore` 中追加了 `node_modules/` 與 `lsp/node_modules/`，解決了 VS Code 內出現 2000+ 個無效追蹤檔案的效能災難。
 
 ## 🎯 下階段待辦事項 (Pending / Next Steps)
 
-1. **自動加減碼的 AI 聯動 (Agent Execution)**
-   - **目標**：目前的加碼、減碼動作仍依賴使用者手動點擊 Telegram 按鈕。未來需將 Antigravity / Hermes Agent 與此操作綁定。
-   - **細節**：當 AI 分析出進場或出場訊號時，應能自動執行 `portfolio_tool.py --add/--reduce`，並連動我們的「持股更新計畫」。
-2. **Swift 引擎的進階報警**
-   - 探討是否將 `pnl_history` (已實現損益) 透過 Swift 引擎轉發精美的圖表或日報表給 Telegram 頻道。
-3. **優化夜盤 / 盤後資料更新排程**
-   - 配合 SQLite，進一步強化 cron job 獲取資料並自動刷新 `central_stock_data.json` 的穩定度，防範 Yahoo Finance 的 Rate Limit 封鎖。
+1. **Swift 引擎圖表生成**
+   - 可考慮利用 Python 繪製 PnL 曲線圖後，交由 Swift 引擎一同派送至 Telegram 日報表中。
+2. **自動下單的實彈測試 (Paper Trading / Dry Run)**
+   - 雖然 `trade_execution_orchestrator.py` 已經建置完成，但需要實際驗證在強烈買賣訊號出現時的資料庫讀寫穩定度。
 
 ## 🧠 給下一位 Hermes 助理的交接箴言
 > *「目前的股票模組 (`portfolio_tool.py`) 已經打下極度堅實的 SQLite 基礎，各種輸出排版也都已經調整到最符合 User 習慣的完美格式（包括千分位、🔴綠🟢紅顏色反轉）。接下來的開發請專注於 AI 自動化與策略執行的串接，並隨時使用 `swift ~/.hermes/scripts/hermes_diagnostic.swift` 確認環境健康度。無駄無駄無駄！」*

@@ -268,13 +268,42 @@ def run_intraday_pipeline():
     
     # Save overall predictions
     new_predictions = {}
+    trade_signals = []
+    
     for i, (code, name, price, var_str) in enumerate(codes_infer):
+        prob = float(preds[i])
         new_predictions[code] = {
             "date": today.isoformat(),
             "price": price,
-            "prob": float(preds[i])
+            "prob": prob
         }
+        
+        # Generate Actionable Trade Signals based on strong ML confidence
+        action = None
+        if prob >= 0.85:
+            action = "add"
+        elif prob <= 0.15:
+            action = "reduce"
+            
+        if action:
+            # Recommend trading 1 unit (1000 shares) by default as a safety limit
+            trade_signals.append({
+                "action": action,
+                "code": str(code),
+                "name": name,
+                "price": price,
+                "qty": 1.0,
+                "prob": prob,
+                "timestamp": today.isoformat()
+            })
+            
     save_predictions(new_predictions)
+    
+    if trade_signals:
+        signals_file = os.path.join(DATA_DIR, "trade_signals.json")
+        with open(signals_file, 'w') as f:
+            json.dump({"signals": trade_signals, "generated_at": datetime.now().isoformat()}, f, indent=2, ensure_ascii=False)
+        print(f"✅ 生成 {len(trade_signals)} 筆自動加減碼訊號 (trade_signals.json)")
     
     # Load central data to split by profile
     central_data = load_central_data()
@@ -323,8 +352,11 @@ def run_intraday_pipeline():
             p_codes_infer.append((code, name, price, var_str))
             p_probs.append(prob)
             
+            # Escape markdown special characters in name
+            clean_name = name.replace("*", "\\*").replace("_", "\\_")
+            
             signal = "🔴 偏多" if prob > 0.55 else ("🟢 偏空" if prob < 0.45 else "⚪ 盤整")
-            line_str = f"▸ **{name}** (`{code}`): 明日 {signal} (看多機率: {prob*100:.1f}%) | 昨驗證: {var_str}"
+            line_str = f"▸ **{clean_name}** (`{code}`): 明日 {signal} (看多機率: {prob*100:.1f}%) | 昨驗證: {var_str}"
             
             if p_key == "group":
                 cat = code_to_category.get(code, "其他群組關注")
