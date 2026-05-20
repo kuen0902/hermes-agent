@@ -20,14 +20,9 @@ def get_night_session_status():
     taipei_tz = pytz.timezone('Asia/Taipei')
     report_time = datetime.now(taipei_tz).strftime("%Y-%m-%d %H:%M")
     
-    import requests
     data = None
     try:
-        session = requests.Session()
-        session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-        })
-        ticker = yf.Ticker(ticker_symbol, session=session)
+        ticker = yf.Ticker(ticker_symbol)
         data = ticker.history(period="1d", interval="1m")
     except Exception as e:
         pass # Suppress output so it doesn't pollute the notification when falling back

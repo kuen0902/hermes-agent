@@ -139,12 +139,12 @@ func main() {
     syncNumbersFilename()
     
     // 1. Sync Data (The Gatherer)
-    runScript(name: "hermes_sync")
+    runScript(name: "hermes_sync.swift")
     
     // 2. Distribute (The Bots)
-    runScript(name: "hermes_monitor", args: ["--profile", "personal"])
-    runScript(name: "hermes_monitor", args: ["--profile", "william"])
-    runScript(name: "hermes_monitor", args: ["--profile", "group"])
+    runScript(name: "hermes_monitor.swift", args: ["--profile", "personal"])
+    runScript(name: "hermes_monitor.swift", args: ["--profile", "william"])
+    runScript(name: "hermes_monitor.swift", args: ["--profile", "group"])
     
     // 3. Intraday Risk Monitor (Stop-Loss/Take-Profit check)
     runScript(name: "intraday_risk_monitor.py")

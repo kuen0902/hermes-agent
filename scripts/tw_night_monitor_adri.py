@@ -4,6 +4,7 @@ from datetime import datetime
 import pytz
 import os
 import json
+import requests
 
 # Configuration
 SAVE_FILE = os.path.expanduser("~/.hermes/data/night_session_last.json")
@@ -35,58 +36,158 @@ def get_market_data():
     
     for sym, name in tickers.items():
         price = None
-        import urllib.request, json
+        prev_close = None
+        source = "yfinance"
+        
+        # 1. 優先使用 history(period="2d", prepost=True) 獲取最可靠的當前價與昨收價
         try:
-            req = urllib.request.Request(
-                f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
-                headers={'User-Agent': 'Mozilla/5.0'}
-            )
-            with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode())
-                meta = data['chart']['result'][0]['meta']
-                price = meta.get('regularMarketPrice')
-                prev_close = meta.get('previousClose')
-                
-                if price is not None and prev_close is not None:
-                    data_results[sym] = {
-                        "name": name,
-                        "price": price,
-                        "session_delta_abs": price - prev_close,
-                        "hour_delta": 0.0,
-                        "session_delta": ((price - prev_close) / prev_close) * 100 if prev_close else 0,
-                        "source": "yahoo_api"
-                    }
+            ticker = yf.Ticker(sym)
+            hist = ticker.history(period="2d", prepost=True)
+            if not hist.empty:
+                if len(hist) >= 2:
+                    price = float(hist['Close'].iloc[-1])
+                    prev_close = float(hist['Close'].iloc[-2])
+                    source = "yf_hist"
+                elif len(hist) == 1:
+                    price = float(hist['Close'].iloc[-1])
+                    prev_close = float(hist['Open'].iloc[0])
+                    source = "yf_hist_1d"
+                    # 嘗試從 info 中獲取更精確的昨收價
+                    try:
+                        info_pc = ticker.info.get('previousClose')
+                        if info_pc:
+                            prev_close = float(info_pc)
+                    except:
+                        pass
         except Exception as e:
-            # print(f"Error fetching {sym}: {e}") # Debug if needed
             pass
             
-        if sym not in data_results:
-            # Fallback to bridge
+        # 2. 第二層級備份：使用 basic_info 或 info 屬性
+        if price is None or prev_close is None:
+            try:
+                ticker = yf.Ticker(sym)
+                info = ticker.info
+                price = info.get('currentPrice') or info.get('regularMarketPrice')
+                prev_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
+                if price is not None and prev_close is not None:
+                    price = float(price)
+                    prev_close = float(prev_close)
+                    source = "yf_info"
+            except Exception as e:
+                pass
+                
+        # 3. 第三層級備份：使用 fast_info 屬性
+        if price is None or prev_close is None:
+            try:
+                ticker = yf.Ticker(sym)
+                fast_info = ticker.fast_info
+                try:
+                    price = fast_info['last_price']
+                    prev_close = fast_info['previous_close']
+                except (TypeError, KeyError):
+                    price = getattr(fast_info, 'last_price', None)
+                    prev_close = getattr(fast_info, 'previous_close', None)
+                
+                if price is not None and prev_close is not None:
+                    price = float(price)
+                    prev_close = float(prev_close)
+                    source = "yf_fast"
+            except Exception as e:
+                pass
+                
+        # 4. 第四層級備份：當 yfinance 完全失敗時，使用 bridge 價格，但仍嘗試單獨獲取 yfinance 的昨收價以進行計算
+        if price is None or prev_close is None:
             if sym in bridge:
                 price = bridge[sym]
-                data_results[sym] = {
-                    "name": name,
-                    "price": price,
-                    "session_delta_abs": 0.0,
-                    "hour_delta": 0.0,
-                    "session_delta": 0.0,
-                    "source": "bridge"
-                }
-            else:
-                errors.append(f"{sym} 數據獲取失敗")
+                source = "bridge"
+                
+                # 嘗試單獨獲取昨收價
+                try:
+                    ticker = yf.Ticker(sym)
+                    hist = ticker.history(period="2d", prepost=True)
+                    if not hist.empty and len(hist) >= 2:
+                        prev_close = float(hist['Close'].iloc[-2])
+                        source = "bridge+yf_prev"
+                    elif not hist.empty:
+                        prev_close = float(hist['Open'].iloc[0])
+                        source = "bridge+yf_prev"
+                except Exception as e:
+                    pass
+                    
+                if prev_close is None:
+                    try:
+                        ticker = yf.Ticker(sym)
+                        prev_pc = ticker.info.get('previousClose')
+                        if prev_pc:
+                            prev_close = float(prev_pc)
+                            source = "bridge+yf_prev"
+                    except Exception as e:
+                        pass
+
+        # 寫入最終獲取結果
+        if price is not None and prev_close is not None:
+            data_results[sym] = {
+                "name": name,
+                "price": float(price),
+                "session_delta_abs": float(price - prev_close),
+                "hour_delta": 0.0,
+                "session_delta": float(((price - prev_close) / prev_close) * 100) if prev_close else 0.0,
+                "source": source
+            }
+        elif price is not None:
+            # 只有價格但沒有昨收，只能顯示 0.0%
+            data_results[sym] = {
+                "name": name,
+                "price": float(price),
+                "session_delta_abs": 0.0,
+                "hour_delta": 0.0,
+                "session_delta": 0.0,
+                "source": f"{source}_no_prev"
+            }
+        else:
+            errors.append(f"{sym} 數據獲取失敗")
 
     health = "Healthy" if not errors else f"Degraded ({', '.join(errors)})"
     
-    # Add FITXP if in bridge
+    # 5. 台指期 (FITXP) 處理：使用 bridge 中的夜盤即時點數，並從 yfinance 獲取 TXF1=TW 或 ^TWII 的昨收計算真正漲跌幅
     if "FITXP" in bridge:
-        data_results["FITXP"] = {
-            "name": "台指期 (夜)",
-            "price": bridge["FITXP"],
-            "session_delta_abs": 0.0,
-            "hour_delta": 0.0,
-            "session_delta": 0.0,
-            "source": "bridge"
-        }
+        fitxp_price = bridge["FITXP"]
+        fitxp_prev_close = None
+        proxy_used = "None"
+        
+        for proxy in ["TXF1=TW", "^TWII"]:
+            try:
+                t = yf.Ticker(proxy)
+                hist = t.history(period="2d")
+                if not hist.empty:
+                    if len(hist) >= 2:
+                        fitxp_prev_close = float(hist['Close'].iloc[-2])
+                    else:
+                        fitxp_prev_close = float(hist['Close'].iloc[-1])
+                    if fitxp_prev_close:
+                        proxy_used = proxy
+                        break
+            except:
+                pass
+                
+        if fitxp_prev_close:
+            data_results["FITXP"] = {
+                "name": "台指期 (夜)",
+                "price": fitxp_price,
+                "session_delta_abs": float(fitxp_price - fitxp_prev_close),
+                "hour_delta": 0.0,
+                "session_delta": float(((fitxp_price - fitxp_prev_close) / fitxp_prev_close) * 100),
+                "source": f"bridge+{proxy_used}_prev"
+            }
+        else:
+            data_results["FITXP"] = {
+                "name": "台指期 (夜)",
+                "price": fitxp_price,
+                "session_delta_abs": 0.0,
+                "hour_delta": 0.0,
+                "session_delta": 0.0,
+                "source": "bridge_fallback"
+            }
 
     return data_results, health
 

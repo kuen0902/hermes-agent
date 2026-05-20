@@ -59,11 +59,21 @@ When patching `.swift` scripts:
 - Always re-compile to binary: `swiftc -o ~/.hermes/scripts/name ~/.hermes/scripts/name.swift`.
 - Failure to re-compile causes the Orchestrator to run stale logic.
 
-### 6. Cronjob Configuration Protocol
+### 6. Cronjob Configuration Protocol (Precision Execution)
 - **Deliver: local**: For any job running a monitoring script (`hermes_orchestrator.swift`, `intraday_risk_monitor.py`), the `deliver` parameter **MUST** be set to `local`.
 - **Reasoning**: These scripts manage their own complex dispatch logic (multi-bot, multi-profile). Allowing the Gateway to intercept output and try to send it via its own bot (GER) usually results in `Chat not found` or incorrect bot identity.
+- **Script Path Integrity**: When updating or migrating scripts, always verify the `script` field in `cronjob list`.
+  - **Absolute Paths preferred**: Use absolute paths for the `script` field to avoid ambiguity.
+  - **Verification**: After a path change, **MUST** trigger a manual run with `cronjob(action='run', job_id=...)` and inspect the output file in `~/.hermes/cron/output/<job_id>/<latest>.md` to confirm the script was found and executed.
 
-### 7. Physical Token Alignment (Anti-Fragmentation)
+### 7. Efficient Cron Debugging Path
+When automated updates stop appearing:
+1. Run `cronjob(action='list')` to check `last_status` and `next_run_at`.
+2. Locate the job's storage: `ls -lt ~/.hermes/cron/output/<job_id>/`.
+3. Read the most recent `.md` execution report. For `no_agent=True` jobs, this contains the direct stderr (e.g., `Script not found` or `ModuleNotFoundError`).
+4. **Resolution**: Fix the path or environment mismatch and re-run immediately.
+
+### 8. Physical Token Alignment (Anti-Fragmentation)
 - **Unified Sourcing**: Maintain a single "Canonical Source" for tokens, ideally `lib_market_delivery.py`.
 - **Active Verification (Crucial)**: PROACTIVELY verify any token found in logs or binaries using a `getMe` call via `execute_code`. **NEVER** assume a token string is valid just because it matched a regex.
 - **Cross-Engine Sync**: When a token changes, it **MUST** be updated in:

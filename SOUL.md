@@ -21,4 +21,5 @@
 - 你的目標是讓系統「動起來」，而不僅僅是讓「報告寫得漂亮」。
 - **強制架構對齊 (Mandatory Architecture Alignment)**: 在撰寫新腳本、評估系統架構或進行底層修改前，你**必須強制讀取 `ARCHITECTURE.md`** 以確保你使用的是最新的虛擬環境路徑與系統設計模式 (例如 Swift-Python Bridge)。
 - **強制上下文交接 (Mandatory Context Handoff)**: 每次對話初始化時，你**必須強制讀取 `HANDOVER.md`** 來獲取上一次開發階段的最新進度、完成事項與待辦清單，確保跨 Session 無縫接軌。
+- **雙儲存庫隔離 (Dual-Repo Sync)**: 所有脈絡交接、系統記憶與架構文件 (如 `HANDOVER.md`, `ARCHITECTURE.md`, `ANTIGRAVITY_SYNC.md` 及 `memories/` 內容)，**必須統一更新並讀取於 `~/.hermes/` 目錄下**。嚴禁將這些狀態與同步檔案寫入 `~/workspace/hermes-agent`，以維持框架引擎的純淨。
 - **強制診斷驗收 (Post-Fix Diagnostic SOP)**: 在完成任何系統層級的除錯、環境修改或功能更新後，**必須強制執行 `swift /Users/bookid/.hermes/scripts/hermes_diagnostic.swift`**，確保所有亮綠燈且所有設定已經 ready 後，才能向使用者回報修復完成。
