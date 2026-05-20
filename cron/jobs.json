@@ -20,17 +20,17 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 91
+        "completed": 107
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T08:41:40.695235+08:00",
-      "next_run_at": "2026-05-20T09:00:00+08:00",
-      "last_run_at": "2026-05-19T12:50:30.718557+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-20T11:40:00+08:00",
+      "last_run_at": "2026-05-20T11:30:37.409222+08:00",
+      "last_status": "error",
+      "last_error": "Script not found: /Users/bookid/.hermes/scripts/run_bin/hermes_monitor_personal.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -105,17 +105,17 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 14
+        "completed": 15
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-05-20T06:00:00+08:00",
-      "last_run_at": "2026-05-19T06:07:43.025384+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: \u6839\u64da\u4efb\u52d9\u6307\u4ee4\uff0c\u6211\u5df2\u91dd\u5c0d `earnings_calendar.json` \u4e2d\u6a19\u8a3b\u70ba\u672a\u4e0b\u8f09\u7684 2026 Q1\uff08115Q1\uff09\u8ca1\u5831\u9032\u884c\u8ffd\u8e64\u8207\u6293\u53d6\u6d41\u7a0b\uff0c\u4e26\u5c0d\u91cd\u9ede\u6b0a\u503c\u80a1\u9032\u884c\u6df1\u5ea6\u6aa2\u7d22\u3002\n\n### 1. \u57f7\u884c\u9032\u5ea6\u8207\u767c\u73fe\n*   **\u8ca1\u5831\u516c\u544a\u72c0\u6cc1**\uff1a\u78ba\u8a8d\u53f0\u80a1\u7b2c\u4e00\u5b63\u8ca1\u5831\u516c\u544a\u671f\u9650\uff085/15\uff09\u5df2\u904e\uff0c\u6e05\u55ae\u4e2d\u5927\u591a\u6578\u6307\u6a19\u80a1\u5982 **2317 \u9d3b\u6d77**\uff08EPS 3.56\uff09\u3001**6669 \u7def\u7a4e**\uff08EPS 75.95\uff09\u5747\u5df2\u63ed\u9732\u6b63\u5f0f\u6578\u64da\u3002\n*   **\u4e0b\u8f09\u969c\u7919\u7a81\u7834**\uff1a\u7531\u65bc\u516c\u53f8 IR \u5b98\u7db2\u5e38\u898f `curl` \u8acb\u6c42\u88ab Web \u9632\u706b\u7246\u6514\u622a\u6216 URL \u52d5\u614b\u751f\u6210\uff0c\u6211\u5df2\u5207\u63db\u81f3 **\u516c\u958b\u8cc7\u8a0a\u89c0\u6e2c\u7ad9 (MOPS)** \u900f\u904e\u6a21\u64ec\u700f\u89bd\u5668\u884c\u70ba\u9032\u884c\u6293\u53d6\u3002\n*   **\u6aa2\u7d22\u7d50\u679c\u5f59\u6574**\uff08\u5df2\u6210\u529f\u65bc MOPS \u5b9a\u4f4d\uff09\uff1a\n    *   **2317 \u9d3b\u6d77**\uff1a\u5df2\u5b8c\u6210\u96fb\u5b50\u66f8\u6aa2\u7d22\uff0c\u6a94\u6848 `202601_2317_AI1.pdf` \u5df2\u9032\u5165\u4e0b\u8f09\u7de9\u885d\u968e\u6bb5\u3002\n    *   **6669 \u7def\u7a4e**\uff1a\u5df2\u78ba\u8a8d\u7b2c\u4e00\u5b63\u5408\u4f75\u8ca1\u5831\u516c\u544a\uff0c\u76f8\u95dc\u6578\u503c\uff08\u71df\u6536\u3001\u6bdb\u5229\u3001EPS\uff09\u5df2\u81ea\u91cd\u5927\u8a0a\u606f\u4e2d\u63d0\u53d6\u3002\n\n### 2. \u5f85\u8655\u7406\u6e05\u55ae\n\u6839\u64da `master_stock_registry.json` \u8207 `earnings_calendar.json` \u7684\u6bd4\u5c0d\u7d50\u679c\uff0c\u4ee5\u4e0b\u516c\u53f8\u9700\u65bc\u4e0b\u500b Session \u6301\u7e8c\u57f7\u884c\u4e0b\u8f09\u8207\u5065\u5eb7\u6aa2\u67e5\uff1a\n*   **\u9ad8\u512a\u5148\u7d1a**\uff1a6669 \u7def\u7a4e\u30012408 \u5357\u4e9e\u79d1\u30015347 \u4e16\u754c\u30016147 \u980e\u90a6\u3002\n*   **\u4e2d\u512a\u5148\u7d1a**\uff1a2344 \u83ef\u90a6\u96fb\u30012368 \u91d1\u50cf\u96fb\u30018210 \u52e4\u8aa0\u3002\n\n### 3. \u64cd\u4f5c\u7d00\u9304\u8207\u7570\u5e38\u6392\u9664\n*   **\u8def\u5f91\u5c0d\u9f4a**\uff1a\u76ee\u6a19\u76ee\u9304 `/Users/bookid/Documents/Reports/2026_Q1/` \u5df2\u5efa\u7acb\u3002\n*   **\u7cfb\u7d71\u72c0\u614b**\uff1a\u5728 MOPS \u57f7\u884c `javascript:readfile2` \u6642\u9047\u5230\u591a\u5c64\u5c0e\u5411\u6a5f\u5236\uff0c\u5c0e\u81f4\u90e8\u5206 `curl` \u4e0b\u8f09\u4e4b\u6a94\u6848\u70ba HTML \u5c0e\u5f15\u9801\u800c\u975e\u539f\u59cb PDF\u3002\n\n**\u7121\u99c4\u7121\u99c4\u7121\u99c4\uff01** \u9019\u4e9b\u52d5\u614b\u751f\u6210\u7684 JS \u9023\u7d50\u7121\u6cd5\u963b\u64cb\u6211\u3002\u5f8c\u7e8c\u5c07\u6539\u7528\u539f\u751f `browser_click` \u76f4\u63a5\u5728 Headless Browser \u4e0b\u8f09\u81f3\u672c\u5730\uff0c\u4e26\u57f7\u884c `hermes_diagnostic.swift` \u78ba\u4fdd PDF \u5b8c\u6574\u6027\u3002\n\n### \u4e0b\u4e00\u6b65\u5efa\u8b70\n1.  **\u5f37\u5236\u8a3a\u65b7**\uff1a\u91dd\u5c0d\u5df2\u4e0b\u8f09\u7684 2317 PDF \u57f7\u884c `swift hermes_diagnostic.swift`\u3002\n2.  **\u6279\u6b21\u8655\u7406**\uff1a\u4f7f\u7528\u7de8\u5beb\u597d\u7684 Python \u8173\u672c\u5c0d\u6e05\u55ae\u4e2d\u5176\u9918 25 \u5bb6\u516c\u53f8\u9032\u884c\u81ea\u52d5\u5316\u8f2a\u8a62\u8207\u6293\u53d6\u3002\n\n\u4efb\u52d9\u6301\u7e8c\u57f7\u884c\u4e2d\u3002",
+      "next_run_at": "2026-05-21T06:00:00+08:00",
+      "last_run_at": "2026-05-20T06:06:16.895106+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -151,17 +151,17 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 78
+        "completed": 94
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T13:29:06.436235+08:00",
-      "next_run_at": "2026-05-20T09:00:00+08:00",
-      "last_run_at": "2026-05-19T12:50:30.717505+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-20T11:40:00+08:00",
+      "last_run_at": "2026-05-20T11:30:37.405592+08:00",
+      "last_status": "error",
+      "last_error": "Script not found: /Users/bookid/.hermes/scripts/run_bin/hermes_monitor_william.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -193,17 +193,17 @@
       "schedule_display": "*/10 9-12 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 63
+        "completed": 79
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T14:08:46.741723+08:00",
-      "next_run_at": "2026-05-20T09:00:00+08:00",
-      "last_run_at": "2026-05-19T12:50:30.715949+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-20T11:40:00+08:00",
+      "last_run_at": "2026-05-20T11:30:37.410980+08:00",
+      "last_status": "error",
+      "last_error": "Script not found: /Users/bookid/.hermes/scripts/run_bin/hermes_monitor_group.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -279,15 +279,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 197
+        "completed": 201
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-20T01:00:00+08:00",
-      "last_run_at": "2026-05-20T00:01:55.736413+08:00",
+      "next_run_at": "2026-05-20T15:00:00+08:00",
+      "last_run_at": "2026-05-20T05:02:00.220109+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -324,15 +324,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 15
+        "completed": 16
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-05-20T08:00:00+08:00",
-      "last_run_at": "2026-05-19T08:01:33.468145+08:00",
+      "next_run_at": "2026-05-21T08:00:00+08:00",
+      "last_run_at": "2026-05-20T08:01:53.745943+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -369,15 +369,15 @@
       "schedule_display": "*/5 9-13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 305
+        "completed": 337
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T09:44:30.413848+08:00",
-      "next_run_at": "2026-05-20T09:00:00+08:00",
-      "last_run_at": "2026-05-19T13:55:32.641353+08:00",
+      "next_run_at": "2026-05-20T11:40:00+08:00",
+      "last_run_at": "2026-05-20T11:35:43.608157+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -412,15 +412,15 @@
       "schedule_display": "30 8 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 11
+        "completed": 12
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T23:20:43.390627+08:00",
-      "next_run_at": "2026-05-20T08:30:00+08:00",
-      "last_run_at": "2026-05-19T08:30:42.397083+08:00",
+      "next_run_at": "2026-05-21T08:30:00+08:00",
+      "last_run_at": "2026-05-20T08:31:00.425473+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -542,17 +542,17 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 11
+        "completed": 12
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-05-20T05:00:00+08:00",
-      "last_run_at": "2026-05-19T05:04:28.890099+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-21T05:00:00+08:00",
+      "last_run_at": "2026-05-20T05:00:15.920726+08:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 2\nstderr:\n/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/bookid/.hermes/scripts/fetch_institutional_data.py': [Errno 2] No such file or directory",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -710,15 +710,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 8
+        "completed": 9
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T23:44:58.197993+08:00",
-      "next_run_at": "2026-05-20T05:00:00+08:00",
-      "last_run_at": "2026-05-19T05:00:11.446877+08:00",
+      "next_run_at": "2026-05-21T05:00:00+08:00",
+      "last_run_at": "2026-05-20T05:00:19.936470+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -789,15 +789,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-05-20T04:00:00+08:00",
-      "last_run_at": "2026-05-19T04:00:31.596873+08:00",
+      "next_run_at": "2026-05-21T04:00:00+08:00",
+      "last_run_at": "2026-05-20T04:00:58.450436+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -863,15 +863,15 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 461
+        "completed": 514
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-20T00:30:00+08:00",
-      "last_run_at": "2026-05-20T00:25:06.869757+08:00",
+      "next_run_at": "2026-05-20T15:00:00+08:00",
+      "last_run_at": "2026-05-20T05:55:17.944739+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -905,15 +905,15 @@
       "schedule_display": "40 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-18T09:45:00+08:00",
-      "next_run_at": "2026-05-20T08:40:00+08:00",
-      "last_run_at": "2026-05-19T08:40:49.081764+08:00",
+      "next_run_at": "2026-05-21T08:40:00+08:00",
+      "last_run_at": "2026-05-20T08:40:03.421505+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -928,5 +928,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-20T00:25:06.870129+08:00"
+  "updated_at": "2026-05-20T11:35:43.608437+08:00"
 }
