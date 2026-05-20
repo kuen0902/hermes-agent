@@ -1,7 +1,7 @@
 #!/bin/bash
 # William 組合即時監控腳本
 
-RESULT=$(/Users/bookid/.hermes/scripts/hermes_monitor --profile william 2>&1)
+RESULT=$(/usr/bin/swift /Users/bookid/.hermes/scripts/hermes_monitor.swift --profile william 2>&1)
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then

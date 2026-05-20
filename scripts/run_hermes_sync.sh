@@ -1,7 +1,7 @@
 #!/bin/bash
 # hermes_sync 數據同步腳本
 
-RESULT=$(/Users/bookid/.hermes/scripts/hermes_sync 2>&1)
+RESULT=$(/usr/bin/swift /Users/bookid/.hermes/scripts/hermes_sync.swift 2>&1)
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then

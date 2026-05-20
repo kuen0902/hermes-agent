@@ -2,7 +2,7 @@
 # 群組即時監控腳本
 # 只有當觸發閾值時才輸出警報，否則輸出狀態訊息
 
-RESULT=$(/Users/bookid/.hermes/scripts/hermes_monitor --profile group 2>&1)
+RESULT=$(/usr/bin/swift /Users/bookid/.hermes/scripts/hermes_monitor.swift --profile group 2>&1)
 EXIT_CODE=$?
 
 if [ $EXIT_CODE -eq 0 ]; then

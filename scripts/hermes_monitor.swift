@@ -161,8 +161,7 @@ func run(profileName: String, captureOnly: Bool) async {
     
     let calendar = Calendar.current
     let hour = calendar.component(.hour, from: now)
-    let minute = calendar.component(.minute, from: now)
-    let isOpening = hour == 9 && minute >= 0 && minute <= 10
+    let isOpening = hour >= 9 && hour <= 13
     
     // 1. OPENING REPORT LOGIC
     var openState: [String: Any] = [:]
