@@ -24,7 +24,7 @@ PROFILES = {
         "title": "👩‍👩‍👧‍👦 群組關注檔 AI 風險監控"
     },
     "william": {
-        "token": "8678817340:AAFSB4rY-KizV6vN5nO-F-aL-9WEGQ",
+        "token": "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU",
         "chat_id": "8695583357",
         "title": "👨‍💻 William 監控清單警報"
     }

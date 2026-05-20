@@ -91,7 +91,7 @@ def load_central_data():
             pass
     return {}
 
-def run_intraday_pipeline():
+def run_intraday_pipeline(silent=False):
     print("--- 啟動 10 分鐘級別盤中 ML 預判系統 ---")
     if not os.path.exists(INTRADAY_LOG):
         print("未找到盤中資料日誌 (intraday_data_log.csv)")
@@ -404,7 +404,7 @@ def run_intraday_pipeline():
         plt.close()
         
         # Send messages
-        if p_report_lines:
+        if p_report_lines and not silent:
             msg = f"🤖 **5-Min ML 盤後機器學習預測報告 ({p_cfg['title']})**\n\n"
             msg += "整合當日 5 分鐘 K 線動能與預測誤差 (Variance)，重新計算明日漲跌預判：\n\n"
             msg += "\n".join(p_report_lines)
@@ -416,4 +416,6 @@ def run_intraday_pipeline():
                 print(f"已發送 {p_cfg['title']} Telegram 圖表報告。")
 
 if __name__ == "__main__":
-    run_intraday_pipeline()
+    import sys
+    silent_mode = "--silent" in sys.argv
+    run_intraday_pipeline(silent=silent_mode)

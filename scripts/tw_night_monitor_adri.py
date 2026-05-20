@@ -35,21 +35,29 @@ def get_market_data():
     
     for sym, name in tickers.items():
         price = None
+        import urllib.request, json
         try:
-            t = yf.Ticker(sym)
-            hist = t.history(period="1d")
-            if not hist.empty:
-                price = hist['Close'].iloc[-1]
-                prev_close = hist['Open'].iloc[0]
-                data_results[sym] = {
-                    "name": name,
-                    "price": price,
-                    "session_delta_abs": price - prev_close,
-                    "hour_delta": 0.0,
-                    "session_delta": ((price - prev_close) / prev_close) * 100 if prev_close else 0,
-                    "source": "yfinance"
-                }
-        except:
+            req = urllib.request.Request(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}",
+                headers={'User-Agent': 'Mozilla/5.0'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode())
+                meta = data['chart']['result'][0]['meta']
+                price = meta.get('regularMarketPrice')
+                prev_close = meta.get('previousClose')
+                
+                if price is not None and prev_close is not None:
+                    data_results[sym] = {
+                        "name": name,
+                        "price": price,
+                        "session_delta_abs": price - prev_close,
+                        "hour_delta": 0.0,
+                        "session_delta": ((price - prev_close) / prev_close) * 100 if prev_close else 0,
+                        "source": "yahoo_api"
+                    }
+        except Exception as e:
+            # print(f"Error fetching {sym}: {e}") # Debug if needed
             pass
             
         if sym not in data_results:
@@ -108,6 +116,8 @@ def format_report(results, health):
     lines.append(f"💡 *條件：跨越 ±3%, ±5%, ±7%, ±9%*")
     lines.append(f"----------------------------")
     
+    untriggered = []
+    
     for sym, val in results.items():
         pct = val['session_delta']
         current_tier = get_current_tier(pct)
@@ -126,6 +136,8 @@ def format_report(results, health):
             lines.append(f"   ▸ 價格：`${val['price']:.2f}` (via {val['source']})")
             lines.append(f"   ▸ 較昨收：`{pct:+.2f}%` (突破 `{current_tier}%` 門檻)")
             lines.append("")
+        else:
+            untriggered.append(f"{sym.split('.')[0]}: {pct:+.1f}%")
             
         cache[sym] = current_tier
 
@@ -133,8 +145,11 @@ def format_report(results, health):
     with open(CACHE_FILE, 'w') as f:
         json.dump(cache, f)
 
+    if untriggered:
+        lines.append(f"   ▸ 未達推播門檻：`" + ", ".join(untriggered) + "`")
+
     if not delivery_data:
-        return "[SILENT]", False
+        return "\n".join(lines), False
 
     # Integration with delivery module
     try:

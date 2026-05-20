@@ -20,12 +20,17 @@ def get_night_session_status():
     taipei_tz = pytz.timezone('Asia/Taipei')
     report_time = datetime.now(taipei_tz).strftime("%Y-%m-%d %H:%M")
     
+    import requests
     data = None
     try:
-        ticker = yf.Ticker(ticker_symbol)
+        session = requests.Session()
+        session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        })
+        ticker = yf.Ticker(ticker_symbol, session=session)
         data = ticker.history(period="1d", interval="1m")
     except Exception as e:
-        print(f"yfinance exception: {e}")
+        pass # Suppress output so it doesn't pollute the notification when falling back
 
     if data is None or data.empty:
         # --- BRIDGE FALLBACK ---
@@ -37,8 +42,7 @@ def get_night_session_status():
                 f"----------------------------",
                 f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
                 f"📊 **狀態**：`PROXIED (Resilient Bridge)`",
-                f"----------------------------",
-                f"✅ 狀態：Healthy"
+                f"----------------------------"
             ]
             return "\n".join(msg)
         return "❌ [Health Check ERROR]: 無法獲取 NQ=F 數據。"

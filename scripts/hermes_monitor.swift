@@ -25,7 +25,7 @@ let PROFILES: [String: ProfileConfig] = [
         headerAlert: "⚖️ **白金之星 - 精密階梯波動警戒**"
     ),
     "william": ProfileConfig(
-        token: "8678817340:AAHLd6ObYqUUTfygY-fPf57Rw6SfOO2WEGQ",
+        token: "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU",
         chatId: "8695583357",
         cacheFile: dataDir.appendingPathComponent("william_stock_last_prices.json"),
         openFile: dataDir.appendingPathComponent("william_day_open_report_sent.json"),
@@ -210,22 +210,22 @@ func run(profileName: String, captureOnly: Bool) async {
         return
     }
     
-    // 2. TIERED MILESTONE MONITORING
+    // 2. REAL-TIME INTRADAY UPDATES
     var lastCache: [String: Any] = [:]
     if let cacheData = try? Data(contentsOf: cfg.cacheFile),
        let parsed = try? JSONSerialization.jsonObject(with: cacheData, options: []) as? [String: Any] {
         lastCache = parsed
     }
     
-    // Migrate legacy float dict
-    for (k, v) in lastCache {
-        if let vNum = v as? NSNumber {
-            lastCache[k] = ["price": vNum.doubleValue, "tier": 0]
-        }
+    // Check if cache belongs to today
+    let cacheDate = lastCache["date"] as? String ?? ""
+    if cacheDate != todayStr {
+        lastCache = ["date": todayStr, "data": [String: Any]()]
     }
+    var currentData = lastCache["data"] as? [String: Any] ?? [:]
     
-    var reportLines: [String] = []
-    var currentCache = lastCache
+    var reportItems: [(code: String, sym: String, msg: String)] = []
+    var shouldRunML = false
     
     for (_, codes) in targetCategories {
         for code in codes {
@@ -234,36 +234,120 @@ func run(profileName: String, captureOnly: Bool) async {
                   let prev = dataDict["prev_close"] as? Double,
                   let sym = dataDict["symbol"] as? String else { continue }
             
-            let cached = lastCache[sym] as? [String: Any] ?? ["price": prev, "tier": 0]
-            let lastTier = cached["tier"] as? Int ?? 0
+            let currentTime = Date().timeIntervalSince1970
+            let cached = currentData[sym] as? [String: Any]
             
-            let pct = prev > 0 ? ((price - prev) / prev * 100) : 0
-            let currentTier = getCurrentTier(pct: pct)
-            
-            if currentTier != 0 && currentTier != lastTier {
-                let emoji = pct > 0 ? "🔴" : "🟢"
-                let trend = abs(currentTier) > abs(lastTier) ? "🚀" : "📉"
-                let name = mapping[code] ?? (dataDict["name_en"] as? String ?? code)
-                
-                let line = "\(emoji)\(trend) **\(name)** (`\(sym)`)\n   ▸ 現價：`\(formatDouble(price))` | 昨收比：`\(formatDoubleSign(pct))%` (突破 `\(currentTier)%` 門檻)\n"
-                reportLines.append(line)
+            // If first time today, just initialize
+            if cached == nil {
+                currentData[sym] = [
+                    "price": price,
+                    "time": currentTime,
+                    "direction": "NONE"
+                ]
+                continue
             }
             
-            currentCache[sym] = ["price": price, "tier": currentTier]
+            let lastPrice = cached!["price"] as? Double ?? price
+            let lastTime = cached!["time"] as? TimeInterval ?? currentTime
+            let lastDir = cached!["direction"] as? String ?? "NONE"
+            
+            let dtMinutes = (currentTime - lastTime) / 60.0
+            let diffPct = lastPrice > 0 ? ((price - lastPrice) / lastPrice * 100.0) : 0
+            let absDiffPct = abs(diffPct)
+            
+            let currentDir = diffPct > 0 ? "UP" : (diffPct < 0 ? "DOWN" : "NONE")
+            let totalPct = prev > 0 ? ((price - prev) / prev * 100.0) : 0
+            
+            var needsUpdate = false
+            
+            if dtMinutes <= 15 {
+                if absDiffPct > 5.0 {
+                    needsUpdate = true
+                }
+            } else {
+                if absDiffPct > 3.0 {
+                    needsUpdate = true
+                } else if absDiffPct > 2.0 && currentDir == lastDir && currentDir != "NONE" {
+                    needsUpdate = true
+                }
+            }
+            
+            if needsUpdate {
+                shouldRunML = true
+                let emoji = diffPct > 0 ? "🔴" : "🟢"
+                let name = mapping[code] ?? (dataDict["name_en"] as? String ?? code)
+                
+                let shortSym = sym.replacingOccurrences(of: ".TW", with: "").replacingOccurrences(of: ".TWO", with: "")
+                let baseMsg = "\(emoji) **\(name)** (`\(shortSym)`) | 現價: `\(formatDouble(price))` (前次: `\(formatDoubleSign(diffPct))%` / 昨收: `\(formatDoubleSign(totalPct))%`)"
+                reportItems.append((code: code, sym: sym, msg: baseMsg))
+                
+                currentData[sym] = [
+                    "price": price,
+                    "time": currentTime,
+                    "direction": currentDir
+                ]
+            }
         }
     }
     
-    if !reportLines.isEmpty {
+    if !reportItems.isEmpty {
+        var mlSuggestions: [String: String] = [:]
+        
+        if shouldRunML && !captureOnly {
+            print("Triggering ML Pipeline...")
+            let task = Process()
+            if #available(macOS 10.13, *) {
+                task.executableURL = URL(fileURLWithPath: "/Users/bookid/.hermes/.venv/bin/python")
+            } else {
+                task.launchPath = "/Users/bookid/.hermes/.venv/bin/python"
+            }
+            task.arguments = ["/Users/bookid/.hermes/scripts/ml/intraday_ml_pipeline.py", "--silent"]
+            
+            do {
+                if #available(macOS 10.13, *) {
+                    try task.run()
+                } else {
+                    task.launch()
+                }
+                task.waitUntilExit()
+                
+                let predsPath = URL(fileURLWithPath: "/Users/bookid/.hermes/data/intraday_predictions.json")
+                if let predsData = try? Data(contentsOf: predsPath),
+                   let preds = try? JSONSerialization.jsonObject(with: predsData, options: []) as? [String: Any] {
+                    for (symKey, info) in preds {
+                        if let infoDict = info as? [String: Any], let prob = infoDict["prob"] as? Double {
+                            let signal = prob >= 0.85 ? "🔥強烈買進" : (prob > 0.55 ? "🔴偏多" : (prob <= 0.15 ? "🧊強烈賣出" : (prob < 0.45 ? "🟢偏空" : "⚪盤整")))
+                            mlSuggestions[symKey] = " | ML: \(signal) (\(String(format: "%.0f", prob * 100))%)"
+                        }
+                    }
+                }
+            } catch {
+                print("Failed to run ML pipeline: \(error)")
+            }
+        }
+        
+        var finalLines: [String] = []
+        for item in reportItems {
+            var line = item.msg
+            if let suggestion = mlSuggestions[item.code] {
+                line += suggestion
+            } else if let suggestion2 = mlSuggestions[item.sym] {
+                line += suggestion2
+            }
+            finalLines.append(line)
+        }
+        
         let timeFormatter = DateFormatter()
         timeFormatter.dateFormat = "HH:mm"
         let ts = timeFormatter.string(from: now)
         
-        let header = "\(cfg.headerAlert) (\(ts))\n💡 *條件：跨越 ±3%, ±5%, ±7%, ±9% 絕對里程碑*\n\n"
-        let reportContent = header + reportLines.joined()
+        let header = "\(cfg.headerAlert) (\(ts))\n💡 *條件：短線波段動能及趨勢更新*\n\n"
+        let reportContent = header + finalLines.joined(separator: "\n")
         
         if !captureOnly {
             if await sendTelegram(token: cfg.token, chatId: cfg.chatId, message: reportContent) {
-                if let newCacheData = try? JSONSerialization.data(withJSONObject: currentCache, options: []) {
+                lastCache["data"] = currentData
+                if let newCacheData = try? JSONSerialization.data(withJSONObject: lastCache, options: []) {
                     try? newCacheData.write(to: cfg.cacheFile)
                 }
             }
