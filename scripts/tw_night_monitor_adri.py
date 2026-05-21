@@ -10,6 +10,7 @@ import requests
 SAVE_FILE = os.path.expanduser("~/.hermes/data/night_session_last.json")
 BRIDGE_FILE = os.path.expanduser("~/.hermes/data/market_prices_bridge.json")
 CACHE_FILE = os.path.expanduser("~/.hermes/data/night_session_tier_cache.json")
+PREV_CLOSE_FILE = os.path.expanduser("~/.hermes/data/night_session_prev.json")
 os.makedirs(os.path.dirname(SAVE_FILE), exist_ok=True)
 
 TIERS = [3.0, 5.0, 7.0, 9.0]
@@ -28,10 +29,20 @@ def get_bridge_data():
             return json.load(f)
     return {}
 
+def get_prev_close_cache():
+    if os.path.exists(PREV_CLOSE_FILE):
+        try:
+            with open(PREV_CLOSE_FILE, 'r') as f:
+                return json.load(f)
+        except:
+            pass
+    return {}
+
 def get_market_data():
     tickers = {"EWT": "MSCI 台灣 ETF", "TSM": "台積電 ADR", "NVDA": "輝達 (AI 領先)", "SYNA": "新思 (Human Interface)"}
     data_results = {}
     bridge = get_bridge_data()
+    prev_close_cache = get_prev_close_cache()
     errors = []
     
     for sym, name in tickers.items():
@@ -124,6 +135,15 @@ def get_market_data():
                     except Exception as e:
                         pass
 
+        # 從快取讀取備份昨收價
+        if prev_close is None and sym in prev_close_cache:
+            prev_close = prev_close_cache[sym]
+            source += "+cache_prev"
+            
+        # 更新快取
+        if prev_close is not None:
+            prev_close_cache[sym] = prev_close
+
         # 寫入最終獲取結果
         if price is not None and prev_close is not None:
             data_results[sym] = {
@@ -170,7 +190,12 @@ def get_market_data():
             except:
                 pass
                 
-        if fitxp_prev_close:
+        if fitxp_prev_close is None and "FITXP" in prev_close_cache:
+            fitxp_prev_close = prev_close_cache["FITXP"]
+            proxy_used = "cache"
+
+        if fitxp_prev_close is not None:
+            prev_close_cache["FITXP"] = fitxp_prev_close
             data_results["FITXP"] = {
                 "name": "台指期 (夜)",
                 "price": fitxp_price,
@@ -188,6 +213,9 @@ def get_market_data():
                 "session_delta": 0.0,
                 "source": "bridge_fallback"
             }
+
+    with open(PREV_CLOSE_FILE, 'w') as f:
+        json.dump(prev_close_cache, f)
 
     return data_results, health
 

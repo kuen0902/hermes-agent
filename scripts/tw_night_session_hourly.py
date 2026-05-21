@@ -27,19 +27,63 @@ def get_night_session_status():
     except Exception as e:
         pass # Suppress output so it doesn't pollute the notification when falling back
 
+    CACHE_FILE = "/Users/bookid/.hermes/data/night_session_nq_cache.json"
+    cache = {}
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r') as f:
+                cache = json.load(f)
+        except:
+            pass
+
     if data is None or data.empty:
         # --- BRIDGE FALLBACK ---
         current_price = get_bridge_data("NQ")
         if current_price:
-            msg = [
-                f"🌌 **台股夜盤指標 (Nasdaq Futures)**",
-                f"⏰ 檢測時間：`{report_time}`",
-                f"----------------------------",
-                f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
-                f"📊 **狀態**：`PROXIED (Resilient Bridge)`",
-                f"----------------------------"
-            ]
-            return "\n".join(msg)
+            open_price = cache.get("open_price")
+            prev_hour_price = cache.get("last_price")
+            
+            def get_color_emoji(val):
+                if val > 0.05: return "🔴"
+                if val < -0.05: return "🟢"
+                return "⚪️"
+                
+            if open_price and prev_hour_price:
+                session_change = current_price - open_price
+                session_pct = (session_change / open_price) * 100
+                hour_change = current_price - prev_hour_price
+                hour_pct = (hour_change / prev_hour_price) * 100
+                
+                msg = [
+                    f"🌌 **台股夜盤指標 (Nasdaq Futures)**",
+                    f"⏰ 檢測時間：`{report_time}`",
+                    f"----------------------------",
+                    f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
+                    f"",
+                    f"📊 **近期走勢 (Hourly)** [Cache]",
+                    f"{get_color_emoji(hour_change)} 漲跌：`{hour_change:+.1f}` ({hour_pct:+.2f}%)",
+                    f"",
+                    f"📈 **全日變動 (vs NY Open)** [Cache]",
+                    f"{get_color_emoji(session_change)} 漲跌：`{session_change:+.1f}` ({session_pct:+.2f}%)",
+                    f"----------------------------",
+                    f"📊 **狀態**：`PROXIED (Resilient Bridge)`"
+                ]
+                
+                cache["last_price"] = current_price
+                with open(CACHE_FILE, 'w') as f:
+                    json.dump(cache, f)
+                    
+                return "\n".join(msg)
+            else:
+                msg = [
+                    f"🌌 **台股夜盤指標 (Nasdaq Futures)**",
+                    f"⏰ 檢測時間：`{report_time}`",
+                    f"----------------------------",
+                    f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
+                    f"📊 **狀態**：`PROXIED (Resilient Bridge)`",
+                    f"----------------------------"
+                ]
+                return "\n".join(msg)
         return "❌ [Health Check ERROR]: 無法獲取 NQ=F 數據。"
 
     # Normal Flow
@@ -74,6 +118,12 @@ def get_night_session_status():
         f"{get_color_emoji(session_change)} 漲跌：`{session_change:+.1f}` ({session_pct:+.2f}%)",
         f"----------------------------"
     ]
+    
+    cache["open_price"] = float(open_price)
+    cache["last_price"] = float(current_price)
+    with open(CACHE_FILE, 'w') as f:
+        json.dump(cache, f)
+
     return "\n".join(msg)
 
 if __name__ == "__main__":

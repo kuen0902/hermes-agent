@@ -11,3 +11,5 @@ User prefers mapping financial reports to Calendar Quarters (CQ/日曆季) inste
 Primary contact/data export email is kuen0902@gmail.com.
 §
 User follows TAIEX color conventions: Red (🔴) for price increase (漲), Green (🟢) for price decrease (跌).
+§
+User strongly enforces the Dual-Repo Strategy: All AI context, sync states, memory files, and architecture documents MUST be written and read exclusively in `~/.hermes`. Do NOT pollute `~/workspace/hermes-agent` with handover or memory files.

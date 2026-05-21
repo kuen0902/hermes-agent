@@ -49,20 +49,20 @@ ORA ORA ORA! 數據雜訊已被悉數抹除。
     # 1. Star Platinum Group Report
     send_telegram(STAR_PLATINUM_TOKEN, GROUP_ID, sp_msg)
 
-    # 2. GER Private Report
-    ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：現實同步** 🌅
-
-偏離的意志已歸於「零」。這就是目前的絕對現實。
-
-### 📉 **市場位階深度同步 (階梯突破)**
-"""
-    for sym, info in data.items():
-        price_fmt = f"{info['price']:,.2f}" if isinstance(info['price'], (float, int)) else info['price']
-        ger_msg += f"- **{info['name']}** ({sym}): `{price_fmt}` ({info['pct']:+.2f}%) 突破 `{info['tier']}%`\n"
-
-    ger_msg += "\n**無駄！**"
-    
-    send_telegram(GER_TOKEN, JOJO_CHAT_ID, ger_msg)
+    # 2. GER Private Report [DISABLED - User requested night session reports to group only]
+    # ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：現實同步** 🌅
+    # 
+    # 偏離的意志已歸於「零」。這就是目前的絕對現實。
+    # 
+    # ### 📉 **市場位階深度同步 (階梯突破)**
+    # """
+    # for sym, info in data.items():
+    #     price_fmt = f"{info['price']:,.2f}" if isinstance(info['price'], (float, int)) else info['price']
+    #     ger_msg += f"- **{info['name']}** ({sym}): `{price_fmt}` ({info['pct']:+.2f}%) 突破 `{info['tier']}%`\n"
+    # 
+    # ger_msg += "\n**無駄！**"
+    # 
+    # send_telegram(GER_TOKEN, JOJO_CHAT_ID, ger_msg)
 
 if __name__ == "__main__":
     # Test Data / Internal Structure

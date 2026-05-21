@@ -51,12 +51,111 @@ def init_db():
     return conn
 
 def get_name(code):
+    # Try stock_map_today.json first
+    today_map_path = os.path.join(DATA_DIR, "stock_map_today.json")
+    if os.path.exists(today_map_path):
+        try:
+            with open(today_map_path, "r", encoding="utf-8") as f:
+                today_map = json.load(f)
+                if code in today_map:
+                    return today_map[code]
+        except:
+            pass
+            
     try:
         with open(REGISTRY_FILE, 'r') as f:
             registry = json.load(f)
             return registry.get("official_names", {}).get(code, code)
     except:
         return code
+
+def resolve_code_and_name(query):
+    """
+    Resolves query (either name or code) to (code, name) using stock_lookup logic.
+    Returns (code, name) on success, or raises ValueError if not found/offline.
+    """
+    import sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        import stock_lookup
+    except ImportError:
+        pass
+
+    # Load today map
+    today_map = {}
+    today_map_path = os.path.join(DATA_DIR, "stock_map_today.json")
+    if os.path.exists(today_map_path):
+        try:
+            with open(today_map_path, "r", encoding="utf-8") as f:
+                today_map = json.load(f)
+        except Exception as e:
+            print(f"Error loading stock_map_today.json: {e}", file=sys.stderr)
+            
+    local_matches = []
+    
+    # 1. Exact code match
+    if query in today_map:
+        local_matches.append({"code": query, "name": today_map[query]})
+    else:
+        # 2. Exact name match (case-insensitive)
+        for code, name in today_map.items():
+            if name.lower() == query.lower():
+                local_matches.append({"code": code, "name": name})
+                
+        # 3. Partial match (if no exact name match)
+        if not local_matches:
+            for code, name in today_map.items():
+                if query.lower() in name.lower() or name.lower() in query.lower() or query in code:
+                    local_matches.append({"code": code, "name": name})
+                    
+    if local_matches:
+        best_match = local_matches[0]
+        for m in local_matches:
+            if m["code"] == query or m["name"] == query:
+                best_match = m
+                break
+        return best_match["code"], best_match["name"]
+        
+    # Not found locally. Try online lookup!
+    try:
+        live_stocks = stock_lookup.fetch_live_online_stocks()
+    except Exception as e:
+        print(f"Error fetching live online stocks: {e}", file=sys.stderr)
+        live_stocks = {}
+        
+    live_matches = []
+    
+    # 1. Exact code in live
+    if query in live_stocks:
+        live_matches.append({"code": query, "name": live_stocks[query]})
+    else:
+        # 2. Exact name in live
+        for code, name in live_stocks.items():
+            if name.lower() == query.lower():
+                live_matches.append({"code": code, "name": name})
+                
+        # 3. Partial name in live
+        if not live_matches:
+            for code, name in live_stocks.items():
+                if query.lower() in name.lower() or name.lower() in query.lower() or query in code:
+                    live_matches.append({"code": code, "name": name})
+                    
+    if live_matches:
+        best_match = live_matches[0]
+        for m in live_matches:
+            if m["code"] == query or m["name"] == query:
+                best_match = m
+                break
+        # Log error to calibration log & alert via TG
+        for match in live_matches:
+            try:
+                stock_lookup.log_lookup_error(query, match["code"], match["name"])
+            except Exception as e:
+                print(f"Error logging lookup error: {e}", file=sys.stderr)
+        return best_match["code"], best_match["name"]
+        
+    raise ValueError(f"在本地與線上皆找不到「{query}」的股票或 ETF。")
+
 
 def add_position(code, qty, price):
     conn = init_db()
@@ -279,7 +378,38 @@ def print_quote(code):
     except Exception as e:
         pass
         
-    print(f"⚠️ 找不到 {name}({code}) 的最新即時報價，可能目前未在監控排程內。")
+    # Fallback to on-the-fly fetch if not found in cache
+    try:
+        import sys
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        import taiex_central_data_sync
+        
+        print(f"🔍 系統快取中未找到 {name}({code})，正嘗試即時從網路抓取...")
+        live_data = taiex_central_data_sync.fetch_twse_data([code])
+        if not live_data:
+            live_data = taiex_central_data_sync.fetch_yfinance_fallback([code])
+            
+        if code in live_data:
+            info = live_data[code]
+            price = float(info.get("price", 0))
+            change = float(info.get("change", 0))
+            pct = float(info.get("pct", 0))
+            volume = int(info.get("volume", 0))
+            
+            icon = "🔴" if change >= 0 else "🟢"
+            sign = "+" if change > 0 else ""
+            
+            print(f"📈 【 {name} ({code}) 】 最新即時報價 (未在排程內，臨時抓取)")
+            print("-" * 30)
+            print(f"現價: {price:.2f}")
+            print(f"漲跌: {icon} {sign}{change:.2f} ({sign}{pct:.2f}%)")
+            print(f"成交量: {volume:,} 張")
+            print("-" * 30)
+            return
+    except Exception as e:
+        print(f"Fetch Error: {e}")
+        
+    print(f"⚠️ 找不到 {name}({code}) 的最新即時報價，可能該股不存在或網路異常。")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Hermes Portfolio Tool")
@@ -298,6 +428,14 @@ if __name__ == "__main__":
     
     # Handle legacy Gateway --action calls
     if args.action:
+        if args.code:
+            try:
+                args.code, _ = resolve_code_and_name(args.code)
+            except ValueError as e:
+                print(f"❌ {e}")
+                import sys
+                sys.exit(1)
+                
         if args.action == "check":
             print_portfolio()
         elif args.action == "buy" and args.code and args.qty and args.price:
@@ -316,9 +454,21 @@ if __name__ == "__main__":
             print("❌ Invalid legacy arguments or missing parameters")
     # Handle new SQLite calls
     elif args.add:
-        add_position(args.add[0], float(args.add[1]), float(args.add[2]))
+        try:
+            resolved_code, _ = resolve_code_and_name(args.add[0])
+            add_position(resolved_code, float(args.add[1]), float(args.add[2]))
+        except ValueError as e:
+            print(f"❌ {e}")
+            import sys
+            sys.exit(1)
     elif args.reduce:
-        reduce_position(args.reduce[0], float(args.reduce[1]), float(args.reduce[2]))
+        try:
+            resolved_code, _ = resolve_code_and_name(args.reduce[0])
+            reduce_position(resolved_code, float(args.reduce[1]), float(args.reduce[2]))
+        except ValueError as e:
+            print(f"❌ {e}")
+            import sys
+            sys.exit(1)
     elif args.view:
         print_portfolio()
     elif args.export_json:
