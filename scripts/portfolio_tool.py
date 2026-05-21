@@ -255,7 +255,10 @@ def print_portfolio():
     except:
         pass
 
-    print("\n【📈 目前持股狀況】")
+    total_qty = sum(info['qty'] for info in port.values())
+    qty_str = f"{int(total_qty)}" if total_qty.is_integer() else f"{total_qty:.2f}"
+
+    print(f"\n【📈 目前持股狀況】(共 {len(port)} 檔，總計 {qty_str} 張)")
     print("-" * 48)
     
     total_cost = 0
@@ -270,7 +273,7 @@ def print_portfolio():
         if code in live_prices and "price" in live_prices[code]:
             live_price = float(live_prices[code]["price"])
             
-        cost = qty * 1000 * avg
+        cost = qty * 1000 * avg * 1.0058
         value = qty * 1000 * live_price
         pnl = value - cost
         pct = (pnl / cost) * 100 if cost > 0 else 0
@@ -296,6 +299,8 @@ def print_portfolio():
     print(f"💰 總投入成本: {int(total_cost):,}")
     print(f"💵 總目前現值: {int(total_value):,}")
     print(f"📊 總未實現損益: {overall_icon} {sign_all}{int(overall_pnl):,} ({sign_all}{overall_pct:.2f}%)")
+    print(f"🗂️ 總持股檔數: {len(port)} 檔")
+    print(f"📦 總持股張數: {qty_str} 張")
 
 def add_watchlist(code, group_name="個人追蹤"):
     conn = init_db()
