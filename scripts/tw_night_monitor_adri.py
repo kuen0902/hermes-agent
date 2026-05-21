@@ -1,10 +1,10 @@
-import yfinance as yf
-import pandas as pd
 from datetime import datetime
 import pytz
 import os
 import json
 import requests
+import time
+import random
 
 # Configuration
 SAVE_FILE = os.path.expanduser("~/.hermes/data/night_session_last.json")
@@ -38,6 +38,68 @@ def get_prev_close_cache():
             pass
     return {}
 
+def fetch_yahoo_chart_direct(sym):
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
+    params = {
+        "range": "2d",
+        "interval": "1d",
+        "includePrePost": "true"
+    }
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+        "Mozilla/5.0"
+    ]
+    max_retries = 3
+    base_delay = 1.0
+    price = None
+    prev_close = None
+    source = "direct_api"
+    
+    for attempt in range(max_retries):
+        headers = {'User-Agent': random.choice(user_agents)}
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                result = data["chart"]["result"][0]
+                meta = result.get("meta", {})
+                
+                price = meta.get("regularMarketPrice")
+                prev_close = meta.get("chartPreviousClose")
+                
+                closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+                valid_closes = [c for c in closes if c is not None]
+                
+                if price is None and valid_closes:
+                    price = valid_closes[-1]
+                
+                if prev_close is None:
+                    if len(valid_closes) >= 2:
+                        prev_close = valid_closes[-2]
+                    elif len(valid_closes) == 1:
+                        prev_close = valid_closes[0]
+                
+                if price is not None:
+                    price = float(price)
+                if prev_close is not None:
+                    prev_close = float(prev_close)
+                
+                if price is not None:
+                    return price, prev_close, f"direct_api_attempt_{attempt + 1}"
+            elif r.status_code == 429:
+                source = f"direct_api_429_attempt_{attempt + 1}"
+            else:
+                source = f"direct_api_err_{r.status_code}_attempt_{attempt + 1}"
+        except Exception as e:
+            source = f"direct_api_exc_{type(e).__name__}_attempt_{attempt + 1}"
+            
+        if attempt < max_retries - 1:
+            time.sleep(base_delay * (2 ** attempt) + random.uniform(0.1, 0.5))
+            
+    return price, prev_close, source
+
 def get_market_data():
     tickers = {"EWT": "MSCI 台灣 ETF", "TSM": "台積電 ADR", "NVDA": "輝達 (AI 領先)", "SYNA": "新思 (Human Interface)"}
     data_results = {}
@@ -48,92 +110,22 @@ def get_market_data():
     for sym, name in tickers.items():
         price = None
         prev_close = None
-        source = "yfinance"
+        source = "direct_api"
         
-        # 1. 優先使用 history(period="2d", prepost=True) 獲取最可靠的當前價與昨收價
-        try:
-            ticker = yf.Ticker(sym)
-            hist = ticker.history(period="2d", prepost=True)
-            if not hist.empty:
-                if len(hist) >= 2:
-                    price = float(hist['Close'].iloc[-1])
-                    prev_close = float(hist['Close'].iloc[-2])
-                    source = "yf_hist"
-                elif len(hist) == 1:
-                    price = float(hist['Close'].iloc[-1])
-                    prev_close = float(hist['Open'].iloc[0])
-                    source = "yf_hist_1d"
-                    # 嘗試從 info 中獲取更精確的昨收價
-                    try:
-                        info_pc = ticker.info.get('previousClose')
-                        if info_pc:
-                            prev_close = float(info_pc)
-                    except:
-                        pass
-        except Exception as e:
-            pass
-            
-        # 2. 第二層級備份：使用 basic_info 或 info 屬性
-        if price is None or prev_close is None:
-            try:
-                ticker = yf.Ticker(sym)
-                info = ticker.info
-                price = info.get('currentPrice') or info.get('regularMarketPrice')
-                prev_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
-                if price is not None and prev_close is not None:
-                    price = float(price)
-                    prev_close = float(prev_close)
-                    source = "yf_info"
-            except Exception as e:
-                pass
+        # 1. 優先使用直連 API 獲取
+        price, prev_close, source = fetch_yahoo_chart_direct(sym)
                 
-        # 3. 第三層級備份：使用 fast_info 屬性
-        if price is None or prev_close is None:
-            try:
-                ticker = yf.Ticker(sym)
-                fast_info = ticker.fast_info
-                try:
-                    price = fast_info['last_price']
-                    prev_close = fast_info['previous_close']
-                except (TypeError, KeyError):
-                    price = getattr(fast_info, 'last_price', None)
-                    prev_close = getattr(fast_info, 'previous_close', None)
-                
-                if price is not None and prev_close is not None:
-                    price = float(price)
-                    prev_close = float(prev_close)
-                    source = "yf_fast"
-            except Exception as e:
-                pass
-                
-        # 4. 第四層級備份：當 yfinance 完全失敗時，使用 bridge 價格，但仍嘗試單獨獲取 yfinance 的昨收價以進行計算
+        # 2. 當直連 API 失敗時，使用 bridge 價格，但仍嘗試單獨獲取直連 API 的昨收價
         if price is None or prev_close is None:
             if sym in bridge:
                 price = bridge[sym]
                 source = "bridge"
                 
                 # 嘗試單獨獲取昨收價
-                try:
-                    ticker = yf.Ticker(sym)
-                    hist = ticker.history(period="2d", prepost=True)
-                    if not hist.empty and len(hist) >= 2:
-                        prev_close = float(hist['Close'].iloc[-2])
-                        source = "bridge+yf_prev"
-                    elif not hist.empty:
-                        prev_close = float(hist['Open'].iloc[0])
-                        source = "bridge+yf_prev"
-                except Exception as e:
-                    pass
-                    
-                if prev_close is None:
-                    try:
-                        ticker = yf.Ticker(sym)
-                        prev_pc = ticker.info.get('previousClose')
-                        if prev_pc:
-                            prev_close = float(prev_pc)
-                            source = "bridge+yf_prev"
-                    except Exception as e:
-                        pass
+                _, pc_fallback, _ = fetch_yahoo_chart_direct(sym)
+                if pc_fallback is not None:
+                    prev_close = pc_fallback
+                    source = "bridge+direct_prev"
 
         # 從快取讀取備份昨收價
         if prev_close is None and sym in prev_close_cache:
@@ -155,7 +147,6 @@ def get_market_data():
                 "source": source
             }
         elif price is not None:
-            # 只有價格但沒有昨收，只能顯示 0.0%
             data_results[sym] = {
                 "name": name,
                 "price": float(price),
@@ -169,7 +160,7 @@ def get_market_data():
 
     health = "Healthy" if not errors else f"Degraded ({', '.join(errors)})"
     
-    # 5. 台指期 (FITXP) 處理：使用 bridge 中的夜盤即時點數，並從 yfinance 獲取 TXF1=TW 或 ^TWII 的昨收計算真正漲跌幅
+    # 3. 台指期 (FITXP) 處理：使用 bridge 中的夜盤即時點數，並從直連 API 獲取 TXF1=TW 或 ^TWII 的昨收計算真正漲跌幅
     if "FITXP" in bridge:
         fitxp_price = bridge["FITXP"]
         fitxp_prev_close = None
@@ -177,16 +168,11 @@ def get_market_data():
         
         for proxy in ["TXF1=TW", "^TWII"]:
             try:
-                t = yf.Ticker(proxy)
-                hist = t.history(period="2d")
-                if not hist.empty:
-                    if len(hist) >= 2:
-                        fitxp_prev_close = float(hist['Close'].iloc[-2])
-                    else:
-                        fitxp_prev_close = float(hist['Close'].iloc[-1])
-                    if fitxp_prev_close:
-                        proxy_used = proxy
-                        break
+                _, pc_val, _ = fetch_yahoo_chart_direct(proxy)
+                if pc_val is not None:
+                    fitxp_prev_close = pc_val
+                    proxy_used = f"direct_{proxy}"
+                    break
             except:
                 pass
                 
@@ -218,6 +204,7 @@ def get_market_data():
         json.dump(prev_close_cache, f)
 
     return data_results, health
+
 
 def format_report(results, health):
     taipei_tz = pytz.timezone('Asia/Taipei')

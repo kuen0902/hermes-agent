@@ -7,7 +7,52 @@ import subprocess
 import sys
 from datetime import datetime
 import pytz
-import yfinance as yf
+import requests
+import random
+import time
+
+def fetch_yahoo_minute_data(sym):
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
+    params = {
+        "range": "1d",
+        "interval": "1m",
+        "includePrePost": "true"
+    }
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+        "Mozilla/5.0"
+    ]
+    max_retries = 3
+    base_delay = 1.0
+    
+    for attempt in range(max_retries):
+        headers = {'User-Agent': random.choice(user_agents)}
+        try:
+            r = requests.get(url, params=params, headers=headers, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                result = data["chart"]["result"][0]
+                timestamps = result.get("timestamp", [])
+                closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
+                opens = result.get("indicators", {}).get("quote", [{}])[0].get("open", [])
+                
+                records = []
+                for t, c, o in zip(timestamps, closes, opens):
+                    if c is not None and o is not None:
+                        records.append({"timestamp": t, "close": float(c), "open": float(o)})
+                if records:
+                    return records
+            elif r.status_code == 429:
+                pass
+        except Exception as e:
+            pass
+            
+        if attempt < max_retries - 1:
+            time.sleep(base_delay * (2 ** attempt) + random.uniform(0.1, 0.5))
+            
+    return None
 
 # Configuration
 DATA_DIR = os.path.expanduser("~/.hermes/data")
@@ -107,18 +152,12 @@ def main():
 
     for symbol, name in SYMBOLS.items():
         try:
-            import requests
-            session = requests.Session()
-            session.headers.update({
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
-            })
-            ticker = yf.Ticker(symbol, session=session)
-            data = ticker.history(period="1d", interval="1m")
-            if data.empty:
+            records = fetch_yahoo_minute_data(symbol)
+            if not records:
                 continue
                 
-            current_price = data['Close'].iloc[-1]
-            open_price = data['Open'].iloc[0]
+            current_price = records[-1]["close"]
+            open_price = records[0]["open"]
             
             pct_change = ((current_price - open_price) / open_price) * 100
             tier = get_tier(pct_change)
