@@ -227,10 +227,27 @@ struct CronJob: Codable {
     let last_status: String?
     let last_error: String?
     let last_run_at: String?
+    let script: String?
 }
 
 struct CronJobsContainer: Codable {
     let jobs: [CronJob]
+}
+
+func isGlobalCommandAvailable(_ command: String) -> Bool {
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+    process.arguments = [command]
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+    do {
+        try process.run()
+        process.waitUntilExit()
+        return process.terminationStatus == 0
+    } catch {
+        return false
+    }
 }
 
 func checkCronJobs() {
@@ -243,12 +260,79 @@ func checkCronJobs() {
         let container = try decoder.decode(CronJobsContainer.self, from: data)
         
         let activeJobs = container.jobs.filter { $0.enabled }
+        
+        // --- 1. 先期配置與路徑預檢 (Configuration & Path Pre-check) ---
+        var preCheckFailures: [String] = []
+        let fileManager = FileManager.default
+        let scriptsDir = "/Users/bookid/.hermes/scripts"
+        
+        for job in activeJobs {
+            guard let scriptCmd = job.script, !scriptCmd.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                continue
+            }
+            
+            let tokens = scriptCmd.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+            guard let firstToken = tokens.first else { continue }
+            
+            // A. 檢查是否有外部前綴 (如 /Users/bookid/.hermes/.venv/bin/python) 導致安全阻斷
+            if tokens.count > 1 && (firstToken.contains(".venv") || firstToken.contains("/bin/python") || firstToken.hasSuffix("python") || firstToken.hasSuffix("python3")) {
+                let msg = "Job [\(job.name)] (ID: \(job.id)) script config contains external executable prefix '\(firstToken)'. This will trigger hermes pre-run security block! Keep script paths relative or direct to scripts/ folder."
+                preCheckFailures.append(msg)
+                continue
+            }
+            
+            // B. 檢查腳本路徑是否存在
+            let scriptPath: String
+            if firstToken.hasPrefix("/") {
+                scriptPath = firstToken
+                if !fileManager.fileExists(atPath: scriptPath) {
+                    let msg = "Job [\(job.name)] (ID: \(job.id)) script file not found at: \(scriptPath)"
+                    preCheckFailures.append(msg)
+                    continue
+                }
+            } else if !firstToken.contains(".") {
+                // 如果不帶副檔名且不含點，可能是一個全域系統命令 (例如 "hermes")
+                if isGlobalCommandAvailable(firstToken) {
+                    // 全域命令存在，跳過後續的路徑與權限檢查
+                    continue
+                } else {
+                    let msg = "Job [\(job.name)] (ID: \(job.id)) specifies global command '\(firstToken)' which is not found in system PATH."
+                    preCheckFailures.append(msg)
+                    continue
+                }
+            } else {
+                scriptPath = "\(scriptsDir)/\(firstToken)"
+                if !fileManager.fileExists(atPath: scriptPath) {
+                    let msg = "Job [\(job.name)] (ID: \(job.id)) script file not found at: \(scriptPath)"
+                    preCheckFailures.append(msg)
+                    continue
+                }
+            }
+            
+            // C. 檢查是否有可執行權限
+            if !fileManager.isExecutableFile(atPath: scriptPath) {
+                let msg = "Job [\(job.name)] (ID: \(job.id)) script file at \(scriptPath) is not executable! Please run chmod +x on it."
+                preCheckFailures.append(msg)
+            }
+        }
+        
+        // 匯報預檢結果
+        if !preCheckFailures.isEmpty {
+            logError("CronJobsPreCheck", "\(preCheckFailures.count) configuration/path validation issues detected!")
+            for failure in preCheckFailures {
+                print("  \(ANSIColor.yellow.rawValue)⚠️ \(failure)\(ANSIColor.reset.rawValue)")
+            }
+        } else {
+            logSuccess("Cron Jobs Configuration Pre-check: OK")
+        }
+        
+        // --- 2. 歷史執行狀態檢查 ---
         let failedJobs = activeJobs.filter { $0.last_status == "error" }
         
         if failedJobs.isEmpty {
-            logSuccess("Cron Jobs: \(activeJobs.count) Active, no failed executions in last 24h")
+            logSuccess("Cron Jobs Execution Status: \(activeJobs.count) Active, no failed executions in last 24h")
         } else {
-            logError("CronJobs", "\(activeJobs.count) Active, \(failedJobs.count) FAILED executions detected!")
+            logError("CronJobsExecution", "\(activeJobs.count) Active, \(failedJobs.count) FAILED executions detected in logs!")
             for job in failedJobs {
                 print("  ---------------------------------------------")
                 print("  \(ANSIColor.bold.rawValue)Job Name:\(ANSIColor.reset.rawValue) \(ANSIColor.yellow.rawValue)\(job.name)\(ANSIColor.reset.rawValue) (ID: \(job.id))")
