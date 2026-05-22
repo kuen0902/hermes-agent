@@ -228,6 +228,7 @@ struct CronJob: Codable {
     let last_error: String?
     let last_run_at: String?
     let script: String?
+    let prompt: String?
 }
 
 struct CronJobsContainer: Codable {
@@ -261,89 +262,122 @@ func checkCronJobs() {
         
         let activeJobs = container.jobs.filter { $0.enabled }
         
-        // --- 1. 先期配置與路徑預檢 (Configuration & Path Pre-check) ---
+        print("\n\(ANSIColor.bold.rawValue)\(ANSIColor.cyan.rawValue)--- Cron Jobs Pre-Run & Execution Diagnostic Manifest ---\(ANSIColor.reset.rawValue)")
+        
+        var totalJobsChecked = 0
+        var totalIssuesDetected = 0
         var preCheckFailures: [String] = []
+        
         let fileManager = FileManager.default
         let scriptsDir = "/Users/bookid/.hermes/scripts"
         
-        for job in activeJobs {
-            guard let scriptCmd = job.script, !scriptCmd.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                continue
-            }
+        for (index, job) in activeJobs.enumerated() {
+            totalJobsChecked += 1
+            let isAgent = job.script == nil || job.script!.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let typeLabel = isAgent ? "Agent-based" : "Script-based"
             
-            let tokens = scriptCmd.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
-            guard let firstToken = tokens.first else { continue }
+            print("\n\(ANSIColor.bold.rawValue)[\(index + 1)/\(activeJobs.count)] Job: \(job.name)\(ANSIColor.reset.rawValue) (ID: \(job.id)) [\(typeLabel)]")
             
-            // A. 檢查是否有外部前綴 (如 /Users/bookid/.hermes/.venv/bin/python) 導致安全阻斷
-            if tokens.count > 1 && (firstToken.contains(".venv") || firstToken.contains("/bin/python") || firstToken.hasSuffix("python") || firstToken.hasSuffix("python3")) {
-                let msg = "Job [\(job.name)] (ID: \(job.id)) script config contains external executable prefix '\(firstToken)'. This will trigger hermes pre-run security block! Keep script paths relative or direct to scripts/ folder."
-                preCheckFailures.append(msg)
-                continue
-            }
-            
-            // B. 檢查腳本路徑是否存在
-            let scriptPath: String
-            if firstToken.hasPrefix("/") {
-                scriptPath = firstToken
-                if !fileManager.fileExists(atPath: scriptPath) {
-                    let msg = "Job [\(job.name)] (ID: \(job.id)) script file not found at: \(scriptPath)"
-                    preCheckFailures.append(msg)
-                    continue
-                }
-            } else if !firstToken.contains(".") {
-                // 如果不帶副檔名且不含點，可能是一個全域系統命令 (例如 "hermes")
-                if isGlobalCommandAvailable(firstToken) {
-                    // 全域命令存在，跳過後續的路徑與權限檢查
-                    continue
+            // --- 測試細項 1: 安全路徑阻斷檢驗 (Path Block Validation) ---
+            if isAgent {
+                print(" ├─ \(ANSIColor.blue.rawValue)[SKIP]\(ANSIColor.reset.rawValue) Path Block Validation (Agent-based task, no script configured)")
+            } else {
+                let scriptCmd = job.script!
+                let tokens = scriptCmd.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+                if let firstToken = tokens.first {
+                    if tokens.count > 1 && (firstToken.contains(".venv") || firstToken.contains("/bin/python") || firstToken.hasSuffix("python") || firstToken.hasSuffix("python3")) {
+                        print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) Path Block Validation (External python prefix '\(firstToken)' will block execution)")
+                        preCheckFailures.append("Job [\(job.name)]: External python prefix '\(firstToken)' will block execution")
+                        totalIssuesDetected += 1
+                    } else {
+                        print(" ├─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) Path Block Validation (No scripts-external executable prefix)")
+                    }
                 } else {
-                    let msg = "Job [\(job.name)] (ID: \(job.id)) specifies global command '\(firstToken)' which is not found in system PATH."
-                    preCheckFailures.append(msg)
-                    continue
+                    print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) Path Block Validation (Script field configured but empty)")
+                    preCheckFailures.append("Job [\(job.name)]: Script field configured but empty")
+                    totalIssuesDetected += 1
+                }
+            }
+            
+            // --- 測試細項 2: 腳本路徑存在性檢驗 (File Existence Check) ---
+            var resolvedScriptPath: String? = nil
+            if isAgent {
+                print(" ├─ \(ANSIColor.blue.rawValue)[SKIP]\(ANSIColor.reset.rawValue) File Existence Check (Agent-based task, no script configured)")
+            } else {
+                let scriptCmd = job.script!
+                let tokens = scriptCmd.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+                if let firstToken = tokens.first {
+                    if firstToken.hasPrefix("/") {
+                        resolvedScriptPath = firstToken
+                        if fileManager.fileExists(atPath: resolvedScriptPath!) {
+                            print(" ├─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) File Existence Check (Absolute path exists: \(firstToken))")
+                        } else {
+                            print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) File Existence Check (Absolute script path not found: \(firstToken))")
+                            preCheckFailures.append("Job [\(job.name)]: Absolute path not found at \(firstToken)")
+                            totalIssuesDetected += 1
+                        }
+                    } else if !firstToken.contains(".") {
+                        // 全域命令 (如 hermes)
+                        if isGlobalCommandAvailable(firstToken) {
+                            print(" ├─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) File Existence Check (Global command '\(firstToken)' found in system PATH)")
+                        } else {
+                            print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) File Existence Check (Global command '\(firstToken)' not found in system PATH)")
+                            preCheckFailures.append("Job [\(job.name)]: Global command '\(firstToken)' not found in PATH")
+                            totalIssuesDetected += 1
+                        }
+                    } else {
+                        resolvedScriptPath = "\(scriptsDir)/\(firstToken)"
+                        if fileManager.fileExists(atPath: resolvedScriptPath!) {
+                            print(" ├─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) File Existence Check (Script found at: \(firstToken))")
+                        } else {
+                            print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) File Existence Check (Script not found at: \(resolvedScriptPath!))")
+                            preCheckFailures.append("Job [\(job.name)]: Relative script not found at \(resolvedScriptPath!)")
+                            totalIssuesDetected += 1
+                        }
+                    }
+                } else {
+                    print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) File Existence Check (Missing script command)")
+                    preCheckFailures.append("Job [\(job.name)]: Missing script command")
+                    totalIssuesDetected += 1
+                }
+            }
+            
+            // --- 測試細項 3: 檔案執行權限檢驗 (File Permission Check) ---
+            if isAgent {
+                print(" ├─ \(ANSIColor.blue.rawValue)[SKIP]\(ANSIColor.reset.rawValue) File Permission Check (Agent-based task, no script configured)")
+            } else if let path = resolvedScriptPath {
+                if fileManager.isExecutableFile(atPath: path) {
+                    print(" ├─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) File Permission Check (Script is executable)")
+                } else {
+                    print(" ├─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) File Permission Check (Script is NOT executable! Run chmod +x)")
+                    preCheckFailures.append("Job [\(job.name)]: Script at \(path) is not executable")
+                    totalIssuesDetected += 1
                 }
             } else {
-                scriptPath = "\(scriptsDir)/\(firstToken)"
-                if !fileManager.fileExists(atPath: scriptPath) {
-                    let msg = "Job [\(job.name)] (ID: \(job.id)) script file not found at: \(scriptPath)"
-                    preCheckFailures.append(msg)
-                    continue
-                }
+                // 如果是全域命令且已判定 PASS，就不再另外檢查實體路徑權限
+                print(" ├─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) File Permission Check (Delegated to global binary system execution)")
             }
             
-            // C. 檢查是否有可執行權限
-            if !fileManager.isExecutableFile(atPath: scriptPath) {
-                let msg = "Job [\(job.name)] (ID: \(job.id)) script file at \(scriptPath) is not executable! Please run chmod +x on it."
-                preCheckFailures.append(msg)
+            // --- 測試細項 4: 歷史執行狀態稽核 (Execution Status Check) ---
+            let status = job.last_status ?? "unknown"
+            if status == "ok" {
+                print(" └─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) Execution Status Check (Last run at: \(job.last_run_at ?? "never") Status: ok)")
+            } else if status == "error" {
+                print(" └─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) Execution Status Check (Last run failed! Status: error)")
+                preCheckFailures.append("Job [\(job.name)]: Execution failed with error status")
+                totalIssuesDetected += 1
+            } else {
+                print(" └─ \(ANSIColor.yellow.rawValue)[WARN]\(ANSIColor.reset.rawValue) Execution Status Check (No previous runs recorded)")
             }
         }
         
-        // 匯報預檢結果
-        if !preCheckFailures.isEmpty {
-            logError("CronJobsPreCheck", "\(preCheckFailures.count) configuration/path validation issues detected!")
-            for failure in preCheckFailures {
-                print("  \(ANSIColor.yellow.rawValue)⚠️ \(failure)\(ANSIColor.reset.rawValue)")
-            }
-        } else {
-            logSuccess("Cron Jobs Configuration Pre-check: OK")
-        }
+        print("\n\(ANSIColor.bold.rawValue)\(ANSIColor.cyan.rawValue)=================================================================\(ANSIColor.reset.rawValue)")
         
-        // --- 2. 歷史執行狀態檢查 ---
-        let failedJobs = activeJobs.filter { $0.last_status == "error" }
-        
-        if failedJobs.isEmpty {
-            logSuccess("Cron Jobs Execution Status: \(activeJobs.count) Active, no failed executions in last 24h")
+        // 匯報總結結果
+        if totalIssuesDetected > 0 {
+            logError("CronJobsDiagnostic", "Completed pre-check on \(totalJobsChecked) cron jobs. \(totalIssuesDetected) issues detected!")
         } else {
-            logError("CronJobsExecution", "\(activeJobs.count) Active, \(failedJobs.count) FAILED executions detected in logs!")
-            for job in failedJobs {
-                print("  ---------------------------------------------")
-                print("  \(ANSIColor.bold.rawValue)Job Name:\(ANSIColor.reset.rawValue) \(ANSIColor.yellow.rawValue)\(job.name)\(ANSIColor.reset.rawValue) (ID: \(job.id))")
-                print("  \(ANSIColor.bold.rawValue)Last Run:\(ANSIColor.reset.rawValue) \(job.last_run_at ?? "Never")")
-                let errorLines = (job.last_error ?? "Unknown error").components(separatedBy: "\n")
-                print("  \(ANSIColor.bold.rawValue)Error Output:\(ANSIColor.reset.rawValue)")
-                for line in errorLines {
-                    print("    \(ANSIColor.red.rawValue)\(line)\(ANSIColor.reset.rawValue)")
-                }
-            }
-            print("  ---------------------------------------------")
+            logSuccess("Cron Jobs Pre-check and Status Verification: OK - \(totalJobsChecked) active jobs scanned, 0 issues.")
         }
     } catch {
         logError("CronJobs", "ERROR (Failed to read or parse jobs.json: \(error.localizedDescription))")
