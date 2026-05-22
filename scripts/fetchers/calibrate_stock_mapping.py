@@ -1,5 +1,6 @@
-#!/usr/bin/env python3
+#!/Users/bookid/.hermes/.venv/bin/python
 # -*- coding: utf-8 -*-
+
 
 import os
 import re
