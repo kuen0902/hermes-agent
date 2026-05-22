@@ -217,17 +217,13 @@ def sync() -> None:
     print("Starting Central Stock Data Sync (TWSE API + YF Fallback)...")
     personal_data = get_personal_tickers()
     william_defaults = {
-        "8996": "高力", "5289": "宜鼎", "4966": "譜瑞", "3583": "辛耘", 
-        "8210": "勤誠", "2327": "國巨", "5347": "世界", "2402": "毅嘉", 
-        "6510": "精測", "3211": "順達", "6290": "良維", "6669": "緯穎", 
-        "6147": "頎邦", "7828": "創新服務", "7815": "家登自動", "7769": "進能服", 
-        "6877": "鏵友益", "6683": "雍智科技", "3709": "鑫聯大", "7843": "英柏得"
+        "2376": "技嘉", "7828": "創新服務", "3709": "鑫聯大", "8299": "群聯", "4543": "萬在"
     }
     group_defaults = {
         "1513": "中興電", "2049": "上銀", "5347": "世界", "6147": "頎邦", "3709": "鑫聯大",
         "2408": "南亞科", "2382": "廣達", "2327": "國巨",
         "2313": "華通", "6285": "啟碁", "5289": "宜鼎",
-        "4543": "萬在", "6125": "廣運", "7828": "創新服務",
+        "2376": "技嘉", "7828": "創新服務", "4925": "智微", "6125": "廣運",
         "2330": "台積電", "2454": "聯發科", "3037": "欣興"
     }
     all_codes = set(personal_data.keys()) | set(william_defaults.keys()) | set(group_defaults.keys())
@@ -252,6 +248,13 @@ def sync() -> None:
             print(f"Failed: {code}")
 
     log_to_csv(market_data, mapping)
+    
+    # Sanitize float values to ensure valid JSON (replace NaN/Inf with None)
+    for code, info in list(market_data.items()):
+        for key, val in list(info.items()):
+            if isinstance(val, float) and (val != val or val == float('inf') or val == float('-inf')):
+                info[key] = None
+
     healthy_count = len(market_data)
     status = "Healthy" if healthy_count > len(all_codes) * 0.8 else "Degraded"
     output = {
