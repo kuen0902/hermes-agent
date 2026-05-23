@@ -189,18 +189,91 @@ def load_rolling_institutional_data(iso_date, code_normalized):
     return 0, 0, 0, 0
 
 
-def load_valuation_history():
-    if os.path.exists(VALUATIONS_FILE):
-        try:
-            with open(VALUATIONS_FILE, 'r') as f:
-                return json.load(f)
-        except:
-            pass
-    return {}
+def init_ml_db():
+    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ml_valuation_history (
+                date TEXT,
+                code TEXT,
+                price REAL,
+                prob REAL,
+                pred_return REAL,
+                raw_val REAL,
+                calibrated_val REAL,
+                bias REAL,
+                error REAL,
+                actual_price REAL DEFAULT 0.0,
+                PRIMARY KEY (date, code)
+            )
+        ''')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_ml_val_code ON ml_valuation_history(code)')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"初始化 ML 估值資料庫表失敗: {e}")
 
-def save_valuation_history(history):
-    with open(VALUATIONS_FILE, 'w') as f:
-        json.dump(history, f, indent=2, ensure_ascii=False)
+def load_previous_kalman_record(code_norm, today_iso_str):
+    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT date, calibrated_val, bias 
+            FROM ml_valuation_history 
+            WHERE code = ? AND date < ? 
+            ORDER BY date DESC LIMIT 1
+        ''', (code_norm, today_iso_str))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {
+                "date": row[0],
+                "calibrated_val": row[1],
+                "bias": row[2]
+            }
+    except Exception as e:
+        print(f"讀取 SQLite 歷史卡爾曼狀態失敗 ({code_norm}): {e}")
+    return None
+
+def update_previous_kalman_error(code_norm, prev_date_str, actual_price, error_val):
+    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE ml_valuation_history 
+            SET actual_price = ?, error = ? 
+            WHERE date = ? AND code = ?
+        ''', (actual_price, error_val, prev_date_str, code_norm))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"回寫 SQLite 卡爾曼誤差失敗 ({code_norm}): {e}")
+
+def save_current_kalman_record(date_str, code_norm, price, prob, pred_return, raw_val, calibrated_val, bias, error):
+    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO ml_valuation_history (date, code, price, prob, pred_return, raw_val, calibrated_val, bias, error, actual_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0.0)
+            ON CONFLICT(date, code) DO UPDATE SET
+                price = excluded.price,
+                prob = excluded.prob,
+                pred_return = excluded.pred_return,
+                raw_val = excluded.raw_val,
+                calibrated_val = excluded.calibrated_val,
+                bias = excluded.bias,
+                error = excluded.error
+        ''', (date_str, code_norm, price, prob, pred_return, raw_val, calibrated_val, bias, error))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"寫入 SQLite 今日卡爾曼紀錄失敗 ({code_norm}): {e}")
 
 def run_intraday_pipeline(silent=False):
     print("--- 啟動持股專屬 ML 雙指標（方向與估值）盤後預判系統 ---")
@@ -273,8 +346,8 @@ def run_intraday_pipeline(silent=False):
     except Exception as e:
         print(f"無法抓取大盤資料: {e}")
         
-    # 載入偏差自適應誤差歷史
-    val_history = load_valuation_history()
+    # 載入與初始化偏差自適應資料庫表
+    init_ml_db()
     
     X_infer = []
     codes_infer = []
@@ -403,14 +476,13 @@ def run_intraday_pipeline(silent=False):
         # 平滑因子 alpha = 0.2
         alpha = 0.2
         
-        if code_norm in val_history and len(val_history[code_norm]) > 0:
-            # 找到上一交易日的估值記錄
-            dates_sorted = sorted(val_history[code_norm].keys())
-            prev_date = dates_sorted[-1]
-            prev_record = val_history[code_norm][prev_date]
-            
+        # 從 SQLite 載入該商品前一交易日紀錄
+        prev_record = load_previous_kalman_record(code_norm, today.isoformat())
+        
+        if prev_record:
+            prev_date = prev_record["date"]
             # 昨估今日價格 (校正後)
-            prev_calibrated_val = prev_record.get("calibrated_val", prev_record.get("raw_val", prices[-1]))
+            prev_calibrated_val = prev_record.get("calibrated_val", prices[-1])
             prev_bias = prev_record.get("bias", 0.0)
             
             # 今日實際价格
@@ -426,8 +498,7 @@ def run_intraday_pipeline(silent=False):
             error_str = f"誤差: {error_val:+.2f} ({error_pct:+.2f}%) | 偏置修正: {bias_val:+.2f}"
             
             # 回寫上一交易日記錄的真實誤差，方便日後稽核
-            val_history[code_norm][prev_date]["actual_price"] = current_actual_price
-            val_history[code_norm][prev_date]["error"] = error_val
+            update_previous_kalman_error(code_norm, prev_date, current_actual_price, error_val)
         
         features.append(error_val) # 將前一日誤差本身作為反饋特徵注入 ML 特徵集
         
@@ -508,19 +579,18 @@ def run_intraday_pipeline(silent=False):
         calibrated_val = raw_val + bias
         
         # 寫入歷史日誌
-        if code_norm not in val_history:
-            val_history[code_norm] = {}
-            
-        val_history[code_norm][today.isoformat()] = {
-            "price": price,
-            "prob": prob,
-            "pred_return": pred_return,
-            "raw_val": raw_val,
-            "calibrated_val": calibrated_val,
-            "bias": bias,
-            "error": 0.0, # 等明日更新
-            "actual_price": 0.0 # 等明日更新
-        }
+        # 寫入今日最新的卡爾曼預估結果 (SQLite 增量 Upsert)
+        save_current_kalman_record(
+            today.isoformat(),
+            code_norm,
+            price,
+            prob,
+            pred_return,
+            raw_val,
+            calibrated_val,
+            bias,
+            0.0
+        )
         
         item["prob"] = prob
         item["pred_return"] = pred_return
@@ -554,7 +624,7 @@ def run_intraday_pipeline(silent=False):
             })
             
     save_predictions(new_predictions)
-    save_valuation_history(val_history)
+    # 已改由 SQLite 進行實時增量更新，廢棄 save_valuation_history 步驟
     
     if trade_signals:
         signals_file = os.path.join(DATA_DIR, "trade_signals.json")
