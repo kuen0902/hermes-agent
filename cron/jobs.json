@@ -279,17 +279,17 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 241
+        "completed": 246
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-23T01:00:00+08:00",
-      "last_run_at": "2026-05-23T00:02:32.857852+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-23T15:00:00+08:00",
+      "last_run_at": "2026-05-23T05:01:11.041452+08:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: [Errno 24] Too many open files",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -542,17 +542,17 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 14
+        "completed": 15
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-05-23T05:00:00+08:00",
-      "last_run_at": "2026-05-22T05:04:38.339590+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-24T05:00:00+08:00",
+      "last_run_at": "2026-05-23T05:00:55.433944+08:00",
+      "last_status": "error",
+      "last_error": "Script execution failed: [Errno 24] Too many open files",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -717,7 +717,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T23:44:58.197993+08:00",
-      "next_run_at": "2026-05-23T05:00:00+08:00",
+      "next_run_at": "2026-05-24T05:00:00+08:00",
       "last_run_at": "2026-05-22T05:00:50.559321+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -752,15 +752,15 @@
       "schedule_display": "0 2 * * 6",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:35:00+08:00",
-      "next_run_at": "2026-05-23T02:00:00+08:00",
-      "last_run_at": "2026-05-16T02:01:07.299539+08:00",
+      "next_run_at": "2026-05-30T02:00:00+08:00",
+      "last_run_at": "2026-05-23T02:00:18.472740+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -789,15 +789,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 8
+        "completed": 9
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-05-23T04:00:00+08:00",
-      "last_run_at": "2026-05-22T04:00:21.597256+08:00",
+      "next_run_at": "2026-05-24T04:00:00+08:00",
+      "last_run_at": "2026-05-23T04:00:26.107727+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -863,17 +863,17 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 983
+        "completed": 1034
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-23T00:50:00+08:00",
-      "last_run_at": "2026-05-23T00:45:30.780241+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-23T05:05:00+08:00",
+      "last_run_at": "2026-05-23T05:00:55.461740+08:00",
+      "last_status": "error",
+      "last_error": "[Errno 24] Too many open files: '/Users/bookid/.hermes/cron/output/9d128cdf-7d6/.output_uijq0fl5.tmp'",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1012,5 +1012,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-23T00:45:30.780918+08:00"
+  "updated_at": "2026-05-23T05:01:11.041966+08:00"
 }

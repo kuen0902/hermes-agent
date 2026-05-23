@@ -9,13 +9,23 @@ metadata:
     tags: [productivity, api, usage, credits]
 ---
 
-# Productivity & Utilities
+# Productivity & Workplace Operations
 
-This umbrella skill captures utility tools for managing API usage, environment configurations, and general productivity workflows.
+This umbrella skill handles the orchestration of office, planning, and information management tools.
 
-## References
+## 1. Google Workspace & Office
+- **GWS CLI**: Manage Gmail, Calendar, Drive, and Sheets.
+- **PowerPoint**: Programmatic creation and editing of `.pptx` decks.
+- **Meeting Summarization**: Teams meeting pipeline orchestration.
 
-- `references/japan_travel_strategy.md` (Okinawa hotel tiers, platform optimization, and HSR-RMQ logistics)
+## 2. Planning & CRM
+- **Linear**: Manage issues and projects via GraphQL.
+- **Airtable**: Relational data management via REST API.
+- **Notion**: Page and database operations using the Notion API.
+
+## 3. Document Processing
+- **PDF Manipulation**: Edit PDFs via `nano-pdf` or manipulate text/images.
+- **Maps**: Geocoding, routing, and timezones.
 
 ## 1. API Usage Tracking
 
@@ -40,5 +50,13 @@ Monitor consumption of search, crawl, and extract credits.
   - **Dynamic Height**: Calculate height based on wrapped lines to prevent clipping.
   - **Templates**: `templates/render_md_v2.py`.
 
-## 3. Logistics & Travel Strategies
-See `references/japan_travel_strategy.md` for specific regional optimizations (e.g., Okinawa, Taiwan HSR-Airport transfers).
+## 4. Document & Information Management
+
+### OCR & PDF Processing
+- Use `ocr-and-documents` patterns for extracting text from scans and layout-heavy PDFs.
+- **Tools**: `pymupdf` (fast text) vs `marker-pdf` (better layout/math).
+
+### Notion Integration
+- Sync research and task logs to Notion databases using the `ntn` CLI or REST API.
+- **Workflow**: Generate markdown locally -> upload blocks to Notion page.
+

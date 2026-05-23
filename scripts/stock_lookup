@@ -1,0 +1,2 @@
+#!/bin/bash
+/Users/bookid/.hermes/.venv/bin/python /Users/bookid/.hermes/scripts/stock_lookup.py "$@"

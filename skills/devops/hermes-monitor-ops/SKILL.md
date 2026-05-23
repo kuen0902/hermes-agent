@@ -100,8 +100,22 @@ When a report or alert displays a ticker code instead of a name (e.g., `6770(677
 - **Fix**: Apply `.replace("*", "\\*").replace("_", "\\_")` to all stock names before integrating them into message strings.
 - **Verification**: If a logic-correct message fails to send, check the terminal for `HTTP Error 400`. This is almost always a Markdown parsing failure.
 
-## Pitfalls
-- **Token Hallucination**: Finding an old/stale token in a binary (e.g., via `strings`) and injecting it into scripts without verification. This causes a "False Fix" where the agent claims success but the user receives nothing.
+## 11. Portfolio & Integrated Market Analysis (Finance Umbrella)
+
+### 11a. The Active Portfolio Tool (`portfolio_tool.py`)
+- **Direct Access**: Use `~/.hermes/scripts/portfolio_tool.py` for all PnL and average cost calculations.
+- **Commands**: 
+  - `--view`: Current holdings.
+  - `--add <CODE> <QTY> <PRICE>`: Buy/Average up. QTY in shares (1000 shares/張).
+  - `--reduce <CODE> <QTY> <PRICE>`: Sell/Profit-take.
+- **Rule**: Never guess price/qty. Ask the user.
+
+### 11b. Market Intelligence & Analysis
+- **TAIEX Gatekeeper**: Always verify market status before automated reporting.
+- **Signal Grouping**: Split alerts into `Core (Personal)` and `Group` bubbles.
+- **Sanitization**: Escape `*` and `_` in stock names (e.g. `國巨*` -> `國巨\*`) to prevent Telegram 400 Bad Request errors.
+- **Night Report Unification**: Follow the SOP in `references/night_report_unification.md` to merge multi-script outputs into a single status bubble.
+
 - **Gateway Delivery Interference**: Setting `deliver: local` ensures the script manages its own delivery. Setting it to a chat ID causes double-delivery or permission errors from the primary bot.
 - **Indentation Fragility**: Using `patch` to edit the `PROFILES` dictionary in `intraday_risk_monitor.py` frequently leads to `IndentationError`. **PREFER** `write_file` with the full content or `execute_code` to overwrite the entire file when structural logic changes.
 - **Stale Binaries**: Patching `hermes_monitor.swift` but forgetting to run `swiftc`. The orchestrator will continue to use the old binary and the dead token.
