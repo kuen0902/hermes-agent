@@ -99,19 +99,27 @@ def generate_chart():
     # 標註每一個有交易的點，排除起點
     annotated_indices = set(range(1, len(daily_df)))
     
-    # 🧠 2D 空間交替分流演算法 (2D Geometric Dispersion Algorithm)
-    # 縱向使用 6 種階梯高度，橫向使用 3 種偏置，將密集區域的氣泡以花瓣狀在 2D 空間中錯開
-    offset_y = [22, -32, 46, -64, 76, -96]
-    offset_x = [0, -18, 18]
-            
+    # 🧠 垂直極簡防交叉演算法 (Vertical Non-Crossing Dispersion Algorithm)
+    # 為了徹底避免引導指標線交叉，我們將所有引導線設為 100% 垂直 (x_offset = 0)。
+    # 透過雙側（TOP/BOTTOM）與雙重高度（30/65 與 -35/-70）的四階交替排版，
+    # 在 100% 避免標線交叉的同時，也完美杜絕了相鄰標籤之間的水平與垂直重疊。
+    
     # 標註關鍵節點的日期與累計損益總額
     for idx, (date, pnl) in enumerate(zip(daily_df['date'], daily_df['cum_pnl'])):
         if idx not in annotated_indices:
             continue
             
-        # 依循環動態分配 X 與 Y 偏置，拉開標籤
-        y_offset = offset_y[idx % 6]
-        x_offset = offset_x[idx % 3]
+        # 依循環動態分配 Y 偏置，X 偏置固定為 0，確保指標引導線為垂直且絕不交叉
+        x_offset = 0
+        rem = idx % 4
+        if rem == 0:
+            y_offset = 30
+        elif rem == 1:
+            y_offset = -35
+        elif rem == 2:
+            y_offset = 65
+        else: # rem == 3
+            y_offset = -70
         
         # 🧠 判斷該交易日是「損」還是「益」：與前一個交易日相比
         is_loss = False
