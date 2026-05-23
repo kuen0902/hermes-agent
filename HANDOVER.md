@@ -77,14 +77,17 @@
    - 將 `hermes_monitor.swift` 的盤中警報升級為「緊湊單行風格」，並無縫整合 ML 腳本 (`intraday_ml_pipeline.py --silent`)，直接將看多看空機率附加在警報後方，大幅提升閱讀體驗。
    - 修正 `tw_night_session_hourly.py` 在觸發備援機制時重複輸出 `✅ 狀態：Healthy` 的排版 Bug。
    - 強化 `tw_night_monitor_adri.py` 的夜盤階梯式門檻邏輯，當股票未達 ±3% 門檻時不再輸出錯誤的 `[SILENT]`，而是優雅地在報表下方顯示「未達推播門檻」的清單與當下漲幅。
-   - **關鍵修復**：為解決夜盤 ADR 監測頻繁遭到 `yfinance` Rate Limit 封鎖導致的 0.0% 漲幅誤判，已全面改寫 `tw_night_monitor_adri.py` 直連 Yahoo Finance Chart API (`query1.finance.yahoo.com/v8/finance/chart`)，完美取回正確的 `regularMarketPrice` 與 `previousClose`。
+    - **關鍵修復**：為解決夜盤 ADR 監測頻繁遭到 `yfinance` Rate Limit 封鎖導致的 0.0% 漲幅誤判，已全面改寫 `tw_night_monitor_adri.py` 直連 Yahoo Finance Chart API (`query1.finance.yahoo.com/v8/finance/chart`)，完美取回正確的 `regularMarketPrice` 與 `previousClose`。
+
+17. **手動交易 PnL 損益圖表生成與 Swift Telegram 圖片推播 (Session 2026-05-23)**
+   - 依據 100% 手動交易原則，建立 `scripts/ml/generate_pnl_chart.py` 繪圖引擎，從 `portfolio.db` 讀取手動平倉歷史，利用 `matplotlib` 產生高解析度、漸層填滿、平滑的深色主題（Emerald Green 前景色）累計已實現損益（Cumulative Realized PnL）曲線圖。
+   - 重構 `scripts/send_pnl_report.swift` 通知器，使用 Swift 原生 `multipart/form-data` 對接 Telegram `sendPhoto` 接口，實現「損益圖表圖片 + 手動交易明細文字 Caption」的一體化高階推播，並內建了極具韌性的純文字 Fallback 發送機制。
+   - 於 `scripts/run_daily_pnl_report.sh` 整合此視覺化管線，透過 E2E 實測與 24 項系統健康度診斷全數亮綠燈驗收。
 
 ## 🎯 下階段待辦事項 (Pending / Next Steps)
 
-1. **Swift 引擎圖表生成**
-   - 可考慮利用 Python 繪製 PnL 曲線圖後，交由 Swift 引擎一同派送至 Telegram 日報表中。
-2. **自動下單的實彈測試 (Paper Trading / Dry Run)**
-   - 雖然 `trade_execution_orchestrator.py` 已經建置完成，但需要實際驗證在強烈買賣訊號出現時的資料庫讀寫穩定度。
+1. **持續觀察手動平倉交易曲線與視覺化排版調整**
+   - 隨著手動交易資料的累積，可以視需求微調 Matplotlib 的繪圖參數（如網格密度、色彩對比），以最佳化各終端裝置上的圖表顯示美感。
 
 ## 🧠 給下一位 Hermes 助理的交接箴言
-> *「目前的股票模組 (`portfolio_tool.py`) 已經打下極度堅實的 SQLite 基礎，各種輸出排版也都已經調整到最符合 User 習慣的完美格式（包括千分位、🔴綠🟢紅顏色反轉）。接下來的開發請專注於 AI 自動化與策略執行的串接，並隨時使用 `swift ~/.hermes/scripts/hermes_diagnostic.swift` 確認環境健康度。無駄無駄無駄！」*
+> *「目前的股票模組 (`portfolio_tool.py`) 已經打下極度堅實的 SQLite 基礎，各種輸出排版也都已經調整到最符合 User 習慣的完美格式（包括千分位、🔴綠🟢紅顏色反轉）。接下來的開發請專注於手動交易統計數據的視覺化美感優化，並隨時使用 `swift ~/.hermes/scripts/hermes_diagnostic.swift` 確認環境健康度。無駄無駄無駄！」*
