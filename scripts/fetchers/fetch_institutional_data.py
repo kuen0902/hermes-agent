@@ -5,6 +5,7 @@ import time
 import datetime
 import requests
 import sqlite3
+import duckdb
 import argparse
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -25,6 +26,7 @@ http_session = requests.Session()
 
 INST_FILE = os.path.join(DATA_DIR, "institutional_data.json")
 DB_PATH = os.path.join(DATA_DIR, "portfolio.db")
+DUCK_PATH = os.path.join(DATA_DIR, "portfolio.ddb")
 
 CORE_SYMBOLS = [
     "2330.TW", "2454.TW", "3037.TW", "2382.TW", "2327.TW",
@@ -33,29 +35,24 @@ CORE_SYMBOLS = [
     "1513.TW", "2049.TW", "2408.TW", "2313.TW", "6285.TW"
 ]
 
-def init_sqlite_db():
+def init_duck_db():
     os.makedirs(DATA_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = duckdb.connect(DUCK_PATH)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS institutional_data (
-            date TEXT,
-            code TEXT,
-            foreign_buy INTEGER,
-            trust_buy INTEGER,
-            dealer_buy INTEGER,
-            foreign_ratio REAL,
-            foreign_holding INTEGER,
-            issued_shares INTEGER,
+            date VARCHAR,
+            code VARCHAR,
+            foreign_buy BIGINT,
+            trust_buy BIGINT,
+            dealer_buy BIGINT,
+            foreign_ratio DOUBLE,
+            foreign_holding BIGINT,
+            issued_shares BIGINT,
             PRIMARY KEY (date, code)
         )
     ''')
-    # 動態增強向後相容
-    cursor.execute("PRAGMA table_info(institutional_data)")
-    cols = [col[1] for col in cursor.fetchall()]
-    for col, c_type in [("foreign_ratio", "REAL"), ("foreign_holding", "INTEGER"), ("issued_shares", "INTEGER")]:
-        if col not in cols:
-            cursor.execute(f"ALTER TABLE institutional_data ADD COLUMN {col} {c_type}")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_inst_code ON institutional_data(code)")
     conn.commit()
     return conn
 
@@ -209,7 +206,7 @@ def fetch_finmind_single(date_str, code):
         print(f" [FinMind Err {code}: {e}] ", end='')
     return 0.0, 0, 0
 
-def save_to_sqlite(conn, date_str, twse_data, tpex_data):
+def save_to_duckdb(conn, date_str, twse_data, tpex_data):
     formatted_date = f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:]}"
     cursor = conn.cursor()
     
@@ -275,17 +272,17 @@ def save_to_sqlite(conn, date_str, twse_data, tpex_data):
         ''', (formatted_date, code, val['foreign'], val['trust'], val['dealer'], f_ratio, f_hold, issued))
         
     conn.commit()
-    print(f" -> SQLite 寫入成功 (共 {len(twse_data) + len(tpex_data)} 檔)", end='')
+    print(f" -> DuckDB 寫入成功 (共 {len(twse_data) + len(tpex_data)} 檔)", end='')
 
 
 def main():
-    parser = argparse.ArgumentParser(description="抓取三大法人籌碼資料並同步至 SQLite 資料庫")
+    parser = argparse.ArgumentParser(description="抓取三大法人籌碼資料並同步至 DuckDB 資料庫")
     parser.add_argument("--days", type=int, default=1, help="回溯抓取的交易日天數")
     parser.add_argument("--force", action="store_true", help="強制重新抓取已存在之日期資料")
     args = parser.parse_args()
 
     print(f"啟動三大法人籌碼歷史爬蟲 (回溯天數: {args.days})...")
-    conn = init_sqlite_db()
+    conn = init_duck_db()
     db = load_inst_data()
     
     today = datetime.date.today()
@@ -301,7 +298,7 @@ def main():
         iso_date = target_date.isoformat()
         date_str = target_date.strftime("%Y%m%d")
         
-        # 檢查 SQLite 資料庫中是否已存在當日資料
+        # 檢查 DuckDB 資料庫中是否已存在當日資料
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM institutional_data WHERE date = ?", (iso_date,))
         db_exists = cursor.fetchone()[0] > 0
@@ -322,8 +319,8 @@ def main():
             # 假日或無交易日，也在 JSON 做一個標記避免重複抓取
             db[iso_date] = {}
         else:
-            # 寫入 SQLite
-            save_to_sqlite(conn, date_str, twse_data, tpex_data)
+            # 寫入 DuckDB
+            save_to_duckdb(conn, date_str, twse_data, tpex_data)
             
             # 同時寫入舊的 JSON 以保持 CORE_SYMBOLS 相容性
             db[iso_date] = {}
@@ -340,6 +337,32 @@ def main():
         
     conn.close()
     print(f"三大法人籌碼抓取完畢！本次共處理 {fetched_count} 個交易日。")
+
+    # ⚡ 盤中 Feather 數據批次歸檔至 DuckDB 主庫 (EOD Speed Layer Archive)
+    FEATHER_PATH = os.path.join(DATA_DIR, "intraday_today.feather")
+    if os.path.exists(FEATHER_PATH):
+        print("發現今日盤中即時行情 Feather 暫存檔，正在批次歸檔至 DuckDB...")
+        try:
+            import pandas as pd
+            df_temp = pd.read_feather(FEATHER_PATH)
+            duck_conn = duckdb.connect(DUCK_PATH)
+            duck_conn.execute("""
+                CREATE TABLE IF NOT EXISTS intraday_history (
+                    timestamp VARCHAR,
+                    code VARCHAR,
+                    name VARCHAR,
+                    price DOUBLE,
+                    volume BIGINT,
+                    pct_change DOUBLE
+                )
+            """)
+            duck_conn.execute("INSERT INTO intraday_history SELECT * FROM df_temp;")
+            duck_conn.commit()
+            duck_conn.close()
+            os.remove(FEATHER_PATH)
+            print("✓ [DuckDB] 今日盤中 Feather 行情已成功批量歸檔至 intraday_history，暫存檔已清理。")
+        except Exception as e:
+            print(f"⚠️ [DuckDB] 盤中 Feather 歸檔失敗: {e}")
 
 if __name__ == "__main__":
     main()

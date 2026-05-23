@@ -513,17 +513,20 @@ func checkMLAssets() {
     }
 }
 
-// MARK: - 11. SQLite Deep Schema Check
+// MARK: - 11. SQLite & DuckDB Hybrid Deep Schema Check
 func checkSQLiteDeepSchema() {
     let dbPath = "/Users/bookid/.hermes/data/portfolio.db"
     let fileManager = FileManager.default
     if !fileManager.fileExists(atPath: dbPath) {
+        logError("SQLiteDatabase", "ERROR (Database file not found at \(dbPath))")
+        hasCriticalError = true
         return
     }
     
-    let requiredTables = ["current_holdings", "watchlist", "pnl_history", "institutional_data"]
+    let requiredTables = ["current_holdings", "watchlist", "pnl_history"]
     var hasError = false
     
+    // 1. 驗證 SQLite 資料表與欄位
     for table in requiredTables {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
@@ -551,34 +554,18 @@ func checkSQLiteDeepSchema() {
                         logError("SQLiteSchema", "ERROR (Table 'watchlist' is missing crucial column 'group_name')")
                         hasError = true
                     }
-                } else if table == "institutional_data" {
-                    let colProcess = Process()
-                    colProcess.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
-                    colProcess.arguments = [dbPath, "PRAGMA table_info(institutional_data);"]
-                    let colPipe = Pipe()
-                    colProcess.standardOutput = colPipe
-                    try colProcess.run()
-                    colProcess.waitUntilExit()
-                    let colData = colPipe.fileHandleForReading.readDataToEndOfFile()
-                    let colOutput = String(data: colData, encoding: .utf8) ?? ""
-                    if colOutput.contains("foreign_ratio") && colOutput.contains("foreign_holding") {
-                        // OK
-                    } else {
-                        logError("SQLiteSchema", "ERROR (Table 'institutional_data' is missing crucial columns like 'foreign_ratio' or 'foreign_holding')")
-                        hasError = true
-                    }
                 }
             } else {
-                logError("SQLiteSchema", "ERROR (Required table '\(table)' is missing from database!)")
+                logError("SQLiteSchema", "ERROR (Required table '\(table)' is missing from SQLite database!)")
                 hasError = true
             }
         } catch {
-            logError("SQLiteSchema", "ERROR (Failed to verify table '\(table)': \(error.localizedDescription))")
+            logError("SQLiteSchema", "ERROR (Failed to verify SQLite table '\(table)': \(error.localizedDescription))")
             hasError = true
         }
     }
     
-    // Verify required indexes (Case 5 Optimization)
+    // 2. 驗證 SQLite 索引用於加速 PnL 與觀測清單分群
     let requiredIndexes = ["idx_watchlist_group", "idx_pnl_history_date"]
     for idx in requiredIndexes {
         let process = Process()
@@ -594,17 +581,45 @@ func checkSQLiteDeepSchema() {
             if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), output == "1" {
                 // OK
             } else {
-                logError("SQLiteSchema", "ERROR (Required index '\(idx)' is missing from database!)")
+                logError("SQLiteSchema", "ERROR (Required index '\(idx)' is missing from SQLite database!)")
                 hasError = true
             }
         } catch {
-            logError("SQLiteSchema", "ERROR (Failed to verify index '\(idx)': \(error.localizedDescription))")
+            logError("SQLiteSchema", "ERROR (Failed to verify SQLite index '\(idx)': \(error.localizedDescription))")
+            hasError = true
+        }
+    }
+    
+    // 3. 驗證 DuckDB 分析與機器學習儲存層健康度
+    let ddbPath = "/Users/bookid/.hermes/data/portfolio.ddb"
+    if !fileManager.fileExists(atPath: ddbPath) {
+        logError("DuckDBDatabase", "ERROR (DuckDB file not found at \(ddbPath))")
+        hasError = true
+    } else {
+        let pyProcess = Process()
+        pyProcess.executableURL = URL(fileURLWithPath: "/Users/bookid/.hermes/.venv/bin/python")
+        pyProcess.arguments = ["-c", "import duckdb; conn = duckdb.connect('\(ddbPath)'); tables = [r[0] for r in conn.execute('SHOW TABLES').fetchall()]; assert 'institutional_data' in tables; assert 'ml_valuation_history' in tables; print('OK')"]
+        let pyPipe = Pipe()
+        pyProcess.standardOutput = pyPipe
+        
+        do {
+            try pyProcess.run()
+            pyProcess.waitUntilExit()
+            let pyData = pyPipe.fileHandleForReading.readDataToEndOfFile()
+            if let pyOutput = String(data: pyData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), pyOutput == "OK" {
+                // OK
+            } else {
+                logError("DuckDBSchema", "ERROR (DuckDB schema is not aligned or analytical tables are missing)")
+                hasError = true
+            }
+        } catch {
+            logError("DuckDBSchema", "ERROR (Failed to run DuckDB schema audit: \(error.localizedDescription))")
             hasError = true
         }
     }
     
     if !hasError {
-        logSuccess("SQLite Schema Alignment: OK - Crucial tables, columns, and indexes verified")
+        logSuccess("SQLite & DuckDB Hybrid Schemas: OK - Crucial tables, columns, and indexes verified")
     }
 }
 

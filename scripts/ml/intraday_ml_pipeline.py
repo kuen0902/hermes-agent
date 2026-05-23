@@ -1,6 +1,7 @@
 #!/Users/bookid/.hermes/.venv/bin/python
 import os
 import sqlite3
+import duckdb
 import pandas as pd
 import numpy as np
 import json
@@ -139,12 +140,12 @@ def load_current_holdings():
         return {}
 
 def load_latest_institutional_data(iso_date, code_normalized):
-    """從 SQLite 讀取指定日期與代號的最新三大法人數據 (張數及外資持股比)"""
-    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    """從 DuckDB 讀取指定日期與代號的最新三大法人數據 (張數及外資持股比)"""
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     if not os.path.exists(db_path):
         return 0, 0, 0, 0.0
     try:
-        conn = sqlite3.connect(db_path)
+        conn = duckdb.connect(db_path)
         cursor = conn.cursor()
         # 匹配日期與正規化代號
         cursor.execute('''
@@ -158,16 +159,16 @@ def load_latest_institutional_data(iso_date, code_normalized):
             f_ratio = row[3] if row[3] is not None else 0.0
             return row[0], row[1], row[2], f_ratio
     except Exception as e:
-        print(f"讀取 SQLite 三大法人籌碼失敗 ({code_normalized}): {e}")
+        print(f"讀取 DuckDB 三大法人籌碼失敗 ({code_normalized}): {e}")
     return 0, 0, 0, 0.0
 
 def load_rolling_institutional_data(iso_date, code_normalized):
     """計算指定日期過去 5 日與 20 日的投信與自營商累計買超"""
-    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     if not os.path.exists(db_path):
         return 0, 0, 0, 0
     try:
-        conn = sqlite3.connect(db_path)
+        conn = duckdb.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             SELECT trust_buy, dealer_buy 
@@ -190,22 +191,22 @@ def load_rolling_institutional_data(iso_date, code_normalized):
 
 
 def init_ml_db():
-    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     try:
-        conn = sqlite3.connect(db_path)
+        conn = duckdb.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ml_valuation_history (
-                date TEXT,
-                code TEXT,
-                price REAL,
-                prob REAL,
-                pred_return REAL,
-                raw_val REAL,
-                calibrated_val REAL,
-                bias REAL,
-                error REAL,
-                actual_price REAL DEFAULT 0.0,
+                date VARCHAR,
+                code VARCHAR,
+                price DOUBLE,
+                prob DOUBLE,
+                pred_return DOUBLE,
+                raw_val DOUBLE,
+                calibrated_val DOUBLE,
+                bias DOUBLE,
+                error DOUBLE,
+                actual_price DOUBLE DEFAULT 0.0,
                 PRIMARY KEY (date, code)
             )
         ''')
@@ -216,9 +217,9 @@ def init_ml_db():
         print(f"初始化 ML 估值資料庫表失敗: {e}")
 
 def load_previous_kalman_record(code_norm, today_iso_str):
-    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     try:
-        conn = sqlite3.connect(db_path)
+        conn = duckdb.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             SELECT date, calibrated_val, bias 
@@ -235,13 +236,13 @@ def load_previous_kalman_record(code_norm, today_iso_str):
                 "bias": row[2]
             }
     except Exception as e:
-        print(f"讀取 SQLite 歷史卡爾曼狀態失敗 ({code_norm}): {e}")
+        print(f"讀取 DuckDB 歷史卡爾曼狀態失敗 ({code_norm}): {e}")
     return None
 
 def update_previous_kalman_error(code_norm, prev_date_str, actual_price, error_val):
-    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     try:
-        conn = sqlite3.connect(db_path)
+        conn = duckdb.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE ml_valuation_history 
@@ -251,12 +252,12 @@ def update_previous_kalman_error(code_norm, prev_date_str, actual_price, error_v
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"回寫 SQLite 卡爾曼誤差失敗 ({code_norm}): {e}")
+        print(f"回寫 DuckDB 卡爾曼誤差失敗 ({code_norm}): {e}")
 
 def save_current_kalman_record(date_str, code_norm, price, prob, pred_return, raw_val, calibrated_val, bias, error):
-    db_path = os.path.join(DATA_DIR, "portfolio.db")
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     try:
-        conn = sqlite3.connect(db_path)
+        conn = duckdb.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO ml_valuation_history (date, code, price, prob, pred_return, raw_val, calibrated_val, bias, error, actual_price)
@@ -273,7 +274,7 @@ def save_current_kalman_record(date_str, code_norm, price, prob, pred_return, ra
         conn.commit()
         conn.close()
     except Exception as e:
-        print(f"寫入 SQLite 今日卡爾曼紀錄失敗 ({code_norm}): {e}")
+        print(f"寫入 DuckDB 今日卡爾曼紀錄失敗 ({code_norm}): {e}")
 
 def run_intraday_pipeline(silent=False):
     print("--- 啟動持股專屬 ML 雙指標（方向與估值）盤後預判系統 ---")

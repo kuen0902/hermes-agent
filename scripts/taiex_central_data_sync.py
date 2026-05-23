@@ -170,6 +170,35 @@ def log_to_csv(data: dict[str, dict[str, Any]], codes_mapping: dict[str, str]) -
         for code, info in data.items():
             name = codes_mapping.get(code, "Unknown")
             f.write(f"{now},{code},{name},{info['price']},{info['volume']},{info['pct']:.4f}\n")
+            
+    # ⚡ 盤中 Feather 高速暫存層實作 (Case 6 優化)
+    FEATHER_PATH = HISTORY_LOG_FILE.parent / "intraday_today.feather"
+    new_records = []
+    for code, info in data.items():
+        name = codes_mapping.get(code, "Unknown")
+        new_records.append({
+            "timestamp": now,
+            "code": code,
+            "name": name,
+            "price": float(info['price']) if info['price'] is not None else 0.0,
+            "volume": int(info['volume']) if info['volume'] is not None else 0,
+            "pct_change": float(info['pct']) if info['pct'] is not None else 0.0
+        })
+    if new_records:
+        try:
+            new_df = pd.DataFrame(new_records)
+            if FEATHER_PATH.exists():
+                try:
+                    old_df = pd.read_feather(FEATHER_PATH)
+                    df = pd.concat([old_df, new_df], ignore_index=True)
+                except Exception:
+                    df = new_df
+            else:
+                df = new_df
+            df.to_feather(FEATHER_PATH)
+            print("⚡ [Feather Speed Layer] 盤中即時行情成功記錄。")
+        except Exception as e:
+            print(f"⚠️ Feather 寫入失敗: {e}")
 
 def fetch_twse_data(codes: list[str]) -> dict[str, dict[str, Any]]:
     """Fetches real-time data from TWSE/OTC API."""
