@@ -435,7 +435,7 @@ def run_intraday_pipeline(silent=False):
         
         # RSI(14)
         if len(close_series) > 14:
-            rsi_series = ta.rsi(close_series, length=14)
+            rsi_series = ta.rsi(close_series, length=14)  # type: ignore
             if rsi_series is not None and not rsi_series.empty:
                 rsi_val = rsi_series.iloc[-1]
                 if pd.isna(rsi_val): rsi_val = 50.0
@@ -446,7 +446,7 @@ def run_intraday_pipeline(silent=False):
             
         # MACD(12, 26, 9)
         if len(close_series) > 26:
-            macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)
+            macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)  # type: ignore
             if macd_df is not None and not macd_df.empty:
                 macd_line = macd_df.iloc[-1, 0]
                 macd_hist = macd_df.iloc[-1, 1]
