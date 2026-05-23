@@ -112,7 +112,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-05-23T06:00:00+08:00",
+      "next_run_at": "2026-05-24T06:00:00+08:00",
       "last_run_at": "2026-05-22T06:05:50.887205+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -279,7 +279,7 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 246
+        "completed": 247
       },
       "enabled": true,
       "state": "scheduled",
@@ -287,9 +287,9 @@
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
       "next_run_at": "2026-05-23T15:00:00+08:00",
-      "last_run_at": "2026-05-23T05:01:11.041452+08:00",
-      "last_status": "error",
-      "last_error": "RuntimeError: [Errno 24] Too many open files",
+      "last_run_at": "2026-05-23T14:39:36.890779+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -331,7 +331,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-05-23T08:00:00+08:00",
+      "next_run_at": "2026-05-24T08:00:00+08:00",
       "last_run_at": "2026-05-22T08:01:02.004633+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -542,7 +542,7 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 15
+        "completed": 16
       },
       "enabled": true,
       "state": "scheduled",
@@ -550,9 +550,9 @@
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
       "next_run_at": "2026-05-24T05:00:00+08:00",
-      "last_run_at": "2026-05-23T05:00:55.433944+08:00",
-      "last_status": "error",
-      "last_error": "Script execution failed: [Errno 24] Too many open files",
+      "last_run_at": "2026-05-23T14:42:15.871214+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -863,17 +863,17 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 1034
+        "completed": 1035
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-23T05:05:00+08:00",
-      "last_run_at": "2026-05-23T05:00:55.461740+08:00",
-      "last_status": "error",
-      "last_error": "[Errno 24] Too many open files: '/Users/bookid/.hermes/cron/output/9d128cdf-7d6/.output_uijq0fl5.tmp'",
+      "next_run_at": "2026-05-23T15:00:00+08:00",
+      "last_run_at": "2026-05-23T14:38:13.917781+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -912,7 +912,7 @@
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-18T09:45:00+08:00",
-      "next_run_at": "2026-05-23T08:40:00+08:00",
+      "next_run_at": "2026-05-24T08:40:00+08:00",
       "last_run_at": "2026-05-22T08:40:13.163337+08:00",
       "last_status": "ok",
       "last_error": null,
@@ -1012,5 +1012,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-23T05:01:11.041966+08:00"
+  "updated_at": "2026-05-23T14:42:15.871394+08:00"
 }

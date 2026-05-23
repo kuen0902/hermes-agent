@@ -7,6 +7,16 @@ import ssl
 import pytz
 from datetime import datetime
 
+# 📌 系統優化：提高當前進程最大可開啟檔案數 (File Descriptor Limit)，避免 Too many open files 錯誤
+try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target_limit = min(hard, 245760) if hard != resource.RLIM_INFINITY else 245760
+    if soft < target_limit:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (target_limit, hard))
+except Exception:
+    pass
+
 # Configuration
 BOT_TOKEN = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
 # TARGET_CHATS: [Group only]
@@ -28,7 +38,8 @@ def send_telegram(message, chat_id):
     data = urllib.parse.urlencode(payload).encode("utf-8")
     try:
         req = urllib.request.Request(url, data=data)
-        urllib.request.urlopen(req, context=ctx, timeout=10)
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+            pass
         return True
     except Exception as e:
         print(f"Telegram Error: {e}")

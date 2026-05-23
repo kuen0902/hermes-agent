@@ -6,6 +6,20 @@ import pytz
 import os
 import json
 
+# 📌 系統優化：提高當前進程最大可開啟檔案數 (File Descriptor Limit)，避免 Too many open files 錯誤
+try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target_limit = min(hard, 245760) if hard != resource.RLIM_INFINITY else 245760
+    if soft < target_limit:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (target_limit, hard))
+except Exception:
+    pass
+
+# 📌 全域 Session 重用，維持 Keep-Alive 以節省 TCP Socket 開銷
+http_session = requests.Session()
+
+
 def get_bridge_data(key):
     try:
         bridge_path = "/Users/bookid/.hermes/data/market_prices_bridge.json"
@@ -35,7 +49,7 @@ def fetch_yahoo_minute_data(sym):
     for attempt in range(max_retries):
         headers = {'User-Agent': random.choice(user_agents)}
         try:
-            r = requests.get(url, params=params, headers=headers, timeout=10)
+            r = http_session.get(url, params=params, headers=headers, timeout=10)
             if r.status_code == 200:
                 data = r.json()
                 result = data["chart"]["result"][0]

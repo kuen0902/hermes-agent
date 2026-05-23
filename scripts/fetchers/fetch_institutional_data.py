@@ -9,7 +9,20 @@ import argparse
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# 📌 系統優化：提高當前進程最大可開啟檔案數 (File Descriptor Limit)，避免 Too many open files 錯誤
+try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target_limit = min(hard, 245760) if hard != resource.RLIM_INFINITY else 245760
+    if soft < target_limit:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (target_limit, hard))
+except Exception:
+    pass
+
 DATA_DIR = os.path.expanduser("~/.hermes/data")
+# 📌 全域 Session 重用，維持 Keep-Alive 以節省 TCP Socket 開銷
+http_session = requests.Session()
+
 INST_FILE = os.path.join(DATA_DIR, "institutional_data.json")
 DB_PATH = os.path.join(DATA_DIR, "portfolio.db")
 
@@ -109,7 +122,7 @@ def fetch_twse(date_str):
     url = f"https://www.twse.com.tw/fund/T86?response=json&date={date_str}&selectType=ALL"
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     try:
-        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r = http_session.get(url, headers=headers, timeout=10, verify=False)
         data = r.json()
         if data.get('stat') != 'OK': return {}
         
@@ -141,7 +154,7 @@ def fetch_tpex(date_str):
     url = f"https://www.tpex.org.tw/web/stock/3insti/daily_trade/3itrade_hedge_result.php?l=zh-tw&se=EW&t=D&d={roc_date}"
     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
     try:
-        r = requests.get(url, headers=headers, timeout=10, verify=False)
+        r = http_session.get(url, headers=headers, timeout=10, verify=False)
         data = r.json()
         
         rows = []
@@ -182,7 +195,7 @@ def fetch_finmind_single(date_str, code):
     }
     try:
         time.sleep(0.1) # 稍作延遲防鎖 IP / 頻率限制
-        r = requests.get(url, params=parameter, timeout=8, verify=False)
+        r = http_session.get(url, params=parameter, timeout=8, verify=False)
         if r.status_code == 200:
             data = r.json().get('data', [])
             if data:

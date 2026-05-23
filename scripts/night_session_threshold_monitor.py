@@ -10,6 +10,22 @@ import pytz
 import requests
 import random
 import time
+from typing import Dict, Any
+
+
+# 📌 系統優化：提高當前進程最大可開啟檔案數 (File Descriptor Limit)，避免 Too many open files 錯誤
+try:
+    import resource
+    soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+    target_limit = min(hard, 245760) if hard != resource.RLIM_INFINITY else 245760
+    if soft < target_limit:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (target_limit, hard))
+except Exception:
+    pass
+
+# 📌 全域 Session 重用，維持 Keep-Alive 以節省 TCP Socket 開銷
+http_session = requests.Session()
+
 
 def fetch_yahoo_minute_data(sym):
     url = f"https://query1.finance.yahoo.com/v8/finance/chart/{sym}"
@@ -30,7 +46,7 @@ def fetch_yahoo_minute_data(sym):
     for attempt in range(max_retries):
         headers = {'User-Agent': random.choice(user_agents)}
         try:
-            r = requests.get(url, params=params, headers=headers, timeout=10)
+            r = http_session.get(url, params=params, headers=headers, timeout=10)
             if r.status_code == 200:
                 data = r.json()
                 result = data["chart"]["result"][0]
@@ -83,13 +99,14 @@ def send_telegram(message, chat_id):
     data = urllib.parse.urlencode(payload).encode("utf-8")
     try:
         req = urllib.request.Request(url, data=data)
-        urllib.request.urlopen(req, context=ctx, timeout=10)
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
+            pass
         return True
     except Exception as e:
         print(f"Telegram Error: {e}")
         return False
 
-def load_state():
+def load_state() -> Dict[str, Any]:
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, 'r') as f:
@@ -142,7 +159,7 @@ def main():
         return
 
     session_key = get_current_session_key()
-    state = load_state()
+    state: Dict[str, Any] = load_state()
     
     # Reset state if it's a new session
     if state.get("session") != session_key:
