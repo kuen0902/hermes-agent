@@ -214,14 +214,37 @@ def save_to_sqlite(conn, date_str, twse_data, tpex_data):
     cursor = conn.cursor()
     
     target_codes = load_target_codes()
-    print(f" (正在同步外資持股比率，目標限制商品數: {len(target_codes)})...", end='', flush=True)
+    print(f" (正在併發同步外資持股比率，目標限制商品數: {len(target_codes)})...", end='', flush=True)
     
-    # Insert TWSE
+    # 1. 篩選出需要向 FinMind 查詢的股票代號 (在市場資料中且列在目標清單內)
+    codes_to_fetch = [c for c in set(twse_data.keys()) | set(tpex_data.keys()) if c in target_codes]
+    
+    # 2. 併發抓取 FinMind 資料
+    import concurrent.futures
+    finmind_cache = {}
+    
+    def fetch_task(code, delay):
+        if delay > 0:
+            time.sleep(delay)
+        return code, fetch_finmind_single(date_str, code)
+        
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = []
+        for idx, code in enumerate(codes_to_fetch):
+            stagger = idx * 0.05
+            f = executor.submit(fetch_task, code, stagger)
+            futures.append(f)
+            
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                code, (f_ratio, f_hold, issued) = future.result()
+                finmind_cache[code] = (f_ratio, f_hold, issued)
+            except Exception as e:
+                print(f" [Error fetching {code}: {e}] ", end='')
+                
+    # 3. 寫入 TWSE 數據
     for code, val in twse_data.items():
-        if code in target_codes:
-            f_ratio, f_hold, issued = fetch_finmind_single(date_str, code)
-        else:
-            f_ratio, f_hold, issued = 0.0, 0, 0
+        f_ratio, f_hold, issued = finmind_cache.get(code, (0.0, 0, 0))
             
         cursor.execute('''
             INSERT INTO institutional_data (date, code, foreign_buy, trust_buy, dealer_buy, foreign_ratio, foreign_holding, issued_shares)
@@ -235,12 +258,9 @@ def save_to_sqlite(conn, date_str, twse_data, tpex_data):
                 issued_shares = excluded.issued_shares
         ''', (formatted_date, code, val['foreign'], val['trust'], val['dealer'], f_ratio, f_hold, issued))
         
-    # Insert TPEx
+    # 4. 寫入 TPEx 數據
     for code, val in tpex_data.items():
-        if code in target_codes:
-            f_ratio, f_hold, issued = fetch_finmind_single(date_str, code)
-        else:
-            f_ratio, f_hold, issued = 0.0, 0, 0
+        f_ratio, f_hold, issued = finmind_cache.get(code, (0.0, 0, 0))
             
         cursor.execute('''
             INSERT INTO institutional_data (date, code, foreign_buy, trust_buy, dealer_buy, foreign_ratio, foreign_holding, issued_shares)
@@ -256,6 +276,7 @@ def save_to_sqlite(conn, date_str, twse_data, tpex_data):
         
     conn.commit()
     print(f" -> SQLite 寫入成功 (共 {len(twse_data) + len(tpex_data)} 檔)", end='')
+
 
 def main():
     parser = argparse.ArgumentParser(description="抓取三大法人籌碼資料並同步至 SQLite 資料庫")
