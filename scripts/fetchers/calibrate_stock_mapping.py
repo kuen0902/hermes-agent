@@ -6,6 +6,9 @@ import os
 import re
 import json
 import requests
+import sqlite3
+import random
+import time
 from bs4 import BeautifulSoup
 from datetime import datetime
 
@@ -23,13 +26,37 @@ def fetch_all_active_stocks():
     valid_categories = {"股票", "特別股", "創新板", "ETF", "臺灣存託憑證(TDR)", "受益證券-不動產投資信託"}
     stocks = {}
     
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0"
+    ]
+    
     for mode in [2, 4]:
         url = f"https://isin.twse.com.tw/isin/C_public.jsp?strMode={mode}"
+        max_retries = 3
+        resp_text = ""
+        
+        for attempt in range(max_retries):
+            try:
+                headers = {'User-Agent': random.choice(user_agents)}
+                print(f"Fetching active stocks from: {url} (Attempt {attempt+1})")
+                resp = requests.get(url, headers=headers, timeout=20)
+                if resp.status_code == 200:
+                    resp.encoding = 'cp950'
+                    resp_text = resp.text
+                    break
+            except Exception as e:
+                print(f"Attempt {attempt+1} failed: {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2.0)
+                    
+        if not resp_text:
+            print(f"❌ 無法獲取 active stocks (mode={mode})，已達最大重試次數。")
+            continue
+            
         try:
-            print(f"Fetching active stocks from: {url}")
-            resp = requests.get(url, timeout=20)
-            resp.encoding = 'cp950'
-            soup = BeautifulSoup(resp.text, 'html.parser')
+            soup = BeautifulSoup(resp_text, 'html.parser')
             rows = soup.find_all('tr')
             
             current_category = None
@@ -49,7 +76,7 @@ def fetch_all_active_stocks():
                             if 4 <= len(code) <= 6:
                                 stocks[code] = name
         except Exception as e:
-            print(f"Error fetching active stocks (mode={mode}): {e}")
+            print(f"Error parsing active stocks (mode={mode}): {e}")
             
     return stocks
 
@@ -111,6 +138,30 @@ def send_telegram_alert(message):
     else:
         print("Telegram token or channel ID not found in .env. Skipping Telegram alert.")
 
+def load_portfolio_and_watchlist_codes():
+    """載入持股與自選名單代碼，用於高優先級比對"""
+    db_path = "/Users/bookid/.hermes/data/portfolio.db"
+    core_codes = set()
+    if not os.path.exists(db_path):
+        return core_codes
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        # 讀取持股
+        cursor.execute("SELECT code FROM current_holdings")
+        for row in cursor.fetchall():
+            code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+            core_codes.add(code)
+        # 讀取自選名單
+        cursor.execute("SELECT code FROM watchlist")
+        for row in cursor.fetchall():
+            code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+            core_codes.add(code)
+        conn.close()
+    except Exception as e:
+        print(f"無法讀取資料庫以提取核心股號: {e}")
+    return core_codes
+
 def calibrate_and_log():
     # Make sure directory exists
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -122,6 +173,10 @@ def calibrate_and_log():
         return
         
     print(f"Successfully fetched {len(today_map)} active stocks today.")
+    
+    # 載入用戶個人持股與自選名單代碼
+    core_user_codes = load_portfolio_and_watchlist_codes()
+    print(f"載入用戶核心關聯商品（持股與自選）：{len(core_user_codes)} 檔。")
     
     # 2. Load yesterday's map for comparison
     yesterday_map = load_yesterday_mapping()
@@ -135,13 +190,15 @@ def calibrate_and_log():
         if code in yesterday_map:
             prev_name = yesterday_map[code]
             if name != prev_name:
+                is_core = code in core_user_codes
+                prefix = "🔥 [CRITICAL-持股/自選更名] " if is_core else ""
                 mismatches.append({
                     "code": code,
                     "prev_name": prev_name,
                     "curr_name": name,
                     "reason": "Name mismatch (mismatch)"
                 })
-                errors.append(f"股號 {code} 股名不一致: '{prev_name}' -> '{name}'")
+                errors.append(f"{prefix}股號 {code} 股名不一致: '{prev_name}' -> '{name}'")
                 
     # Check for disappeared stock codes (Error Category 2)
     disappeared = []
@@ -149,12 +206,14 @@ def calibrate_and_log():
     if len(today_map) >= len(yesterday_map) * 0.9:
         for code, name in yesterday_map.items():
             if code not in today_map:
+                is_core = code in core_user_codes
+                prefix = "🚨 [CRITICAL-持股/自選下市或停牌] " if is_core else ""
                 disappeared.append({
                     "code": code,
                     "name": name,
                     "reason": "Disappeared from active list"
                 })
-                errors.append(f"股號 {code} ({name}) 從在線名單中消失")
+                errors.append(f"{prefix}股號 {code} ({name}) 從在線名單中消失")
     else:
         # If total count dropped by more than 10%, it's a Fetch Drop Error
         errors.append(f"今日抓取股票數量異常暴跌！昨日 {len(yesterday_map)} 檔 -> 今日 {len(today_map)} 檔。")
