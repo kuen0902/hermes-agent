@@ -47,6 +47,11 @@ def init_db():
             closed_at TEXT
         )
     ''')
+    
+    # 建立索引以加速查詢與排序 (Case 5 優化)
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_watchlist_group ON watchlist (group_name)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_pnl_history_date ON pnl_history (closed_at)')
+    
     conn.commit()
     return conn
 

@@ -578,8 +578,33 @@ func checkSQLiteDeepSchema() {
         }
     }
     
+    // Verify required indexes (Case 5 Optimization)
+    let requiredIndexes = ["idx_watchlist_group", "idx_pnl_history_date"]
+    for idx in requiredIndexes {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        process.arguments = [dbPath, "SELECT count(*) FROM sqlite_master WHERE type='index' AND name='\(idx)';"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), output == "1" {
+                // OK
+            } else {
+                logError("SQLiteSchema", "ERROR (Required index '\(idx)' is missing from database!)")
+                hasError = true
+            }
+        } catch {
+            logError("SQLiteSchema", "ERROR (Failed to verify index '\(idx)': \(error.localizedDescription))")
+            hasError = true
+        }
+    }
+    
     if !hasError {
-        logSuccess("SQLite Schema Alignment: OK - Crucial tables & columns verified")
+        logSuccess("SQLite Schema Alignment: OK - Crucial tables, columns, and indexes verified")
     }
 }
 
