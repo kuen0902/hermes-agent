@@ -68,22 +68,28 @@ def get_personal_tickers() -> PortfolioDict:
         if NUMBERS_PATH.exists():
             doc = Document(str(NUMBERS_PATH))
             sheets = doc.sheets
-            if "Portfolio" in sheets:
-                table = sheets["Portfolio"].tables[0]
+            portfolio_sheet = None
+            for s in sheets:
+                if s.name == "Portfolio":
+                    portfolio_sheet = s
+                    break
+            
+            if portfolio_sheet is not None:
+                table = portfolio_sheet.tables[0]
                 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
                 # 遍歷所有列 (跳過第一列 Header)
-                for row in list(table.rows)[1:]:
-                    code_cell = row[0].value
+                for row in table.rows()[1:]:
+                    code_cell = getattr(row[0], "value", row[0])
                     if code_cell is not None:
-                        code = str(code_cell).strip()
+                        code = str(code_cell).strip().strip("'")
                         if code.endswith(".0"):
                             code = code[:-2]  # 去除浮點數點零後綴 '2330.0' -> '2330'
                             
-                        raw_name = str(row[1].value or "")
+                        raw_name = str(getattr(row[1], "value", row[1]) or "")
                         clean_name = ansi_escape.sub('', raw_name)
                         
-                        qty_val = row[2].value
-                        avg_val = row[4].value  # Column E (0-indexed column 4)
+                        qty_val: Any = getattr(row[2], "value", row[2])
+                        avg_val: Any = getattr(row[3], "value", row[3])  # Column D (0-indexed column 3) is Price (Average Buy Price)
                         
                         portfolio[code] = {
                             "name": clean_name,
@@ -119,7 +125,7 @@ def get_personal_tickers() -> PortfolioDict:
                         try
                             set nameVal to value of cell 2 of row i
                             set qtyVal to value of cell 3 of row i
-                            set avgVal to value of cell 5 of row i
+                            set avgVal to value of cell 4 of row i
                             if nameVal is missing value then set nameVal to ""
                             if qtyVal is missing value then set qtyVal to 0
                             if avgVal is missing value then set avgVal to 0
