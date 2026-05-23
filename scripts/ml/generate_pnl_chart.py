@@ -99,27 +99,51 @@ def generate_chart():
     # 標註每一個有交易的點，排除起點
     annotated_indices = set(range(1, len(daily_df)))
     
-    # 🧠 垂直極簡防交叉演算法 (Vertical Non-Crossing Dispersion Algorithm)
-    # 為了徹底避免引導指標線交叉，我們將所有引導線設為 100% 垂直 (x_offset = 0)。
-    # 透過雙側（TOP/BOTTOM）與雙重高度（30/65 與 -35/-70）的四階交替排版，
-    # 在 100% 避免標線交叉的同時，也完美杜絕了相鄰標籤之間的水平與垂直重疊。
+    # 🧠 垂直防重疊與陡峭防重合演算法 (Vertical Non-Crossing & Slope-Aware Dispersion Algorithm)
+    # 1. 為了徹底避免引導指標線交叉，我們將所有引導線設為 100% 垂直 (x_offset = 0)。
+    # 2. 透過雙側（TOP/BOTTOM）與雙重高度（30/65 與 -35/-70）的四階交替排版，避免標籤重疊。
+    # 3. ⚡ 陡峭度智慧過載判定 (Steepness Override Pass)：
+    #    當相鄰交易日的累計損益出現劇烈跳動 (如單日跳動 > 150,000 元且間隔 <= 2 天) 時，
+    #    強制將低點標籤朝下 (BOTTOM)、高點標籤朝上 (TOP) 指引，完美避開引導指標線與極陡峭主線重合的問題！
     
+    y_offsets = {}
+    for i in range(len(daily_df)):
+        rem = i % 4
+        if rem == 0:
+            y_offsets[i] = 30
+        elif rem == 1:
+            y_offsets[i] = -35
+        elif rem == 2:
+            y_offsets[i] = 65
+        else: # rem == 3
+            y_offsets[i] = -70
+            
+    for i in range(1, len(daily_df) - 1):
+        p1 = daily_df['cum_pnl'].iloc[i]
+        p2 = daily_df['cum_pnl'].iloc[i+1]
+        d1 = daily_df['date'].iloc[i]
+        d2 = daily_df['date'].iloc[i+1]
+        days = (d2 - d1).days
+        
+        if days <= 2:
+            if p2 - p1 > 150000: # 陡峭上升
+                if y_offsets[i] > 0:
+                    y_offsets[i] = -y_offsets[i]
+                if y_offsets[i+1] < 0:
+                    y_offsets[i+1] = -y_offsets[i+1]
+            elif p1 - p2 > 150000: # 陡峭下降
+                if y_offsets[i] < 0:
+                    y_offsets[i] = -y_offsets[i]
+                if y_offsets[i+1] > 0:
+                    y_offsets[i+1] = -y_offsets[i+1]
+
     # 標註關鍵節點的日期與累計損益總額
     for idx, (date, pnl) in enumerate(zip(daily_df['date'], daily_df['cum_pnl'])):
         if idx not in annotated_indices:
             continue
             
-        # 依循環動態分配 Y 偏置，X 偏置固定為 0，確保指標引導線為垂直且絕不交叉
         x_offset = 0
-        rem = idx % 4
-        if rem == 0:
-            y_offset = 30
-        elif rem == 1:
-            y_offset = -35
-        elif rem == 2:
-            y_offset = 65
-        else: # rem == 3
-            y_offset = -70
+        y_offset = y_offsets[idx]
         
         # 🧠 判斷該交易日是「損」還是「益」：與前一個交易日相比
         is_loss = False
