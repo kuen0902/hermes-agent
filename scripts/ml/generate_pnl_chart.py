@@ -7,6 +7,7 @@ import matplotlib
 matplotlib.use('Agg')  # 無 GUI 環境執行
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import matplotlib.ticker
 from datetime import datetime
 
 DATA_DIR = os.path.expanduser("~/.hermes/data")
