@@ -384,6 +384,205 @@ func checkCronJobs() {
     }
 }
 
+// MARK: - 8. Numbers Symbolic Link Check
+func checkNumbersSymlink() {
+    let linkPath = "/Users/bookid/Documents/StockTracking_Daily.numbers"
+    let fileManager = FileManager.default
+    
+    do {
+        let attrs = try fileManager.attributesOfItem(atPath: linkPath)
+        guard let type = attrs[.type] as? FileAttributeType else {
+            logError("NumbersSymlink", "ERROR (Unable to determine file type for \(linkPath))")
+            return
+        }
+        
+        if type == .typeSymbolicLink {
+            let destination = try fileManager.destinationOfSymbolicLink(atPath: linkPath)
+            if fileManager.fileExists(atPath: destination) {
+                let destAttrs = try fileManager.attributesOfItem(atPath: destination)
+                let size = destAttrs[.size] as? Int64 ?? 0
+                if size > 0 {
+                    logSuccess("Numbers Symlink: OK (Daily.numbers -> \(URL(fileURLWithPath: destination).lastPathComponent), Size: \(size) bytes)")
+                } else {
+                    logError("NumbersSymlink", "ERROR (Target file \(destination) is empty!)")
+                }
+            } else {
+                logError("NumbersSymlink", "ERROR (Symbolic link points to non-existent file: \(destination))")
+            }
+        } else {
+            let size = attrs[.size] as? Int64 ?? 0
+            if size > 0 {
+                logSuccess("Numbers Symlink: OK (Regular file exists, Size: \(size) bytes)")
+            } else {
+                logError("NumbersSymlink", "ERROR (File is empty!)")
+            }
+        }
+    } catch {
+        logError("NumbersSymlink", "ERROR (File or Symlink not found at \(linkPath): \(error.localizedDescription))")
+    }
+}
+
+// MARK: - 9. Central Stock Data Cache Check
+func checkCentralCacheData() {
+    let cachePath = "/Users/bookid/.hermes/data/central_stock_data.json"
+    let fileURL = URL(fileURLWithPath: cachePath)
+    let fileManager = FileManager.default
+    
+    if !fileManager.fileExists(atPath: cachePath) {
+        logError("CentralCacheData", "ERROR (Cache file not found at \(cachePath))")
+        return
+    }
+    
+    do {
+        let data = try Data(contentsOf: fileURL)
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            logError("CentralCacheData", "ERROR (Failed to parse JSON structure)")
+            return
+        }
+        
+        let hasPersonal = json["personal_data"] != nil
+        let hasData = json["data"] != nil
+        let metadata = json["metadata"] as? [String: Any]
+        
+        if !hasPersonal || !hasData || metadata == nil {
+            logError("CentralCacheData", "ERROR (Missing required JSON nodes like personal_data, data, or metadata)")
+            return
+        }
+        
+        if let lastSyncStr = metadata?["last_sync"] as? String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS"
+            if let lastSyncDate = formatter.date(from: lastSyncStr) {
+                let interval = Date().timeIntervalSince(lastSyncDate)
+                let hours = interval / 3600.0
+                
+                if hours < 24.0 {
+                    logSuccess(String(format: "Central Cache Data: OK (Parsed successfully, Freshness: %.1f hours ago)", hours))
+                } else {
+                    logWarning(String(format: "Central Cache Data: STALE (Stale cache detected! Last sync was %.1f hours ago)", hours))
+                }
+            } else {
+                logWarning("Central Cache Data: WARNING (Unable to parse last_sync timestamp format: \(lastSyncStr))")
+            }
+        } else {
+            logError("CentralCacheData", "ERROR (Missing last_sync timestamp in metadata)")
+        }
+    } catch {
+        logError("CentralCacheData", "ERROR (Failed to read or parse JSON: \(error.localizedDescription))")
+    }
+}
+
+// MARK: - 10. Machine Learning Assets Check
+func checkMLAssets() {
+    let models = [
+        "/Users/bookid/.hermes/models/intraday_model.pkl",
+        "/Users/bookid/.hermes/models/intraday_model_reg.pkl"
+    ]
+    let logPath = "/Users/bookid/.hermes/data/intraday_data_log.csv"
+    let fileManager = FileManager.default
+    var ok = true
+    
+    for model in models {
+        if !fileManager.fileExists(atPath: model) {
+            logError("MLAssets", "ERROR (Model file not found: \(URL(fileURLWithPath: model).lastPathComponent))")
+            ok = false
+        }
+    }
+    
+    if !fileManager.fileExists(atPath: logPath) {
+        logError("MLAssets", "ERROR (Training log CSV not found at \(logPath))")
+        ok = false
+    } else {
+        do {
+            let csvContent = try String(contentsOfFile: logPath, encoding: .utf8)
+            let lines = csvContent.components(separatedBy: "\n")
+            if let header = lines.first?.trimmingCharacters(in: .whitespacesAndNewlines), header.contains("timestamp") && header.contains("code") {
+                // Header looks correct
+            } else {
+                logError("MLAssets", "ERROR (Training log CSV header is invalid or corrupted)")
+                ok = false
+            }
+        } catch {
+            logError("MLAssets", "ERROR (Failed to read training log CSV: \(error.localizedDescription))")
+            ok = false
+        }
+    }
+    
+    if ok {
+        logSuccess("ML Engine Assets: OK - Classifier, Regressor, and Training Log verified")
+    }
+}
+
+// MARK: - 11. SQLite Deep Schema Check
+func checkSQLiteDeepSchema() {
+    let dbPath = "/Users/bookid/.hermes/data/portfolio.db"
+    let fileManager = FileManager.default
+    if !fileManager.fileExists(atPath: dbPath) {
+        return
+    }
+    
+    let requiredTables = ["current_holdings", "watchlist", "pnl_history", "institutional_data"]
+    var hasError = false
+    
+    for table in requiredTables {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+        process.arguments = [dbPath, "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='\(table)';"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), output == "1" {
+                if table == "watchlist" {
+                    let colProcess = Process()
+                    colProcess.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+                    colProcess.arguments = [dbPath, "PRAGMA table_info(watchlist);"]
+                    let colPipe = Pipe()
+                    colProcess.standardOutput = colPipe
+                    try colProcess.run()
+                    colProcess.waitUntilExit()
+                    let colData = colPipe.fileHandleForReading.readDataToEndOfFile()
+                    if let colOutput = String(data: colData, encoding: .utf8), colOutput.contains("group_name") {
+                        // OK
+                    } else {
+                        logError("SQLiteSchema", "ERROR (Table 'watchlist' is missing crucial column 'group_name')")
+                        hasError = true
+                    }
+                } else if table == "institutional_data" {
+                    let colProcess = Process()
+                    colProcess.executableURL = URL(fileURLWithPath: "/usr/bin/sqlite3")
+                    colProcess.arguments = [dbPath, "PRAGMA table_info(institutional_data);"]
+                    let colPipe = Pipe()
+                    colProcess.standardOutput = colPipe
+                    try colProcess.run()
+                    colProcess.waitUntilExit()
+                    let colData = colPipe.fileHandleForReading.readDataToEndOfFile()
+                    let colOutput = String(data: colData, encoding: .utf8) ?? ""
+                    if colOutput.contains("foreign_ratio") && colOutput.contains("foreign_holding") {
+                        // OK
+                    } else {
+                        logError("SQLiteSchema", "ERROR (Table 'institutional_data' is missing crucial columns like 'foreign_ratio' or 'foreign_holding')")
+                        hasError = true
+                    }
+                }
+            } else {
+                logError("SQLiteSchema", "ERROR (Required table '\(table)' is missing from database!)")
+                hasError = true
+            }
+        } catch {
+            logError("SQLiteSchema", "ERROR (Failed to verify table '\(table)': \(error.localizedDescription))")
+            hasError = true
+        }
+    }
+    
+    if !hasError {
+        logSuccess("SQLite Schema Alignment: OK - Crucial tables & columns verified")
+    }
+}
+
 // MARK: - Main Execution Flow
 print("\(ANSIColor.bold.rawValue)\(ANSIColor.cyan.rawValue)=== Hermes System Diagnostics ===\(ANSIColor.reset.rawValue)")
 let startTime = Date()
@@ -401,6 +600,11 @@ checkSQLiteDatabase()
 checkDiskSpace()
 checkEnvVariables()
 checkCronJobs()
+checkNumbersSymlink()
+checkCentralCacheData()
+checkMLAssets()
+checkSQLiteDeepSchema()
+
 
 let duration = Date().timeIntervalSince(startTime)
 print(String(format: "\n\(ANSIColor.cyan.rawValue)Diagnostics completed in %.2fs.\(ANSIColor.reset.rawValue)", duration))
