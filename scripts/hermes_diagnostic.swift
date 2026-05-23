@@ -623,6 +623,68 @@ func checkSQLiteDeepSchema() {
     }
 }
 
+// MARK: - 12. Watchlist Configuration Consistency Check
+func checkWatchlistConsistency() {
+    let registryPath = "/Users/bookid/.hermes/data/master_stock_registry.json"
+    let pythonSyncPath = "/Users/bookid/.hermes/scripts/taiex_central_data_sync.py"
+    let swiftMonitorPath = "/Users/bookid/.hermes/scripts/hermes_monitor.swift"
+    let fileManager = FileManager.default
+    
+    guard fileManager.fileExists(atPath: registryPath),
+          fileManager.fileExists(atPath: pythonSyncPath),
+          fileManager.fileExists(atPath: swiftMonitorPath) else {
+        logError("ConfigConsistency", "ERROR (One or more config/script files are missing)")
+        return
+    }
+    
+    do {
+        // 1. Read registry groups
+        let regData = try Data(contentsOf: URL(fileURLWithPath: registryPath))
+        guard let regJSON = try JSONSerialization.jsonObject(with: regData) as? [String: Any],
+              let groupCategories = regJSON["group_categories"] as? [String: [Any]] else {
+            logError("ConfigConsistency", "ERROR (Failed to parse group_categories from master_stock_registry.json)")
+            return
+        }
+        
+        // 2. Read file contents
+        let pythonContent = try String(contentsOfFile: pythonSyncPath, encoding: .utf8)
+        let swiftContent = try String(contentsOfFile: swiftMonitorPath, encoding: .utf8)
+        
+        var inconsistentTickers: [String] = []
+        var totalChecked = 0
+        
+        for (groupName, tickersRaw) in groupCategories {
+            if groupName == "其他群組關注" { continue }
+            let tickers = tickersRaw.compactMap { $0 as? String }
+            for ticker in tickers {
+                totalChecked += 1
+                
+                // Check in Python sync engine
+                let pythonPattern = "\"\(ticker)\""
+                if !pythonContent.contains(pythonPattern) {
+                    logError("ConfigConsistency", "ERROR (Ticker '\(ticker)' in group '\(groupName)' is missing from python sync engine defaults at \(pythonSyncPath))")
+                    inconsistentTickers.append(ticker)
+                }
+                
+                // Check in Swift monitor
+                let swiftPattern = "\"\(ticker)\""
+                if !swiftContent.contains(swiftPattern) {
+                    logError("ConfigConsistency", "ERROR (Ticker '\(ticker)' in group '\(groupName)' is missing from swift monitor getTargetStocks at \(swiftMonitorPath))")
+                    inconsistentTickers.append(ticker)
+                }
+            }
+        }
+        
+        if inconsistentTickers.isEmpty {
+            logSuccess("Watchlist Configuration Consistency: OK - \(totalChecked) tickers verified across Registry, Python Sync, and Swift Monitor.")
+        } else {
+            logError("ConfigConsistency", "CRITICAL - Configuration split-brain detected! \(inconsistentTickers.count) tickers are inconsistent.")
+        }
+    } catch {
+        logError("ConfigConsistency", "ERROR (Exception during consistency check: \(error.localizedDescription))")
+    }
+}
+
 // MARK: - Main Execution Flow
 print("\(ANSIColor.bold.rawValue)\(ANSIColor.cyan.rawValue)=== Hermes System Diagnostics ===\(ANSIColor.reset.rawValue)")
 let startTime = Date()
@@ -644,6 +706,7 @@ checkNumbersSymlink()
 checkCentralCacheData()
 checkMLAssets()
 checkSQLiteDeepSchema()
+checkWatchlistConsistency()
 
 
 let duration = Date().timeIntervalSince(startTime)
