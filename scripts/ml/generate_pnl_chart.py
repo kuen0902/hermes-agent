@@ -101,22 +101,26 @@ def generate_chart():
     
     # 🧠 垂直防重疊與陡峭防重合演算法 (Vertical Non-Crossing & Slope-Aware Dispersion Algorithm)
     # 1. 為了徹底避免引導指標線交叉，我們將所有引導線設為 100% 垂直 (x_offset = 0)。
-    # 2. 透過雙側（TOP/BOTTOM）與雙重高度（30/65 與 -35/-70）的四階交替排版，避免標籤重疊。
+    # 2. 透過雙側（TOP/BOTTOM）與三重高度（30/75/120 與 -35/-80/-125）的六階交替排版，完美避免相鄰標籤重疊與指針線穿透。
     # 3. ⚡ 陡峭度智慧過載判定 (Steepness Override Pass)：
     #    當相鄰交易日的累計損益出現劇烈跳動 (如單日跳動 > 150,000 元且間隔 <= 2 天) 時，
     #    強制將低點標籤朝下 (BOTTOM)、高點標籤朝上 (TOP) 指引，完美避開引導指標線與極陡峭主線重合的問題！
     
     y_offsets = {}
     for i in range(len(daily_df)):
-        rem = i % 4
+        rem = i % 6
         if rem == 0:
             y_offsets[i] = 30
         elif rem == 1:
             y_offsets[i] = -35
         elif rem == 2:
-            y_offsets[i] = 65
-        else: # rem == 3
-            y_offsets[i] = -70
+            y_offsets[i] = 75
+        elif rem == 3:
+            y_offsets[i] = -80
+        elif rem == 4:
+            y_offsets[i] = 120
+        else: # rem == 5
+            y_offsets[i] = -125
             
     for i in range(1, len(daily_df) - 1):
         p1 = daily_df['cum_pnl'].iloc[i]
