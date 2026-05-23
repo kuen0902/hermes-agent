@@ -121,19 +121,45 @@ def get_market_data():
     prev_close_cache = get_prev_close_cache()
     errors = []
     
+    # 📌 TTL 快取防護：檢查 bridge 檔案是否在 60 秒內更新且包含有效價格資料
+    is_cache_fresh = False
+    if os.path.exists(BRIDGE_FILE):
+        try:
+            mtime = os.path.getmtime(BRIDGE_FILE)
+            age = time.time() - mtime
+            if age < 60.0 and any(t in bridge for t in tickers):
+                is_cache_fresh = True
+                print(f"⚡ [TTL Cache Hit] 使用 {age:.1f}秒 前的本地快取價格，阻斷重複請求。")
+        except:
+            pass
+            
     for sym, name in tickers.items():
         price = None
         prev_close = None
         source = "direct_api"
         
-        # 1. 優先使用直連 API 獲取
-        price, prev_close, source = fetch_yahoo_chart_direct(sym)
+        # 1. 優先使用 TTL 快取中的現價與昨收快取
+        if is_cache_fresh and sym in bridge:
+            price = bridge[sym]
+            source = "ttl_cache"
+            if sym in prev_close_cache:
+                prev_close = prev_close_cache[sym]
+                source = "ttl_cache+cache_prev"
                 
-        # 2. 當直連 API 失敗時，使用 bridge 價格，但仍嘗試單獨獲取直連 API 的昨收價
+        # 2. 如果快取不新鮮，或者快取昨收價遺失，則發起直連 API 獲取
         if price is None or prev_close is None:
+            api_price, api_prev, api_source = fetch_yahoo_chart_direct(sym)
+            if api_price is not None:
+                price = api_price
+                source = api_source
+            if api_prev is not None:
+                prev_close = api_prev
+                
+        # 3. 當 API 獲取依然失敗時，從 bridge 載入備用價格
+        if price is None:
             if sym in bridge:
                 price = bridge[sym]
-                source = "bridge"
+                source = "bridge_fallback"
                 
                 # 嘗試單獨獲取昨收價
                 _, pc_fallback, _ = fetch_yahoo_chart_direct(sym)
@@ -141,10 +167,10 @@ def get_market_data():
                     prev_close = pc_fallback
                     source = "bridge+direct_prev"
 
-        # 從快取讀取備份昨收價
+        # 4. 昨收價最後防禦：從快取載入備份昨收價
         if prev_close is None and sym in prev_close_cache:
             prev_close = prev_close_cache[sym]
-            source += "+cache_prev"
+            source += "+cache_prev_fallback"
             
         # 更新快取
         if prev_close is not None:

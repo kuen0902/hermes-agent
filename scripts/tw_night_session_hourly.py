@@ -78,7 +78,27 @@ def get_night_session_status():
     taipei_tz = pytz.timezone('Asia/Taipei')
     report_time = datetime.now(taipei_tz).strftime("%Y-%m-%d %H:%M")
     
-    records = fetch_yahoo_minute_data(ticker_symbol)
+    # 📌 TTL 快取防護：若 bridge 中的 NQ 在 60 秒內更新過，則直接跳過外部 API 請求
+    is_cache_fresh = False
+    bridge_nq = None
+    bridge_path = "/Users/bookid/.hermes/data/market_prices_bridge.json"
+    if os.path.exists(bridge_path):
+        try:
+            mtime = os.path.getmtime(bridge_path)
+            age = time.time() - mtime
+            if age < 60.0:
+                with open(bridge_path, 'r') as f:
+                    b_data = json.load(f)
+                    if "NQ" in b_data:
+                        bridge_nq = float(b_data["NQ"])
+                        is_cache_fresh = True
+                        print(f"⚡ [TTL Cache Hit] 使用 {age:.1f}秒 前的本地 NQ 快取價格，阻斷重複請求。")
+        except:
+            pass
+            
+    records = None
+    if not is_cache_fresh:
+        records = fetch_yahoo_minute_data(ticker_symbol)
 
     CACHE_FILE = "/Users/bookid/.hermes/data/night_session_nq_cache.json"
     cache = {}
@@ -91,7 +111,7 @@ def get_night_session_status():
 
     if records is None or not records:
         # --- BRIDGE FALLBACK ---
-        current_price = get_bridge_data("NQ")
+        current_price = bridge_nq if is_cache_fresh else get_bridge_data("NQ")
         if current_price:
             open_price = cache.get("open_price")
             prev_hour_price = cache.get("last_price")
