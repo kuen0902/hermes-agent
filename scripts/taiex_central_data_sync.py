@@ -59,8 +59,45 @@ HISTORY_LOG_FILE = Path("/Users/bookid/.hermes/data/intraday_data_log.csv")
 type PortfolioDict = dict[str, dict[str, Any]]
 
 def get_personal_tickers() -> PortfolioDict:
-    """Fetches Ticker, Name, Qty, and Avg Cost from Numbers 'Portfolio' sheet."""
+    """Fetches Ticker, Name, Qty, and Avg Cost from Numbers 'Portfolio' sheet headlessly or via AppleScript fallback."""
     portfolio: PortfolioDict = {}
+    
+    # 1. 嘗試優先使用 numbers-parser 庫進行靜默無頭背景讀取
+    try:
+        from numbers_parser import Document
+        if NUMBERS_PATH.exists():
+            doc = Document(str(NUMBERS_PATH))
+            sheets = doc.sheets
+            if "Portfolio" in sheets:
+                table = sheets["Portfolio"].tables[0]
+                ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+                # 遍歷所有列 (跳過第一列 Header)
+                for row in list(table.rows)[1:]:
+                    code_cell = row[0].value
+                    if code_cell is not None:
+                        code = str(code_cell).strip()
+                        if code.endswith(".0"):
+                            code = code[:-2]  # 去除浮點數點零後綴 '2330.0' -> '2330'
+                            
+                        raw_name = str(row[1].value or "")
+                        clean_name = ansi_escape.sub('', raw_name)
+                        
+                        qty_val = row[2].value
+                        avg_val = row[4].value  # Column E (0-indexed column 4)
+                        
+                        portfolio[code] = {
+                            "name": clean_name,
+                            "qty": float(qty_val) if qty_val is not None else 0.0,
+                            "avg": float(avg_val) if avg_val is not None else 0.0
+                        }
+                print(f"✓ [Headless Numbers] 成功使用 numbers-parser 讀取 {len(portfolio)} 檔個人持股。")
+                return portfolio
+    except Exception as e:
+        # 當未安裝此套件或有任何檔案存取異常時，安全進入下方的 AppleScript 降級備援
+        pass
+
+    # 2. Legacy AppleScript GUI 備援降級方案
+    print("⚠️ 未安裝 numbers-parser 或無頭解析失敗，降級使用舊版 AppleScript GUI 引擎...")
     script = """
     set output to ""
     tell application "Numbers"
