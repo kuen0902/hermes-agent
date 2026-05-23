@@ -301,7 +301,8 @@ def main():
         # 檢查 DuckDB 資料庫中是否已存在當日資料
         cursor = conn.cursor()
         cursor.execute("SELECT COUNT(*) FROM institutional_data WHERE date = ?", (iso_date,))
-        db_exists = cursor.fetchone()[0] > 0
+        row = cursor.fetchone()
+        db_exists = row[0] > 0 if row is not None else False
         
         # 若資料已存在且無 --force 參數，則跳過
         if db_exists and not args.force and iso_date in db:
