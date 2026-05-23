@@ -288,10 +288,7 @@ def format_report(results, health):
                 "tier": current_tier
             }
             trend = "🚀" if abs(current_tier) > abs(last_tier) else "📉"
-            lines.append(f"{get_emoji(pct)}{trend} **{val['name']}** ({sym})")
-            lines.append(f"   ▸ 價格：`${val['price']:.2f}` (via {val['source']})")
-            lines.append(f"   ▸ 較昨收：`{pct:+.2f}%` (突破 `{current_tier}%` 門檻)")
-            lines.append("")
+            lines.append(f"{get_emoji(pct)}{trend} **{val['name']}** ({sym.split('.')[0]}): `${val['price']:.2f}` (`{pct:+.2f}%`) [突破 `{current_tier}%` 門檻]")
         else:
             untriggered.append(f"{sym.split('.')[0]}: {pct:+.1f}%")
             

@@ -190,7 +190,7 @@ func run(profileName: String, captureOnly: Bool) async {
                 
                 let emoji = price > prev ? "🔴" : (price < prev ? "🟢" : "⚪")
                 let name = mapping[code] ?? (dataDict["name_en"] as? String ?? code)
-                body += "\(emoji) **\(name)**\n   ▸ 價：`\(formatDouble(price))` | 開：`\(formatDouble(openP))` | 昨收：`\(formatDouble(prev))` | 差：`\(formatDoubleSign(pct))%`\n"
+                body += "\(emoji) **\(name)** (`\(code)`): 價 `\(formatDouble(price))` | 開 `\(formatDouble(openP))` | 昨收 `\(formatDouble(prev))` (`\(formatDoubleSign(pct))%`)\n"
             }
         }
         
