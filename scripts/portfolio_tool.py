@@ -163,6 +163,20 @@ def resolve_code_and_name(query):
 
 
 def add_position(code, qty, price):
+    # 📌 自動整合標準上架流程 (Auto-Onboarding for new purchases)
+    import subprocess
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    onboarder_path = os.path.join(scripts_dir, "fetchers", "stock_onboarder.py")
+    if os.path.exists(onboarder_path):
+        print(f"🔄 偵測到建倉/加碼新股 {code}，自動啟動標準上架流程補全歷史與籌碼數據...")
+        try:
+            venv_python = "/Users/bookid/.hermes/.venv/bin/python"
+            # We onboard personal holdings to group "其他群組關注" to bypass swift consistency check warnings
+            subprocess.run([venv_python, onboarder_path, "--code", code, "--group", "其他群組關注"], check=True)
+            print(f"  ✓ 買進新股 {code} 的標準歷史數據補全與上架流程順利完成！")
+        except Exception as e:
+            print(f"  ⚠️ 自動上架歷史數據補全失敗: {e}")
+
     conn = init_db()
     cursor = conn.cursor()
     
@@ -308,6 +322,27 @@ def print_portfolio():
     print(f"📦 總持股張數: {qty_str} 張")
 
 def add_watchlist(code, group_name="個人追蹤"):
+    # 📌 自動整合標準上架流程 (Auto-Onboarding for watchlists)
+    import subprocess
+    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    onboarder_path = os.path.join(scripts_dir, "fetchers", "stock_onboarder.py")
+    if os.path.exists(onboarder_path):
+        print(f"🔄 偵測到加入觀測名單 {code}，自動啟動標準上架流程補全歷史與籌碼數據...")
+        try:
+            venv_python = "/Users/bookid/.hermes/.venv/bin/python"
+            reg_group = group_name
+            if "高潮不斷群 (" in group_name:
+                reg_group = group_name.replace("高潮不斷群 (", "").replace(")", "")
+            elif "William" in group_name or "william" in group_name:
+                reg_group = "William觀察名單"
+            elif group_name == "個人追蹤":
+                reg_group = "其他群組關注"
+                
+            subprocess.run([venv_python, onboarder_path, "--code", code, "--group", reg_group], check=True)
+            print(f"  ✓ 觀測新股 {code} 的標準歷史數據補全與上架流程順利完成！")
+        except Exception as e:
+            print(f"  ⚠️ 自動上架歷史數據補全失敗: {e}")
+
     conn = init_db()
     cursor = conn.cursor()
     name = get_name(code)

@@ -98,6 +98,19 @@ def load_target_codes():
                     for c in william_codes: target_codes.add(norm_c(c))
         except Exception as e:
             print(f"無法讀取監控清單以擴展三大法人同步目標: {e}")
+
+    # 3. 讀取 DuckDB 中所有歷史上存在過的三大法人代碼，確保已移除股依然維持資料庫更新
+    try:
+        if os.path.exists(DUCK_PATH):
+            conn = duckdb.connect(DUCK_PATH)
+            rows = conn.execute("SELECT DISTINCT code FROM institutional_data").fetchall()
+            for r in rows:
+                code = str(r[0]).replace(".TW", "").replace(".TWO", "").strip()
+                if code:
+                    target_codes.add(code)
+            conn.close()
+    except Exception as e:
+        print(f"無法讀取 DuckDB 歷史三大法人代碼: {e}")
             
     return target_codes
 
