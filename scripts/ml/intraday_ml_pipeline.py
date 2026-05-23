@@ -276,7 +276,7 @@ def save_current_kalman_record(date_str, code_norm, price, prob, pred_return, ra
     except Exception as e:
         print(f"寫入 DuckDB 今日卡爾曼紀錄失敗 ({code_norm}): {e}")
 
-def run_intraday_pipeline(silent=False):
+def run_intraday_pipeline(silent=False, target_date=None):
     print("--- 啟動持股專屬 ML 雙指標（方向與估值）盤後預判系統 ---")
     if not os.path.exists(INTRADAY_LOG):
         print("未找到盤中資料日誌 (intraday_data_log.csv)")
@@ -311,12 +311,33 @@ def run_intraday_pipeline(silent=False):
     df = pd.read_csv(INTRADAY_LOG)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     
-    today = datetime.now().date()
+    if target_date is not None:
+        if isinstance(target_date, str):
+            today = datetime.strptime(target_date, "%Y-%m-%d").date()
+        else:
+            today = target_date
+    else:
+        today = datetime.now().date()
+        
     df_today = df[df['timestamp'].dt.date == today].copy()
     
-    if df_today.empty:
-        print("今日無高頻交易紀錄，跳過 ML 運算。")
-        return
+    # 判斷是否需要自動退回至最新有足夠數據 (>= 200 筆) 的交易日
+    if df_today.empty or len(df_today) < 200:
+        if target_date is None:
+            counts = df.groupby(df['timestamp'].dt.date).size()
+            valid_dates = counts[counts >= 200].index
+            if len(valid_dates) > 0:
+                latest_date_in_log = max(valid_dates)
+                print(f"今日 ({today}) 無足夠高頻交易紀錄 (僅 {len(df_today)} 筆)，自動退回至最新有完整數據的日期 ({latest_date_in_log}) 進行預測。")
+                today = latest_date_in_log
+                df_today = df[df['timestamp'].dt.date == today].copy()
+            else:
+                print("今日無足夠高頻交易紀錄，且日誌中無任何具有足夠數據的有效日期，跳過 ML 運算。")
+                return
+        else:
+            if df_today.empty:
+                print(f"指定日期 ({today}) 無高頻交易紀錄，跳過 ML 運算。")
+                return
 
     # 將時間序列切分為 5 分鐘級別 (Bins)
     df_today['5m_bin'] = df_today['timestamp'].dt.floor('5min')
@@ -867,4 +888,8 @@ def run_intraday_pipeline(silent=False):
 if __name__ == "__main__":
     import sys
     silent_mode = "--silent" in sys.argv
-    run_intraday_pipeline(silent=silent_mode)
+    target_date = None
+    for arg in sys.argv:
+        if arg.startswith("--date="):
+            target_date = arg.split("=")[1]
+    run_intraday_pipeline(silent=silent_mode, target_date=target_date)
