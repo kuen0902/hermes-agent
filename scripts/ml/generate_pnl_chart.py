@@ -156,15 +156,32 @@ def generate_chart():
         node_color = '#ec4899' if is_loss else '#10b981'     # Pink vs Emerald Green
         pointer_color = '#f472b6' if is_loss else '#34d399'  # Light Pink vs Light Emerald
         
-        # 格式化損益：正數加 + 號，使用簡潔百萬(M)或千(k)表示法
-        sign = "+" if pnl > 0 else "-" if pnl < 0 else ""
-        abs_pnl = abs(pnl)
-        if abs_pnl >= 1_000_000:
-            pnl_str = f"{sign}{abs_pnl/1_000_000:.2f}M"
-        elif abs_pnl >= 1_000:
-            pnl_str = f"{sign}{abs_pnl/1_000:.0f}k"
+        # 計算當日已實現損益 (與前一個交易日相比的變動額)
+        prev_pnl = daily_df['cum_pnl'].iloc[idx-1] if idx > 0 else 0.0
+        daily_pnl = pnl - prev_pnl
+        
+        # 格式化當日損益 (帶正負號，確保虧損為「-」且與粉紅框色契合)
+        daily_sign = "+" if daily_pnl > 0 else "-" if daily_pnl < 0 else ""
+        abs_daily = abs(daily_pnl)
+        if abs_daily >= 1_000_000:
+            daily_str = f"{daily_sign}{abs_daily/1_000_000:.2f}M"
+        elif abs_daily >= 1_000:
+            daily_str = f"{daily_sign}{abs_daily/1_000:.1f}k"
         else:
-            pnl_str = f"{sign}{abs_pnl:.0f}"
+            daily_str = f"{daily_sign}{abs_daily:.0f}"
+            
+        # 格式化累計總額 (不帶正號，負值帶負號)
+        cum_sign = "-" if pnl < 0 else ""
+        abs_cum = abs(pnl)
+        if abs_cum >= 1_000_000:
+            cum_str = f"{cum_sign}{abs_cum/1_000_000:.2f}M"
+        elif abs_cum >= 1_000:
+            cum_str = f"{cum_sign}{abs_cum/1_000:.1f}k"
+        else:
+            cum_str = f"{cum_sign}{abs_cum:.0f}"
+            
+        # 組合標籤：當日完成損益 (累計總額)
+        pnl_str = f"{daily_str} ({cum_str})"
             
         # 繪製高階氣泡框與精準指針 (Arrowprops)
         ax.annotate(
