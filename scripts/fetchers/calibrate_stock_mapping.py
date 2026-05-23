@@ -11,6 +11,7 @@ import random
 import time
 from bs4 import BeautifulSoup
 from datetime import datetime
+from typing import Any
 
 # Define file paths within the workspace limits
 DATA_DIR = "/Users/bookid/.hermes/data"
@@ -242,7 +243,7 @@ def calibrate_and_log():
     
     # 5. Save/Merge current logs into history
     # Find if there is already an entry for today
-    today_entry = None
+    today_entry: Any = None
     for entry in history:
         if entry.get("date") == today_str:
             today_entry = entry
