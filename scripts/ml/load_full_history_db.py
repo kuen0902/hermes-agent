@@ -9,6 +9,7 @@ from datetime import datetime
 # Configuration
 DATA_DIR = os.path.expanduser("~/.hermes/data")
 FINAL_DIR = os.path.expanduser("~/Documents/StockData_History_Final")
+FIVE_Y_DIR = os.path.expanduser("~/Documents/StockData_History_5Y")
 FULL_DIR = os.path.expanduser("~/Documents/StockData_History_Full")
 DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 TRASH_JSON_PATH = os.path.join(DATA_DIR, "removed_trash_stocks.json")
@@ -58,18 +59,24 @@ def identify_and_load():
         except Exception:
             pass
             
-    # Locate all CSV files in both FINAL_DIR and FULL_DIR to be fully comprehensive
+    # Locate all CSV files in FINAL_DIR, FIVE_Y_DIR, and FULL_DIR to be fully comprehensive
     files_final = glob.glob(os.path.join(FINAL_DIR, "*.csv"))
+    files_5y = glob.glob(os.path.join(FIVE_Y_DIR, "*.csv"))
     files_full = glob.glob(os.path.join(FULL_DIR, "*.csv"))
     
     # We will identify unique files by ticker to avoid double processing
     unique_tickers = {}
     
-    # Combine lists, preferring FINAL_DIR since it has merged data
+    # Combine lists, preferring FINAL_DIR, then FIVE_Y_DIR, then FULL_DIR
     for f in files_final:
         ticker = os.path.basename(f).split('_')[0]
         unique_tickers[ticker] = f
         
+    for f in files_5y:
+        ticker = os.path.basename(f).split('_')[0]
+        if ticker not in unique_tickers:
+            unique_tickers[ticker] = f
+            
     for f in files_full:
         ticker = os.path.basename(f).split('_')[0]
         if ticker not in unique_tickers:
