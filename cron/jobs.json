@@ -1010,7 +1010,49 @@
       },
       "enabled_toolsets": [],
       "workdir": null
+    },
+    {
+      "id": "full-market-sync-force",
+      "name": "Taiwan Stock Full Market Sync & Backfill (Force)",
+      "prompt": null,
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "/Users/bookid/.hermes/scripts/daily_historical_sync.py --force",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 6 * * 0",
+        "display": "0 6 * * 0"
+      },
+      "schedule_display": "0 6 * * 0",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-24T10:52:00.000000+08:00",
+      "next_run_at": "2026-05-31T06:00:00+08:00",
+      "last_run_at": null,
+      "last_status": "ok",
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [],
+      "workdir": null
     }
   ],
-  "updated_at": "2026-05-24T09:04:29.976810+08:00"
+  "updated_at": "2026-05-24T10:52:00+08:00"
 }
