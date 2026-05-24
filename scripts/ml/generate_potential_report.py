@@ -134,7 +134,7 @@ def generate_report():
 def generate_md_report(top_50):
     predict_date = top_50[0].get('date', datetime.now().strftime('%Y-%m-%d'))
     lines = []
-    lines.append(f"# 台股 Top 50 機器學習波段潛力個股分析報告 ({predict_date})")
+    lines.append(f"# 台股 Top 50 機器學習波段潛力個股 analysis 報告 ({predict_date})")
     lines.append("")
     lines.append("> **分析模型**：XGBoost Regressor (波段特徵工程 + 三大法人籌碼流向篩選)")
     lines.append("> **回報標的**：未來 20 個交易日 (約一個月) 的預期超額報酬率")
@@ -167,5 +167,87 @@ def generate_md_report(top_50):
         
     print(f"✓ Top 50 潛力股 Markdown 報告已生成並儲存至: {OUTPUT_MD_PATH}")
 
+def send_telegram_report(top_50, chart_path):
+    import urllib.request
+    import urllib.parse
+    import ssl
+    import requests
+    
+    print("--- 發送潛力股報告給 Jojo ---")
+    token = "8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU"
+    chat_id = "6326497055"
+    
+    predict_date = top_50[0].get('date', datetime.now().strftime('%Y-%m-%d'))
+    
+    # 建立 Top 30 訊息
+    msg_lines = [
+        f"🤖 **AI Architect: 台股 Top 30 機器學習波段潛力股報告 ({predict_date})**",
+        f"⏰ 播送時間：`{datetime.now().strftime('%Y-%m-%d %H:%M')}`",
+        f"----------------------------",
+        f"🎯 **篩選機制**：XGBoost 雙階段波段特徵工程 + 三大法人籌碼流向篩選。預估未來 20 個交易日 (約一個月) 的波段超額報酬率。",
+        f"----------------------------",
+    ]
+    
+    for s in top_50[:30]:
+        rank = s['rank']
+        code = s['code']
+        name = s['name']
+        close = s['close']
+        pred_ret = s['predicted_return_20d'] * 100
+        pred_price = close * (1.0 + s['predicted_return_20d'])
+        df_5d = s['dual_force_5d']
+        
+        # 聯手買超標記
+        star = "🔥" if s['foreign_net_5d'] > 50 and s['trust_net_5d'] > 50 else "•"
+        msg_lines.append(f"{star} **No.{rank}** `{code}` **{name}**")
+        msg_lines.append(f"  └ 現價: `{close:.1f}元` ➔ 預估: **`{pred_price:.1f}元`** ({pred_ret:+.2f}%)")
+        msg_lines.append(f"  └ 5D法人買超: `{df_5d:.0f}張` (外:{s['foreign_net_5d']:.0f} 投:{s['trust_net_5d']:.0f})")
+        
+    msg_lines.append("----------------------------")
+    msg_lines.append("💡 *註：本報告由機器學習模型依據籌碼與技術面特徵自動運算，僅供波段決策參考。*")
+    
+    message = "\n".join(msg_lines)
+    
+    # 發送純文字
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    ctx = ssl._create_unverified_context()
+    data = urllib.parse.urlencode({
+        'chat_id': chat_id,
+        'text': message,
+        'parse_mode': 'Markdown'
+    }).encode('utf-8')
+    
+    try:
+        req = urllib.request.Request(url, data=data)
+        urllib.request.urlopen(req, context=ctx, timeout=20)
+        print("✓ 成功發送潛力股純文字報告給 Jojo")
+    except Exception as e:
+        print(f"❌ 發送 Telegram 文字失敗: {e}")
+        
+    # 發送圖表
+    if os.path.exists(chart_path):
+        url_photo = f"https://api.telegram.org/bot{token}/sendPhoto"
+        try:
+            with open(chart_path, 'rb') as f:
+                files = {'photo': f}
+                data_photo = {
+                    'chat_id': chat_id, 
+                    'caption': f"📈 台股 Top 20 機器學習波段潛力個股雷達圖 ({predict_date})", 
+                    'parse_mode': 'Markdown'
+                }
+                requests.post(url_photo, data=data_photo, files=files, timeout=30)
+                print("✓ 成功發送潛力股雷達圖給 Jojo")
+        except Exception as e:
+            print(f"❌ 發送 Telegram 圖表失敗: {e}")
+
 if __name__ == "__main__":
-    generate_report()
+    import sys
+    send_tg = "--send-telegram" in sys.argv
+    success = generate_report()
+    if success and send_tg:
+        try:
+            with open(INPUT_JSON_PATH, 'r', encoding='utf-8') as f:
+                top_50 = json.load(f)
+            send_telegram_report(top_50, OUTPUT_CHART_PATH)
+        except Exception as e:
+            print(f"發送 Telegram 失敗: {e}")

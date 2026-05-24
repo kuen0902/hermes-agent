@@ -92,10 +92,24 @@ def prepare_features(df):
     
     return df
 
-def train_and_predict():
+def train_and_predict(inference_only=False):
     print("--- ML Core: Potential Stocks Prediction Engine ---")
     
-    # 1. Load and process all stock records directly from DuckDB
+    # 1. 檢查是否存在現有模型，若 --inference-only 則嘗試直接載入
+    model = None
+    if inference_only:
+        if os.path.exists(MODEL_PATH):
+            try:
+                model = joblib.load(MODEL_PATH)
+                print(f"✓ [Inference Only] 成功載入已存在的 XGBoost 模型: {MODEL_PATH}")
+            except Exception as e:
+                print(f"⚠️ [Inference Only] 載入模型失敗，將啟動完整重新訓練: {e}")
+                inference_only = False
+        else:
+            print(f"⚠️ [Inference Only] 找不到模型 {MODEL_PATH}，將啟動完整重新訓練。")
+            inference_only = False
+            
+    # Load and process all stock records directly from DuckDB
     import duckdb
     db_path = os.path.join(DATA_DIR, "potential_analysis.ddb")
     if not os.path.exists(db_path):
@@ -154,25 +168,18 @@ def train_and_predict():
                 last_row['Name'] = name
                 latest_inference_rows.append(last_row)
                 
-                # 2. Keep the historical rows for training
-                historical_rows = processed.dropna(subset=['Target_Ret_20'])
-                if not historical_rows.empty:
-                    historical_rows = historical_rows.copy()
-                    historical_rows['Ticker'] = ticker
-                    historical_rows['Name'] = name
-                    full_data.append(historical_rows)
+                # 2. Keep the historical rows for training (僅在需要訓練時才收集)
+                if not inference_only:
+                    historical_rows = processed.dropna(subset=['Target_Ret_20'])
+                    if not historical_rows.empty:
+                        historical_rows = historical_rows.copy()
+                        historical_rows['Ticker'] = ticker
+                        historical_rows['Name'] = name
+                        full_data.append(historical_rows)
         except Exception as e:
             print(f"Error processing {ticker} from DuckDB: {e}")
             
     conn.close()
-    
-    if not full_data:
-        print("❌ Error: No training data could be loaded from DuckDB 'daily_stock_data'.")
-        return
-        
-    # Combine training data
-    train_val_df = pd.concat(full_data).reset_index(drop=True)
-    print(f"Combined historical dataset size: {len(train_val_df)} rows.")
     
     # Feature columns for training
     feature_cols = [
@@ -186,67 +193,86 @@ def train_and_predict():
         'Foreign_Buy_Days_5', 'Trust_Buy_Days_5'
     ]
     
-    # Ensure all feature columns exist and have no NaNs
-    feature_cols = [c for c in feature_cols if c in train_val_df.columns]
-    
-    # Drop rows that have NaN in features
-    assert isinstance(train_val_df, pd.DataFrame)
-    train_val_df = train_val_df.dropna(subset=feature_cols)
-    print(f"Dataset size after dropping feature NaNs: {len(train_val_df)} rows.")
-    
-    X = train_val_df[feature_cols]
-    y = train_val_df['Target_Ret_20']
-    
-    # Chronological train/validation split to avoid data leakage
-    # We will train on data before 2025-11-23, and validate on data after
-    train_val_df['Date'] = pd.to_datetime(train_val_df['Date'])
-    split_date = pd.to_datetime('2025-11-23')
-    
-    train_mask = train_val_df['Date'] < split_date
-    val_mask = train_val_df['Date'] >= split_date
-    
-    X_train, y_train = X[train_mask], y[train_mask]
-    X_val, y_val = X[val_mask], y[val_mask]
-    
-    print(f"Train samples: {len(X_train)}, Validation samples: {len(X_val)}")
-    
-    # 2. Train XGBoost Regressor
-    print("Training XGBoost Regressor model...")
-    model = xgb.XGBRegressor(
-        n_estimators=150, 
-        max_depth=5, 
-        learning_rate=0.05, 
-        subsample=0.8,
-        colsample_bytree=0.8,
-        random_state=42
-    )
-    
-    model.fit(
-        X_train, y_train,
-        eval_set=[(X_val, y_val)],
-        verbose=False
-    )
-    
-    # Evaluation
-    train_preds = model.predict(X_train)
-    val_preds = model.predict(X_val)
-    
-    train_mae = np.mean(np.abs(train_preds - y_train))
-    val_mae = np.mean(np.abs(val_preds - y_val))
-    
-    print(f"Training Complete. Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
-    
-    # Save the model
-    joblib.dump(model, MODEL_PATH)
-    with open(META_PATH, 'w') as f:
-        json.dump({
-            "features": feature_cols,
-            "train_mae": float(train_mae),
-            "val_mae": float(val_mae),
-            "updated_at": datetime.now().isoformat()
-        }, f, indent=2)
-    print(f"Model saved to {MODEL_PATH}")
-    
+    if not inference_only:
+        if not full_data:
+            print("❌ Error: No training data could be loaded from DuckDB 'daily_stock_data'.")
+            return
+            
+        # Combine training data
+        train_val_df = pd.concat(full_data).reset_index(drop=True)
+        print(f"Combined historical dataset size: {len(train_val_df)} rows.")
+        
+        # Ensure all feature columns exist and have no NaNs
+        feature_cols = [c for c in feature_cols if c in train_val_df.columns]
+        
+        # Drop rows that have NaN in features
+        assert isinstance(train_val_df, pd.DataFrame)
+        train_val_df = train_val_df.dropna(subset=feature_cols)
+        print(f"Dataset size after dropping feature NaNs: {len(train_val_df)} rows.")
+        
+        X = train_val_df[feature_cols]
+        y = train_val_df['Target_Ret_20']
+        
+        # Chronological train/validation split to avoid data leakage
+        # We will train on data before 2025-11-23, and validate on data after
+        train_val_df['Date'] = pd.to_datetime(train_val_df['Date'])
+        split_date = pd.to_datetime('2025-11-23')
+        
+        train_mask = train_val_df['Date'] < split_date
+        val_mask = train_val_df['Date'] >= split_date
+        
+        X_train, y_train = X[train_mask], y[train_mask]
+        X_val, y_val = X[val_mask], y[val_mask]
+        
+        print(f"Train samples: {len(X_train)}, Validation samples: {len(X_val)}")
+        
+        # 2. Train XGBoost Regressor
+        print("Training XGBoost Regressor model...")
+        model = xgb.XGBRegressor(
+            n_estimators=150, 
+            max_depth=5, 
+            learning_rate=0.05, 
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=42
+        )
+        
+        model.fit(
+            X_train, y_train,
+            eval_set=[(X_val, y_val)],
+            verbose=False
+        )
+        
+        # Evaluation
+        train_preds = model.predict(X_train)
+        val_preds = model.predict(X_val)
+        
+        train_mae = np.mean(np.abs(train_preds - y_train))
+        val_mae = np.mean(np.abs(val_preds - y_val))
+        
+        print(f"Training Complete. Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
+        
+        # Save the model
+        joblib.dump(model, MODEL_PATH)
+        with open(META_PATH, 'w') as f:
+            json.dump({
+                "features": feature_cols,
+                "train_mae": float(train_mae),
+                "val_mae": float(val_mae),
+                "updated_at": datetime.now().isoformat()
+            }, f, indent=2)
+        print(f"Model saved to {MODEL_PATH}")
+    else:
+        # 如果是 inference_only，需要載入 meta.json 中的 features，確保特徵順序一致
+        if os.path.exists(META_PATH):
+            try:
+                with open(META_PATH, 'r') as f:
+                    meta_data = json.load(f)
+                    feature_cols = meta_data.get("features", feature_cols)
+                    print(f"✓ 載入 Meta 中定義的特徵欄位，總計: {len(feature_cols)} 個")
+            except Exception as e:
+                print(f"⚠️ 載入 meta.json 失敗，採用預設特徵: {e}")
+                
     # 3. Run Inference on Latest Stock Data
     print("\nRunning ML Inference on latest trading day to score stocks...")
     if not latest_inference_rows:
@@ -258,6 +284,8 @@ def train_and_predict():
     inference_df = inference_df.dropna(subset=feature_cols)
     
     X_inf = inference_df[feature_cols]
+    
+    assert model is not None, "Model must be loaded or trained"
     predictions = model.predict(X_inf)
     
     inference_df['Predicted_Return_20D'] = predictions
@@ -319,4 +347,6 @@ def train_and_predict():
         print(f"Rank {stock['rank']}: {stock['ticker']} ({stock['name']}) | Price: {stock['close']} | Predicted 20D Return: {stock['predicted_return_20d']*100:.2f}% | 5D Foreign: {stock['foreign_net_5d']:.1f}張 | 5D Trust: {stock['trust_net_5d']:.1f}張")
 
 if __name__ == "__main__":
-    train_and_predict()
+    import sys
+    inference_only = "--inference-only" in sys.argv
+    train_and_predict(inference_only=inference_only)
