@@ -188,7 +188,7 @@ def verify_health(file_path):
     except:
         return False
 
-def sync_all(fast_mode=False):
+def sync_all(fast_mode=False, force=False):
     print(f"--- Starting Daily Historical Sync [{'Fast' if fast_mode else 'Full'}] [{datetime.now().strftime('%Y-%m-%d %H:%M')}] ---")
     
     # 1. Get symbols to sync
@@ -211,7 +211,7 @@ def sync_all(fast_mode=False):
     print(f"Target previous trading day for sync check: {prev_trading_day}")
     
     db_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
-    if os.path.exists(db_path):
+    if os.path.exists(db_path) and not force:
         try:
             import duckdb
             conn = duckdb.connect(db_path)
@@ -310,4 +310,5 @@ def sync_all(fast_mode=False):
 if __name__ == "__main__":
     import sys
     fast = "--fast" in sys.argv
-    sync_all(fast_mode=fast)
+    force = "--force" in sys.argv
+    sync_all(fast_mode=fast, force=force)
