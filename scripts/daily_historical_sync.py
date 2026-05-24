@@ -229,7 +229,9 @@ def sync_all(fast_mode=False, force=False):
                 print(f"--- Sync Complete ---")
                 return
         except Exception as e:
-            pri    # 2. Identify missing vs existing
+            print(f"Error checking sync completion status: {e}")
+
+    # 2. Identify missing vs existing
     data_dir = DATA_DIR
     try:
         existing_files = {f.split('_')[0]: f for f in os.listdir(data_dir) if f.endswith('.csv')}
