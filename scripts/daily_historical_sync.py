@@ -228,12 +228,31 @@ def sync_all(fast_mode=False, force=False):
     # 2. Identify missing vs existing
     existing_files = {f.split('_')[0]: f for f in os.listdir(DATA_DIR) if f.endswith('.csv')}
     
-    # 3. Process to update (Prioritize fast_mode symbols)
-    to_update = [s for s in all_symbols if s in existing_files]
-    if fast_mode:
-        print(f"Fast Sync: Updating {len(to_update)} core monitoring stocks...")
+    # 3. Process to update
+    to_update_raw = [s for s in all_symbols if s in existing_files]
+    
+    # 智慧健康度篩選：如果已存在五年以上完整數據且已到前一交易日，則從 --force 補全名單中智慧排除，僅交給平日增量即可。
+    to_update = []
+    if not fast_mode:
+        print("🔍 啟動全市場『智慧健康篩選』，自動排除已完美補全之個股...")
+        skipped_count = 0
+        for s in to_update_raw:
+            file_path = os.path.join(DATA_DIR, existing_files[s])
+            try:
+                df = pd.read_csv(file_path)
+                if len(df) >= 1000 and 'Date' in df.columns:
+                    last_date = str(df['Date'].iloc[-1]).strip()
+                    nan_count = df['Close'].isna().sum()
+                    if last_date == prev_trading_day and nan_count == 0:
+                        skipped_count += 1
+                        continue # 完美補全，智慧排除！
+            except:
+                pass
+            to_update.append(s)
+        print(f"✓ 篩選完畢！全市場共有 {skipped_count} 檔個股已完美補全並成功『智慧排除』，本次僅需補全 {len(to_update)} 檔缺失個股。")
     else:
-        print(f"Full Sync: Updating {len(to_update)} existing records...")
+        to_update = to_update_raw
+        print(f"Fast Sync: Updating {len(to_update)} core monitoring stocks...")
     
     # We download last 7 days to cover weekends/holidays/late settlements
     end_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
