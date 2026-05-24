@@ -88,7 +88,7 @@ def get_history_from_duckdb(ticker):
         conn.close()
         if not df.empty:
             df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
-            df['Date'] = pd.to_datetime(df['Date'])
+            df['Date'] = pd.to_datetime(df['Date'])  # type: ignore
             df = df.set_index('Date')
             return df
     except Exception as e:
@@ -119,7 +119,7 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
             inst_conn.close()
             
             if not inst_df.empty:
-                inst_df['date'] = pd.to_datetime(inst_df['date']).dt.strftime('%Y-%m-%d')
+                inst_df['date'] = pd.to_datetime(inst_df['date']).dt.strftime('%Y-%m-%d')  # type: ignore
                 inst_df = inst_df.set_index('date')
                 
                 # Fill NaNs
@@ -130,11 +130,17 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
                         if isinstance(inst_row, pd.DataFrame):
                             inst_row = inst_row.iloc[0]
                         if pd.isna(df.loc[idx, 'Foreign_Net']):
-                            df.loc[idx, 'Foreign_Net'] = float(inst_row['foreign_buy'])
+                            val = inst_row['foreign_buy']
+                            if isinstance(val, pd.Series): val = val.iloc[0]
+                            df.loc[idx, 'Foreign_Net'] = float(val)  # type: ignore
                         if pd.isna(df.loc[idx, 'Trust_Net']):
-                            df.loc[idx, 'Trust_Net'] = float(inst_row['trust_buy'])
+                            val = inst_row['trust_buy']
+                            if isinstance(val, pd.Series): val = val.iloc[0]
+                            df.loc[idx, 'Trust_Net'] = float(val)  # type: ignore
                         if pd.isna(df.loc[idx, 'Dealer_Net']):
-                            df.loc[idx, 'Dealer_Net'] = float(inst_row['dealer_buy'])
+                            val = inst_row['dealer_buy']
+                            if isinstance(val, pd.Series): val = val.iloc[0]
+                            df.loc[idx, 'Dealer_Net'] = float(val)  # type: ignore
         except Exception as e:
             print(f"Error filling institutional data for {ticker}: {e}")
             
@@ -277,9 +283,9 @@ def sync_all(fast_mode=False, force=False):
                     old_df = pd.read_csv(file_path)
                     
                     # Merge and deduplicate
-                    combined = pd.concat([old_df, new_data.reset_index()])
+                    combined: pd.DataFrame = pd.concat([old_df, new_data.reset_index()])  # type: ignore
                     # Normalize Date string to avoid dups from different formats
-                    combined['Date'] = pd.to_datetime(combined['Date']).dt.strftime('%Y-%m-%d')
+                    combined['Date'] = pd.to_datetime(combined['Date']).dt.strftime('%Y-%m-%d')  # type: ignore
                     combined = combined.drop_duplicates(subset=['Date']).sort_values('Date')
                     
                     # Fill institutional flows and update DuckDB
