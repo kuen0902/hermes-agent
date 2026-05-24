@@ -229,13 +229,29 @@ def sync_all(fast_mode=False, force=False):
                 print(f"--- Sync Complete ---")
                 return
         except Exception as e:
-            print(f"Error checking sync completion status: {e}")
-
-    # 2. Identify missing vs existing
-    existing_files = {f.split('_')[0]: f for f in os.listdir(DATA_DIR) if f.endswith('.csv')}
+            pri    # 2. Identify missing vs existing
+    data_dir = DATA_DIR
+    try:
+        existing_files = {f.split('_')[0]: f for f in os.listdir(data_dir) if f.endswith('.csv')}
+    except PermissionError:
+        # Fallback to local workspace cache folder if Documents is restricted (e.g. sandbox)
+        fallback_dir = os.path.expanduser("~/.hermes/data/StockData_History_Final")
+        if not os.path.exists(fallback_dir):
+            os.makedirs(fallback_dir, exist_ok=True)
+        print(f"⚠️ 無法存取 {data_dir}，環境限制下自動降級使用工作區快取路徑: {fallback_dir}")
+        data_dir = fallback_dir
+        existing_files = {f.split('_')[0]: f for f in os.listdir(data_dir) if f.endswith('.csv')}
     
     # 3. Process to update
     to_update_raw = [s for s in all_symbols if s in existing_files]
+    
+    # Identify local files that are inactive/delisted (keep data but skip daily updates)
+    inactive_local = [s for s in existing_files if s not in all_symbols]
+    if inactive_local:
+        print(f"⚠️ 偵測到 {len(inactive_local)} 檔已下市/不在線個股，歷史資料保留，排除每日同步更新：")
+        for s in sorted(inactive_local):
+            name = existing_files[s].split('_')[1].replace('.csv', '') if '_' in existing_files[s] else 'Unknown'
+            print(f"  - {s} ({name})")
     
     # 智慧健康度篩選：如果已存在五年以上完整數據且已到前一交易日，則從 --force 補全名單中智慧排除，僅交給平日增量即可。
     to_update = []
@@ -243,7 +259,7 @@ def sync_all(fast_mode=False, force=False):
         print("🔍 啟動全市場『智慧健康篩選』，自動排除已完美補全之個股...")
         skipped_count = 0
         for s in to_update_raw:
-            file_path = os.path.join(DATA_DIR, existing_files[s])
+            file_path = os.path.join(data_dir, existing_files[s])
             try:
                 df = pd.read_csv(file_path)
                 if len(df) >= 1000 and 'Date' in df.columns:
@@ -279,7 +295,7 @@ def sync_all(fast_mode=False, force=False):
                     new_data = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
                     if new_data.empty: continue
                     
-                    file_path = os.path.join(DATA_DIR, existing_files[ticker])
+                    file_path = os.path.join(data_dir, existing_files[ticker])
                     old_df = pd.read_csv(file_path)
                     
                     # Merge and deduplicate
@@ -299,7 +315,7 @@ def sync_all(fast_mode=False, force=False):
             print(f"Synced {min(i+chunk_size, len(to_update))}/{len(to_update)} existing stocks.")
         except Exception as e:
             print(f"Error in batch update: {e}")
-
+ 
     # 4. Handle new listings
     new_tickers = [s for s in all_symbols if s not in existing_files]
     if new_tickers:
@@ -310,7 +326,7 @@ def sync_all(fast_mode=False, force=False):
                 t_data = get_history_from_duckdb(ticker)
                 if t_data is not None and not t_data.empty:
                     name = symbols_map.get(ticker, "Unknown").replace("/", "_")
-                    file_path = os.path.join(DATA_DIR, f"{ticker}_{name}.csv")
+                    file_path = os.path.join(data_dir, f"{ticker}_{name}.csv")
                     t_data.to_csv(file_path)
                     print(f"Created record for {ticker} from DuckDB cache")
                     continue
@@ -323,13 +339,13 @@ def sync_all(fast_mode=False, force=False):
                     if 'Adj Close' not in t_data.columns and 'adj_close' in t_data.columns:
                         t_data.rename(columns={'adj_close': 'Adj Close'}, inplace=True)
                     name = symbols_map.get(ticker, "Unknown").replace("/", "_")
-                    file_path = os.path.join(DATA_DIR, f"{ticker}_{name}.csv")
+                    file_path = os.path.join(data_dir, f"{ticker}_{name}.csv")
                     t_data.to_csv(file_path)
                     print(f"Created record for {ticker} from yfinance")
             except Exception as e:
                 print(f"Failed to create record for {ticker}: {e}")
                 continue
-
+ 
     print(f"--- Sync Complete ---")
 
 if __name__ == "__main__":
