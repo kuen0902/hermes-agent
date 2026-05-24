@@ -46,6 +46,8 @@ def process_file(filename):
         
     try:
         merged_df = pd.concat(dataframes, ignore_index=True)
+        if not isinstance(merged_df, pd.DataFrame):
+            return False
         # Vectorized datetime parsing and serialization format normalization
         merged_df['Date'] = pd.to_datetime(merged_df['Date'])
         # Drop duplicates by Date and sort
