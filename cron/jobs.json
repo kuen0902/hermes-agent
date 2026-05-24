@@ -61,15 +61,15 @@
       "schedule_display": "0 9 * * 0",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:34.551416+08:00",
-      "next_run_at": "2026-05-24T09:00:00+08:00",
-      "last_run_at": "2026-05-10T09:02:41.825258+08:00",
+      "next_run_at": "2026-05-31T09:00:00+08:00",
+      "last_run_at": "2026-05-24T09:04:29.975800+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -105,15 +105,15 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 17
+        "completed": 18
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-05-24T06:00:00+08:00",
-      "last_run_at": "2026-05-22T06:05:50.887205+08:00",
+      "next_run_at": "2026-05-25T06:00:00+08:00",
+      "last_run_at": "2026-05-24T06:06:00.003103+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -279,15 +279,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 258
+        "completed": 262
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-24T02:00:00+08:00",
-      "last_run_at": "2026-05-24T01:02:34.294686+08:00",
+      "next_run_at": "2026-05-24T15:00:00+08:00",
+      "last_run_at": "2026-05-24T05:01:17.630206+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -324,15 +324,15 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 18
+        "completed": 19
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-05-24T08:00:00+08:00",
-      "last_run_at": "2026-05-22T08:01:02.004633+08:00",
+      "next_run_at": "2026-05-25T08:00:00+08:00",
+      "last_run_at": "2026-05-24T08:00:46.586780+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -542,17 +542,17 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 16
+        "completed": 17
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-05-24T05:00:00+08:00",
-      "last_run_at": "2026-05-23T14:42:15.871214+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-25T05:00:00+08:00",
+      "last_run_at": "2026-05-24T05:10:04.480345+08:00",
+      "last_status": "error",
+      "last_error": "Script timed out after 600s: /Users/bookid/.hermes/scripts/run_daily_ml.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -710,15 +710,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 11
+        "completed": 12
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T23:44:58.197993+08:00",
-      "next_run_at": "2026-05-24T05:00:00+08:00",
-      "last_run_at": "2026-05-22T05:00:50.559321+08:00",
+      "next_run_at": "2026-05-25T05:00:00+08:00",
+      "last_run_at": "2026-05-24T05:00:21.227775+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -789,15 +789,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 9
+        "completed": 10
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-05-24T04:00:00+08:00",
-      "last_run_at": "2026-05-23T04:00:26.107727+08:00",
+      "next_run_at": "2026-05-25T04:00:00+08:00",
+      "last_run_at": "2026-05-24T04:00:27.540290+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -815,7 +815,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "hermes curator prune",
+      "script": "/Users/bookid/.hermes/scripts/run_state_prune.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -826,17 +826,17 @@
       "schedule_display": "0 3 * * 0",
       "repeat": {
         "times": null,
-        "completed": 0
+        "completed": 1
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T10:00:00+08:00",
-      "next_run_at": "2026-05-24T03:00:00+08:00",
-      "last_run_at": null,
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-31T03:00:00+08:00",
+      "last_run_at": "2026-05-24T03:00:43.865665+08:00",
+      "last_status": "error",
+      "last_error": "Script not found: /Users/bookid/.hermes/scripts/hermes curator prune",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": null,
@@ -863,15 +863,15 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 1167
+        "completed": 1213
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-24T02:00:00+08:00",
-      "last_run_at": "2026-05-24T01:55:39.319712+08:00",
+      "next_run_at": "2026-05-24T15:00:00+08:00",
+      "last_run_at": "2026-05-24T05:55:10.007660+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -905,17 +905,17 @@
       "schedule_display": "40 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 4
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-18T09:45:00+08:00",
-      "next_run_at": "2026-05-24T08:40:00+08:00",
-      "last_run_at": "2026-05-22T08:40:13.163337+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-25T08:40:00+08:00",
+      "last_run_at": "2026-05-24T08:40:55.406609+08:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 1\nstdout:\n=== Running Morning Diagnostic Gatekeeper ===\n\u001b[1m\u001b[0;36m=== Hermes System Diagnostics ===\u001b[0;0m\n\u001b[0;32m\u2705 Network Connectivity: OK\u001b[0;0m\n\u001b[0;32m\u2705 Telegram Gateway: OK (PID: 61807, Connected)\u001b[0;0m\n\u001b[0;32m\u2705 Python Venv (3.14.4): OK (Python 3.14.4)\u001b[0;0m\n\u001b[0;32m\u2705 SQLite Database (portfolio.db): OK - 4 Tables, Integrity Checked\u001b[0;0m\n\u001b[0;32m\u2705 Disk Space: OK - 1285.1 GB Available (64.4% of 1995.2 GB)\u001b[0;0m\n\u001b[0;32m\u2705 Environment Configuration (.env): OK - All required variables present\u001b[0;0m\n\n\u001b[1m\u001b[0;36m--- Cron Jobs Pre-Run & Execution Diagnostic Manifest ---\u001b[0;0m\n\n\u001b[1m[1/24] Job: stock-portfolio-monitor\u001b[0;0m (ID: 5919df8c19dd) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Script found at: run_hermes_monitor_personal.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T12:50:41.544025+08:00 Status: ok)\n\n\u001b[1m[2/24] Job: earnings-weekly-scanner\u001b[0;0m (ID: d06c88f3091b) [Agent-based]\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m Path Block Validation (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Existence Check (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Permission Check (Agent-based task, no script configured)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-10T09:02:41.825258+08:00 Status: ok)\n\n\u001b[1m[3/24] Job: earnings-daily-downloader\u001b[0;0m (ID: 1b9e65d2b69b) [Agent-based]\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m Path Block Validation (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Existence Check (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Permission Check (Agent-based task, no script configured)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-24T06:06:00.003103+08:00 Status: ok)\n\n\u001b[1m[4/24] Job: william-stock-monitor-auto\u001b[0;0m (ID: 340764cf9002) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Script found at: run_hermes_monitor_william.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T12:50:42.503070+08:00 Status: ok)\n\n\u001b[1m[5/24] Job: group-stock-monitor-9-12\u001b[0;0m (ID: 622b5c3dd6e9) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Script found at: run_hermes_monitor_group.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T12:50:41.542861+08:00 Status: ok)\n\n\u001b[1m[6/24] Job: Stock Market Closing Update (13:30)\u001b[0;0m (ID: 97e95dae8562) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Script found at: run_market_close_report_wrapper.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T13:30:34.400836+08:00 Status: ok)\n\n\u001b[1m[7/24] Job: Taiwan Stock Night Session Hourly Update\u001b[0;0m (ID: 92761c4c3e4e) [Agent-based]\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m Path Block Validation (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Existence Check (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Permission Check (Agent-based task, no script configured)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-24T05:01:17.630206+08:00 Status: ok)\n\n\u001b[1m[8/24] Job: Daily Architect Worklog\u001b[0;0m (ID: d9346611f4c5) [Agent-based]\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m Path Block Validation (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Existence Check (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Permission Check (Agent-based task, no script configured)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-24T08:00:46.586780+08:00 Status: ok)\n\n\u001b[1m[9/24] Job: TAIEX Master Monitor (Orchestrator)\u001b[0;0m (ID: f95f14b437ee) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Script found at: run_taiex_orchestrator.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T13:55:04.781194+08:00 Status: ok)\n\n\u001b[1m[10/24] Job: Star Platinum Silent Mode (Start)\u001b[0;0m (ID: b011e4cc6aa8) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/gateway_stop.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T08:30:09.328792+08:00 Status: ok)\n\n\u001b[1m[11/24] Job: Star Platinum Silent Mode (End)\u001b[0;0m (ID: a3a8234343a7) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/gateway_run.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T14:00:05.778988+08:00 Status: ok)\n\n\u001b[1m[12/24] Job: Obsidian-EOD-Daily-Log-2330\u001b[0;0m (ID: 3608997f1e16) [Agent-based]\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m Path Block Validation (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Existence Check (Agent-based task, no script configured)\n \u251c\u2500 \u001b[0;34m[SKIP]\u001b[0;0m File Permission Check (Agent-based task, no script configured)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-23T23:31:17.333231+08:00 Status: ok)\n\n\u001b[1m[13/24] Job: Daily-Historical-Sync-0500\u001b[0;0m (ID: ac430b36deb9) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/run_daily_ml.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;31m[FAIL]\u001b[0;0m Execution Status Check (Last run failed! Status: error)\n\n\u001b[1m[14/24] Job: Portfolio-Analysis-1430\u001b[0;0m (ID: 9e38a92a90d1) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/run_portfolio_eod.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T14:30:27.108842+08:00 Status: ok)\n\n\u001b[1m[15/24] Job: Group-Stock-Analysis-1350\u001b[0;0m (ID: a4cb5faeeb5b) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/run_group_1350.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T13:50:55.407518+08:00 Status: ok)\n\n\u001b[1m[16/24] Job: Intraday-ML-Workflow-1510\u001b[0;0m (ID: c48948cee40c) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/ml/run_intraday_ml_workflow.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T15:10:53.749010+08:00 Status: ok)\n\n\u001b[1m[17/24] Job: Night Session Settlement Archive (05:00)\u001b[0;0m (ID: 9a48c002acf5) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/night_session_settlement.py)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-24T05:00:21.227775+08:00 Status: ok)\n\n\u001b[1m[18/24] Job: Weekend ML Retraining\u001b[0;0m (ID: e4f8d9b1a2c3) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/run_ml_retraining_weekly.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-23T02:00:18.472740+08:00 Status: ok)\n\n\u001b[1m[19/24] Job: Log Rotator (21 Days)\u001b[0;0m (ID: 893d5f1c9d2a) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/cron_log_rotator.py)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-24T04:00:27.540290+08:00 Status: ok)\n\n\u001b[1m[20/24] Job: Weekly-State-Prune\u001b[0;0m (ID: e2f1d9a8c7b6) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Global command 'hermes' found in system PATH)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Delegated to global binary system execution)\n \u2514\u2500 \u001b[0;31m[FAIL]\u001b[0;0m Execution Status Check (Last run failed! Status: error)\n\n\u001b[1m[21/24] Job: Night Session Tiered Monitor\u001b[0;0m (ID: 9d128cdf-7d6) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/night_session_threshold_monitor.py)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-24T05:55:10.007660+08:00 Status: ok)\n\n\u001b[1m[22/24] Job: morning-diagnostic-gatekeeper\u001b[0;0m (ID: diaggate1234) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/run_diagnostic_cron.sh)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-22T08:40:13.163337+08:00 Status: ok)\n\n\u001b[1m[23/24] Job: Daily Stock Mapping Calibration (17:00)\u001b[0;0m (ID: stockcalib1700) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/fetchers/calibrate_stock_mapping.py)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-23T17:00:24.706140+08:00 Status: ok)\n\n\u001b[1m[24/24] Job: Daily Institutional Data Sync (15:10)\u001b[0;0m (ID: daily-institutional-sync) [Script-based]\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m Path Block Validation (No scripts-external executable prefix)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Existence Check (Absolute path exists: /Users/bookid/.hermes/scripts/fetchers/fetch_institutional_data.py)\n \u251c\u2500 \u001b[0;32m[PASS]\u001b[0;0m File Permission Check (Script is executable)\n \u2514\u2500 \u001b[0;32m[PASS]\u001b[0;0m Execution Status Check (Last run at: 2026-05-23T00:31:16.308654+08:00 Status: ok)\n\n\u001b[1m\u001b[0;36m=================================================================\u001b[0;0m\n\u001b[0;31m\u274c CronJobsDiagnostic: Completed pre-check on 24 cron jobs. 2 issues detected!\u001b[0;0m\n\u001b[0;32m\u2705 Numbers Symlink: OK (Daily.numbers -> StockTracking_2026-05-22.numbers, Size: 192004 bytes)\u001b[0;0m\n\u001b[0;32m\u2705 Central Cache Data: OK (Parsed successfully, Freshness: 6.8 hours ago)\u001b[0;0m\n\u001b[0;32m\u2705 ML Engine Assets: OK - Classifier, Regressor, and Training Log verified\u001b[0;0m\n\u001b[0;32m\u2705 SQLite & DuckDB Hybrid Schemas: OK - Crucial tables, columns, and indexes verified\u001b[0;0m\n\u001b[0;32m\u2705 Watchlist Configuration Consistency: OK - 20 tickers verified across Registry, Python Sync, and Swift Monitor.\u001b[0;0m\n\n\u001b[0;36mDiagnostics completed in 2.38s.\u001b[0;0m\n\n\u001b[0;31m\ud83d\udea8 CRITICAL FAILURES DETECTED: \u001b[0;0m\n   - [CronJobsDiagnostic] Completed pre-check on 24 cron jobs. 2 issues detected!",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1012,5 +1012,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-24T01:55:39.320008+08:00"
+  "updated_at": "2026-05-24T09:04:29.976810+08:00"
 }

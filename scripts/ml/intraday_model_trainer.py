@@ -2,12 +2,16 @@ import os
 import pandas as pd
 import numpy as np
 import yfinance as yf
-from sklearn.ensemble import RandomForestClassifier
+import sqlite3
+import duckdb
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.metrics import accuracy_score
 import joblib
 
+DATA_DIR = os.path.expanduser("~/.hermes/data")
 MODEL_DIR = os.path.expanduser("~/.hermes/models")
 MODEL_FILE = os.path.join(MODEL_DIR, "intraday_model.pkl")
+MODEL_REG_FILE = os.path.join(MODEL_DIR, "intraday_model_reg.pkl")
 
 # Core target symbols for generic training (20 key stocks)
 CORE_SYMBOLS = [
@@ -17,19 +21,94 @@ CORE_SYMBOLS = [
     "1513.TW", "2049.TW", "2408.TW", "2313.TW", "6285.TW", "^TWII"
 ]
 
+def load_symbol_daily_history(symbol):
+    """
+    載入指定商品（如 2330.TW）的日線歷史關閉價格，
+    回傳以 Date 為 Index 的 pandas Series。
+    """
+    code_norm = symbol.split(".")[0]
+    workspace_dir = os.path.expanduser("~/.hermes/data/StockData_History_Final")
+    documents_dir = os.path.expanduser("~/Documents/StockData_History_Final")
+    
+    if os.path.exists(workspace_dir) and len(os.listdir(workspace_dir)) > 0:
+        data_dir = workspace_dir
+    else:
+        data_dir = documents_dir
+        
+    if not os.path.exists(data_dir):
+        return pd.Series(dtype='float64')
+        
+    match_file = None
+    for f in os.listdir(data_dir):
+        if f.startswith(f"{code_norm}."):
+            match_file = f
+            break
+            
+    if not match_file:
+        return pd.Series(dtype='float64')
+        
+    try:
+        df = pd.read_csv(os.path.join(data_dir, match_file))
+        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
+        df = df.dropna(subset=['Close', 'Date'])
+        return pd.Series(df['Close'].values, index=df['Date'])
+    except Exception as e:
+        print(f"載入歷史日線資料失敗 ({symbol}): {e}")
+        return pd.Series(dtype='float64')
+
+def load_latest_institutional_data(iso_date, code_normalized):
+    """從 DuckDB 讀取指定日期與代號的最新三大法人數據 (張數及外資持股比)"""
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
+    if not os.path.exists(db_path):
+        return 0, 0, 0, 0.0
+    try:
+        conn = duckdb.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT foreign_buy, trust_buy, dealer_buy, foreign_ratio 
+            FROM institutional_data 
+            WHERE date = ? AND code = ?
+        ''', (iso_date, code_normalized))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            f_ratio = row[3] if row[3] is not None else 0.0
+            return row[0], row[1], row[2], f_ratio
+    except Exception as e:
+        pass
+    return 0, 0, 0, 0.0
+
+def load_rolling_institutional_data(iso_date, code_normalized):
+    """計算指定日期過去 5 日與 20 日的投信與自營商累計買超"""
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
+    if not os.path.exists(db_path):
+        return 0, 0, 0, 0
+    try:
+        conn = duckdb.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT trust_buy, dealer_buy 
+            FROM institutional_data 
+            WHERE code = ? AND date <= ? 
+            ORDER BY date DESC LIMIT 20
+        ''', (code_normalized, iso_date))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        trust_5d = sum(r[0] for r in rows[:5]) if rows else 0
+        trust_20d = sum(r[0] for r in rows) if rows else 0
+        dealer_5d = sum(r[1] for r in rows[:5]) if rows else 0
+        dealer_20d = sum(r[1] for r in rows) if rows else 0
+        
+        return trust_5d, trust_20d, dealer_5d, dealer_20d
+    except Exception as e:
+        pass
+    return 0, 0, 0, 0
+
 def train_model():
     print("--- 啟動歷史 5 分鐘 K 線預訓練引擎 (Pre-training) ---")
     print(f"目標股票數量：{len(CORE_SYMBOLS)}")
     
-    import json
-    inst_file = os.path.join(os.path.expanduser("~/.hermes/data"), "institutional_data.json")
-    try:
-        with open(inst_file, "r") as f:
-            inst_db = json.load(f)
-    except:
-        print("警告：找不到 institutional_data.json，籌碼特徵將補 0")
-        inst_db = {}
-        
     # 預先抓取大盤資料
     print("正在抓取大盤 (^TWII) 過去 60 天的 5 分鐘高頻資料...")
     try:
@@ -48,10 +127,14 @@ def train_model():
         taiex_grouped = pd.DataFrame(columns=['date', '5m_bin', 'Close'])
     
     all_X = []
-    all_y = []
+    all_y_clf = []
+    all_y_reg = []
+    
+    import pandas_ta_classic as ta
     
     for symbol in CORE_SYMBOLS:
         if symbol == "^TWII": continue
+        code_norm = symbol.split(".")[0]
         print(f"正在抓取 {symbol} 過去 60 天的 5 分鐘高頻資料...")
         try:
             # Download 60 days of 5-minute data
@@ -82,23 +165,19 @@ def train_model():
                 'Volume': 'sum'
             }).reset_index()
             
+            # 載入該商品的日線歷史記錄
+            daily_history = load_symbol_daily_history(symbol)
+            
             # Iterate through days to simulate rolling prediction & variance
             dates = sorted(grouped['date'].unique())
             
             prev_pred_prob = 0.5
-            import pandas_ta_classic as ta
             
             for i in range(1, len(dates) - 1):
-                yesterday = dates[i-1]
                 today = dates[i]
                 tomorrow = dates[i+1]
                 
-                # Extract Institutional Features for yesterday
-                yesterday_iso = yesterday.isoformat()
-                inst_data = inst_db.get(yesterday_iso, {}).get(symbol, {"foreign": 0, "trust": 0, "dealer": 0})
-                inst_features = [inst_data.get("foreign", 0), inst_data.get("trust", 0), inst_data.get("dealer", 0)]
-                
-                # Extract TAIEX features for today
+                # 1. 取得今日大盤特徵
                 taiex_features = [0.0] * 5
                 taiex_day_data = taiex_grouped[taiex_grouped['date'] == today].sort_values('5m_bin')
                 if len(taiex_day_data) >= 6:
@@ -158,27 +237,63 @@ def train_model():
                 # Append TAIEX features
                 features.extend(taiex_features)
                 
-                # Append Institutional features (3 dims)
-                features.extend(inst_features)
+                # 2. 獲取今日最新法人籌碼特徵與外資持股比 (4 維)
+                f_buy, t_buy, d_buy, f_ratio = load_latest_institutional_data(today.isoformat(), code_norm)
+                features.extend([f_buy, t_buy, d_buy, f_ratio])
                 
-                # Variance Calculation
-                # Actual return today
+                # 3. 獲取滾動累計三大法人籌碼特徵 (4 維)
+                t_5d, t_20d, d_5d, d_20d = load_rolling_institutional_data(today.isoformat(), code_norm)
+                features.extend([t_5d, t_20d, d_5d, d_20d])
+                
+                # 4. 獲取歷史日線 MA 乖離率與間距 (5MA/10MA/月線/季線/半年線/年線及結構間距)
+                hist_before_today = daily_history[daily_history.index < today.isoformat()]
+                hist_closes = list(hist_before_today.tail(239).values)
+                closes_240d = hist_closes + [prices[-1]]
+                n_days = len(closes_240d)
+                
+                if n_days > 0:
+                    ma5 = sum(closes_240d[-min(5, n_days):]) / min(5, n_days)
+                    ma10 = sum(closes_240d[-min(10, n_days):]) / min(10, n_days)
+                    ma20 = sum(closes_240d[-min(20, n_days):]) / min(20, n_days)
+                    ma60 = sum(closes_240d[-min(60, n_days):]) / min(60, n_days)
+                    ma120 = sum(closes_240d[-min(120, n_days):]) / min(120, n_days)
+                    ma240 = sum(closes_240d) / n_days
+                    
+                    bias5 = (prices[-1] - ma5) / ma5 if ma5 else 0.0
+                    bias10 = (prices[-1] - ma10) / ma10 if ma10 else 0.0
+                    bias20 = (prices[-1] - ma20) / ma20 if ma20 else 0.0
+                    bias60 = (prices[-1] - ma60) / ma60 if ma60 else 0.0
+                    bias120 = (prices[-1] - ma120) / ma120 if ma120 else 0.0
+                    bias240 = (prices[-1] - ma240) / ma240 if ma240 else 0.0
+                    
+                    spread_5_20 = (ma5 - ma20) / ma20 if ma20 else 0.0
+                    spread_20_60 = (ma20 - ma60) / ma60 if ma60 else 0.0
+                    spread_60_240 = (ma60 - ma240) / ma240 if ma240 else 0.0
+                else:
+                    bias5 = bias10 = bias20 = bias60 = bias120 = bias240 = 0.0
+                    spread_5_20 = spread_20_60 = spread_60_240 = 0.0
+                    
+                features.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
+                
+                # 5. 變異與誤差項計算 (1 維)
                 actual_today_pct = (prices[-1] - prices[0]) / prices[0]
                 predicted_today_pct = (prev_pred_prob - 0.5) * 2.0
                 var = actual_today_pct - predicted_today_pct
-                
                 features.append(var)
                 
-                # Label formulation: Will tomorrow's close be higher than today's close?
+                # 預估目標:
+                # 分類器目標: 明日收盤價是否高於今日收盤價
                 tomorrow_close = tomorrow_data['Close'].values[-1]
                 label = 1 if tomorrow_close > prices[-1] else 0
                 
-                all_X.append(features)
-                all_y.append(label)
+                # 迴歸器目標: 明日收盤價的變動率
+                tomorrow_return = (tomorrow_close - prices[-1]) / prices[-1]
                 
-                # Simulate a simple prediction for the NEXT day's variance
-                # In real scenario this would be from model.predict_proba
-                # For training simulation, we use label as a strong proxy or just naive 0.5
+                all_X.append(features)
+                all_y_clf.append(label)
+                all_y_reg.append(tomorrow_return)
+                
+                # 為下一個交易日的變異模擬預測機率
                 prev_pred_prob = 0.55 if label == 1 else 0.45
 
         except Exception as e:
@@ -189,21 +304,30 @@ def train_model():
         print("未成功萃取到任何特徵！")
         return
         
-    print(f"特徵萃取完成，總樣本數：{len(all_X)}")
+    print(f"特徵萃取完成，總樣本數：{len(all_X)}，特徵維度：{len(all_X[0])}")
     
-    print("正在訓練 Random Forest 分類器...")
-    model = RandomForestClassifier(n_estimators=150, max_depth=10, min_samples_leaf=3, random_state=42)
-    model.fit(all_X, all_y)
+    # 訓練分類器
+    print("正在訓練 RandomForest 分類器 (31維)...")
+    model_clf = RandomForestClassifier(n_estimators=150, max_depth=10, min_samples_leaf=3, random_state=42)
+    model_clf.fit(all_X, all_y_clf)
     
-    # Calculate Training Accuracy
-    preds = model.predict(all_X)
-    acc = accuracy_score(all_y, preds)
-    print(f"模型訓練完成！訓練集預測準確率 (Accuracy): {acc*100:.2f}%")
+    # 計算分類器訓練集準確率
+    preds_clf = model_clf.predict(all_X)
+    acc = accuracy_score(all_y_clf, preds_clf)
+    print(f"分類器訓練完成！訓練集準確率 (Accuracy): {acc*100:.2f}%")
     
-    # Save Model
+    # 訓練迴歸器
+    print("正在訓練 RandomForest 迴歸器 (31維)...")
+    model_reg = RandomForestRegressor(n_estimators=150, max_depth=10, min_samples_leaf=3, random_state=42)
+    model_reg.fit(all_X, all_y_reg)
+    print("迴歸器訓練完成！")
+    
+    # 儲存雙模型
     os.makedirs(MODEL_DIR, exist_ok=True)
-    joblib.dump(model, MODEL_FILE)
-    print(f"模型已成功匯出至 {MODEL_FILE}")
+    joblib.dump(model_clf, MODEL_FILE)
+    joblib.dump(model_reg, MODEL_REG_FILE)
+    print(f"分類器已匯出至 {MODEL_FILE}")
+    print(f"迴歸器已匯出至 {MODEL_REG_FILE}")
 
 if __name__ == "__main__":
     train_model()

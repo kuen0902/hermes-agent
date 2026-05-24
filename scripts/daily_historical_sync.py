@@ -41,6 +41,138 @@ def get_tw_stock_list():
             print(f"Error fetching list for mode {mode}: {e}")
     return stocks
 
+
+def get_previous_trading_day():
+    """Returns the ISO string YYYY-MM-DD of the previous trading day (Mon-Fri) excluding holidays."""
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker("0050.TW")
+        hist = ticker.history(period="5d")
+        if not hist.empty:
+            latest_trading_day = hist.index[-1].strftime('%Y-%m-%d')
+            return latest_trading_day
+    except Exception as e:
+        print(f"Error querying yfinance 0050.TW for latest trading day: {e}")
+        
+    # Fallback to local weekday math if network check fails
+    today = datetime.now()
+    offset = 1
+    wd = today.weekday()
+    if wd == 0:    # Monday
+        offset = 3
+    elif wd == 6:  # Sunday
+        offset = 2
+    elif wd == 5:  # Saturday
+        offset = 1
+    prev = today - timedelta(days=offset)
+    return prev.strftime('%Y-%m-%d')
+
+def get_history_from_duckdb(ticker):
+    """Attempts to fetch historical daily data for a ticker from DuckDB potential_analysis.ddb"""
+    db_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
+    if not os.path.exists(db_path):
+        return None
+    try:
+        import duckdb
+        conn = duckdb.connect(db_path)
+        
+        # Try full_daily_prices table first (15-year history)
+        query = "SELECT date, open, high, low, close, adj_close, volume FROM full_daily_prices WHERE ticker = ? ORDER BY date"
+        df = conn.execute(query, (ticker,)).fetchdf()
+        
+        # If empty, try daily_stock_data table (5-year history)
+        if df.empty:
+            query = "SELECT date, open, high, low, close, adj_close, volume FROM daily_stock_data WHERE ticker = ? ORDER BY date"
+            df = conn.execute(query, (ticker,)).fetchdf()
+            
+        conn.close()
+        if not df.empty:
+            df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
+            df['Date'] = pd.to_datetime(df['Date'])
+            df = df.set_index('Date')
+            return df
+    except Exception as e:
+        print(f"Error fetching from DuckDB for {ticker}: {e}")
+    return None
+
+def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
+    """Fills missing institutional net buys in the DataFrame and writes/updates to DuckDB potential_analysis.ddb"""
+    inst_ddb_path = os.path.expanduser("~/.hermes/data/portfolio.ddb")
+    potential_ddb_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
+    
+    code = ticker.split('.')[0]
+    
+    # 1. Fill institutional columns if missing
+    for col in ['Foreign_Net', 'Trust_Net', 'Dealer_Net']:
+        if col not in df.columns:
+            df[col] = 0.0
+            
+    # If there are NaN values in institutional columns, try to fill them from institutional_data table in portfolio.ddb
+    nan_mask = df['Foreign_Net'].isna() | df['Trust_Net'].isna() | df['Dealer_Net'].isna()
+    if nan_mask.any() and os.path.exists(inst_ddb_path):
+        try:
+            import duckdb
+            inst_conn = duckdb.connect(inst_ddb_path)
+            inst_df = inst_conn.execute(
+                "SELECT date, foreign_buy, trust_buy, dealer_buy FROM institutional_data WHERE code = ?", (code,)
+            ).fetchdf()
+            inst_conn.close()
+            
+            if not inst_df.empty:
+                inst_df['date'] = pd.to_datetime(inst_df['date']).dt.strftime('%Y-%m-%d')
+                inst_df = inst_df.set_index('date')
+                
+                # Fill NaNs
+                for idx, row in df[nan_mask].iterrows():
+                    date_str = str(row['Date'])
+                    if date_str in inst_df.index:
+                        inst_row = inst_df.loc[date_str]
+                        if isinstance(inst_row, pd.DataFrame):
+                            inst_row = inst_row.iloc[0]
+                        if pd.isna(df.loc[idx, 'Foreign_Net']):
+                            df.loc[idx, 'Foreign_Net'] = float(inst_row['foreign_buy'])
+                        if pd.isna(df.loc[idx, 'Trust_Net']):
+                            df.loc[idx, 'Trust_Net'] = float(inst_row['trust_buy'])
+                        if pd.isna(df.loc[idx, 'Dealer_Net']):
+                            df.loc[idx, 'Dealer_Net'] = float(inst_row['dealer_buy'])
+        except Exception as e:
+            print(f"Error filling institutional data for {ticker}: {e}")
+            
+    # Fill remaining NaNs with 0.0
+    for col in ['Foreign_Net', 'Trust_Net', 'Dealer_Net']:
+        df[col] = df[col].fillna(0.0)
+        
+    # 2. Sync the updated DataFrame rows of the last 15 days to DuckDB potential_analysis.ddb table `daily_stock_data`
+    if os.path.exists(potential_ddb_path):
+        try:
+            import duckdb
+            name = symbols_map.get(ticker, "Unknown").replace("/", "_")
+            
+            df_sync = df.copy()
+            df_sync['code'] = code
+            df_sync['ticker'] = ticker
+            df_sync['name'] = name
+            
+            adj_col = 'Adj Close' if 'Adj Close' in df_sync.columns else df_sync.columns[5]
+            
+            df_temp = df_sync[['Date', 'code', 'ticker', 'name', 'Open', 'High', 'Low', 'Close', adj_col, 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']].copy()
+            df_temp.columns = ['date', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'adj_close', 'volume', 'foreign_net', 'trust_net', 'dealer_net']
+            
+            for col in ['open', 'high', 'low', 'close', 'adj_close', 'volume', 'foreign_net', 'trust_net', 'dealer_net']:
+                df_temp[col] = pd.to_numeric(df_temp[col], errors='coerce').fillna(0.0)
+            df_temp['volume'] = df_temp['volume'].astype('int64')
+            df_temp['date'] = pd.to_datetime(df_temp['date']).dt.date
+            
+            df_temp = df_temp.tail(15)
+            
+            potential_conn = duckdb.connect(potential_ddb_path)
+            potential_conn.execute("INSERT OR REPLACE INTO daily_stock_data SELECT * FROM df_temp")
+            potential_conn.close()
+        except Exception as e:
+            print(f"Error syncing {ticker} to DuckDB daily_stock_data: {e}")
+            
+    return df
+
 def verify_health(file_path):
     """Mandatory Health Check Protocol (v2.0)"""
     try:
@@ -74,6 +206,25 @@ def sync_all(fast_mode=False):
     
     all_symbols = list(symbols_map.keys())
     
+    # Check if data sync for the previous trading day is already complete in DuckDB
+    prev_trading_day = get_previous_trading_day()
+    print(f"Target previous trading day for sync check: {prev_trading_day}")
+    
+    db_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
+    if os.path.exists(db_path):
+        try:
+            import duckdb
+            conn = duckdb.connect(db_path)
+            # Query if standard benchmark stock '2330' has data for target date
+            res = conn.execute("SELECT count(*) FROM daily_stock_data WHERE date = ? AND code = '2330'", (prev_trading_day,)).fetchone()
+            conn.close()
+            if res and res[0] > 0:
+                print(f"🎉 [已完成] 前一個開盤日 ({prev_trading_day}) 的 Data Sync 已經完成！本次執行略過下載。")
+                print(f"--- Sync Complete ---")
+                return
+        except Exception as e:
+            print(f"Error checking sync completion status: {e}")
+
     # 2. Identify missing vs existing
     existing_files = {f.split('_')[0]: f for f in os.listdir(DATA_DIR) if f.endswith('.csv')}
     
@@ -112,9 +263,14 @@ def sync_all(fast_mode=False):
                     combined['Date'] = pd.to_datetime(combined['Date']).dt.strftime('%Y-%m-%d')
                     combined = combined.drop_duplicates(subset=['Date']).sort_values('Date')
                     
+                    # Fill institutional flows and update DuckDB
+                    combined = fill_institutional_data_and_sync_to_duckdb(ticker, combined, symbols_map)
+                    
                     # Save
                     combined.to_csv(file_path, index=False)
-                except: continue
+                except Exception as e:
+                    print(f"Failed to sync details for {ticker}: {e}")
+                    continue
             print(f"Synced {min(i+chunk_size, len(to_update))}/{len(to_update)} existing stocks.")
         except Exception as e:
             print(f"Error in batch update: {e}")
@@ -125,15 +281,29 @@ def sync_all(fast_mode=False):
         print(f"Detected {len(new_tickers)} new listings. Creating initial history...")
         for ticker in new_tickers:
             try:
-                # Try to get 15 years for new listings
-                t_data = yf.download(ticker, period="max", interval="1d", progress=False)
+                # 1. Try DuckDB cache first
+                t_data = get_history_from_duckdb(ticker)
                 if t_data is not None and not t_data.empty:
-                    t_data = t_data.dropna()
                     name = symbols_map.get(ticker, "Unknown").replace("/", "_")
                     file_path = os.path.join(DATA_DIR, f"{ticker}_{name}.csv")
                     t_data.to_csv(file_path)
-                    print(f"Created record for {ticker}")
-            except: continue
+                    print(f"Created record for {ticker} from DuckDB cache")
+                    continue
+                
+                # 2. Fallback to yfinance
+                print(f"Ticker {ticker} not found in DuckDB. Downloading from yfinance...")
+                t_data = yf.download(ticker, period="max", interval="1d", progress=False)
+                if t_data is not None and not t_data.empty:
+                    t_data = t_data.dropna()
+                    if 'Adj Close' not in t_data.columns and 'adj_close' in t_data.columns:
+                        t_data.rename(columns={'adj_close': 'Adj Close'}, inplace=True)
+                    name = symbols_map.get(ticker, "Unknown").replace("/", "_")
+                    file_path = os.path.join(DATA_DIR, f"{ticker}_{name}.csv")
+                    t_data.to_csv(file_path)
+                    print(f"Created record for {ticker} from yfinance")
+            except Exception as e:
+                print(f"Failed to create record for {ticker}: {e}")
+                continue
 
     print(f"--- Sync Complete ---")
 

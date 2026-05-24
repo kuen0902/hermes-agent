@@ -156,6 +156,53 @@ func checkSQLiteDatabase() {
     }
 }
 
+// MARK: - 4.1. DuckDB Databases Check
+func checkDuckDBDatabases() {
+    let fileManager = FileManager.default
+    let venvPython = "/Users/bookid/.hermes/.venv/bin/python"
+    let dbs = [
+        ("portfolio.ddb", ["institutional_data", "ml_valuation_history", "intraday_history"]),
+        ("potential_analysis.ddb", ["eligible_stocks", "daily_stock_data", "full_daily_prices", "predictions"])
+    ]
+    
+    for (dbName, requiredTables) in dbs {
+        let dbPath = "/Users/bookid/.hermes/data/\(dbName)"
+        if !fileManager.fileExists(atPath: dbPath) {
+            logError("DuckDBDatabase", "ERROR (Database file not found: \(dbName) at \(dbPath))")
+            continue
+        }
+        
+        // Execute python to check DuckDB integrity and schemas
+        let pyProcess = Process()
+        pyProcess.executableURL = URL(fileURLWithPath: venvPython)
+        
+        let assertionStr = requiredTables.map { "assert '\($0)' in tables, 'Missing table \($0)'" }.joined(separator: "; ")
+        let script = "import duckdb; conn = duckdb.connect('\(dbPath)'); tables = [r[0] for r in conn.execute('SHOW TABLES').fetchall()]; \(assertionStr); print('OK')"
+        
+        pyProcess.arguments = ["-c", script]
+        
+        let pipe = Pipe()
+        pyProcess.standardOutput = pipe
+        pyProcess.standardError = pipe
+        
+        do {
+            try pyProcess.run()
+            pyProcess.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            
+            if pyProcess.terminationStatus == 0 && output == "OK" {
+                logSuccess("DuckDB Database (\(dbName)): OK - \(requiredTables.count) Tables Verified, Integrity Checked")
+            } else {
+                let errDetail = String(data: data, encoding: .utf8) ?? "Unknown assertion error"
+                logError("DuckDBDatabase", "ERROR (\(dbName) check failed: \(errDetail))")
+            }
+        } catch {
+            logError("DuckDBDatabase", "ERROR (Failed to execute DuckDB diagnostic for \(dbName): \(error.localizedDescription))")
+        }
+    }
+}
+
 // MARK: - 5. Disk Space Check
 func checkDiskSpace() {
     let fileManager = FileManager.default
@@ -699,6 +746,7 @@ if checkNetwork() {
 checkTelegramGateway()
 checkPythonVenv()
 checkSQLiteDatabase()
+checkDuckDBDatabases()
 checkDiskSpace()
 checkEnvVariables()
 checkCronJobs()

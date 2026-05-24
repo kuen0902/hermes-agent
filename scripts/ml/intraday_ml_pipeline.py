@@ -190,6 +190,70 @@ def load_rolling_institutional_data(iso_date, code_normalized):
     return 0, 0, 0, 0
 
 
+def load_historical_ma_features(code_normalized, today_actual_close):
+    """
+    從 ~/Documents/StockData_History_Full 載入歷史日線資料，
+    計算 5MA、10MA、20MA (月線)、60MA (季線)、120MA (半年線)、240MA (年線) 乖離率與間距。
+    """
+    import os
+    import pandas as pd
+    
+    workspace_dir = os.path.expanduser("~/.hermes/data/StockData_History_Full")
+    documents_dir = os.path.expanduser("~/Documents/StockData_History_Full")
+    
+    if os.path.exists(workspace_dir) and len(os.listdir(workspace_dir)) > 0:
+        data_dir = workspace_dir
+    else:
+        data_dir = documents_dir
+        
+    if not os.path.exists(data_dir):
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        
+    match_file = None
+    for f in os.listdir(data_dir):
+        if f.startswith(f"{code_normalized}."):
+            match_file = f
+            break
+            
+    if not match_file:
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        
+    try:
+        df = pd.read_csv(os.path.join(data_dir, match_file))
+        df['Close'] = pd.to_numeric(df['Close'], errors='coerce')
+        df = df.dropna(subset=['Close'])
+        
+        hist_closes = list(df['Close'].tail(239).values)
+        closes_240d = hist_closes + [today_actual_close]
+        
+        n_days = len(closes_240d)
+        if n_days == 0:
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            
+        ma5 = sum(closes_240d[-min(5, n_days):]) / min(5, n_days)
+        ma10 = sum(closes_240d[-min(10, n_days):]) / min(10, n_days)
+        ma20 = sum(closes_240d[-min(20, n_days):]) / min(20, n_days)
+        ma60 = sum(closes_240d[-min(60, n_days):]) / min(60, n_days)
+        ma120 = sum(closes_240d[-min(120, n_days):]) / min(120, n_days)
+        ma240 = sum(closes_240d) / n_days
+        
+        bias5 = (today_actual_close - ma5) / ma5 if ma5 else 0.0
+        bias10 = (today_actual_close - ma10) / ma10 if ma10 else 0.0
+        bias20 = (today_actual_close - ma20) / ma20 if ma20 else 0.0
+        bias60 = (today_actual_close - ma60) / ma60 if ma60 else 0.0
+        bias120 = (today_actual_close - ma120) / ma120 if ma120 else 0.0
+        bias240 = (today_actual_close - ma240) / ma240 if ma240 else 0.0
+        
+        spread_5_20 = (ma5 - ma20) / ma20 if ma20 else 0.0
+        spread_20_60 = (ma20 - ma60) / ma60 if ma60 else 0.0
+        spread_60_240 = (ma60 - ma240) / ma240 if ma240 else 0.0
+        
+        return bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240
+    except Exception as e:
+        print(f"載入歷史均線特徵失敗 ({code_normalized}): {e}")
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+
+
 def init_ml_db():
     db_path = os.path.join(DATA_DIR, "portfolio.ddb")
     try:
@@ -489,6 +553,10 @@ def run_intraday_pipeline(silent=False, target_date=None):
         # 2b. 計算投信與自營商的滾動累計籌碼
         t_5d, t_20d, d_5d, d_20d = load_rolling_institutional_data(today.isoformat(), code_norm)
         features.extend([t_5d, t_20d, d_5d, d_20d])
+        
+        # 2c. 載入歷史日線資料計算 MA 乖離率與間距 (5MA/10MA/月線/季線/半年線/年線及結構間距)
+        bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240 = load_historical_ma_features(code_norm, prices[-1])
+        features.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
         
         # 3. 卡爾曼式誤差反饋 (Feedback control loop) 與偏差計算
         error_val = 0.0
