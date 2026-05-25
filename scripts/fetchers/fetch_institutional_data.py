@@ -37,24 +37,29 @@ CORE_SYMBOLS = [
 
 def init_duck_db():
     os.makedirs(DATA_DIR, exist_ok=True)
-    conn = duckdb.connect(DUCK_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS institutional_data (
-            date VARCHAR,
-            code VARCHAR,
-            foreign_buy BIGINT,
-            trust_buy BIGINT,
-            dealer_buy BIGINT,
-            foreign_ratio DOUBLE,
-            foreign_holding BIGINT,
-            issued_shares BIGINT,
-            PRIMARY KEY (date, code)
-        )
-    ''')
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_inst_code ON institutional_data(code)")
-    conn.commit()
-    return conn
+    try:
+        conn = duckdb.connect(DUCK_PATH)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS institutional_data (
+                date VARCHAR,
+                code VARCHAR,
+                foreign_buy BIGINT,
+                trust_buy BIGINT,
+                dealer_buy BIGINT,
+                foreign_ratio DOUBLE,
+                foreign_holding BIGINT,
+                issued_shares BIGINT,
+                PRIMARY KEY (date, code)
+            )
+        ''')
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_inst_code ON institutional_data(code)")
+        conn.commit()
+        return conn
+    except Exception as e:
+        print(f"\n⚠️ [DuckDB] 無法建立資料庫寫入連線 (可能已被其他進程鎖定): {e}")
+        print("⚠️ 系統將以『唯讀/無 DuckDB 模式』繼續執行 JSON 與行情的同步...\n")
+        return None
 
 
 def load_target_codes():
@@ -312,10 +317,16 @@ def main():
         date_str = target_date.strftime("%Y%m%d")
         
         # 檢查 DuckDB 資料庫中是否已存在當日資料
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM institutional_data WHERE date = ?", (iso_date,))
-        row = cursor.fetchone()
-        db_exists = row[0] > 0 if row is not None else False
+        db_exists = False
+        if conn:
+            try:
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM institutional_data WHERE date = ?", (iso_date,))
+                row = cursor.fetchone()
+                db_exists = row[0] > 0 if row is not None else False
+            except Exception as e:
+                print(f" ⚠️ [DuckDB] 查詢失敗: {e} ")
+                db_exists = False
         
         # 若資料已存在且無 --force 參數，則跳過
         if db_exists and not args.force and iso_date in db:
@@ -334,7 +345,10 @@ def main():
             db[iso_date] = {}
         else:
             # 寫入 DuckDB
-            save_to_duckdb(conn, date_str, twse_data, tpex_data)
+            if conn:
+                save_to_duckdb(conn, date_str, twse_data, tpex_data)
+            else:
+                print(" ⚠️ [DuckDB] 未連接，跳過資料庫寫入 ", end='')
             
             # 同時寫入舊的 JSON 以保持 CORE_SYMBOLS 相容性
             db[iso_date] = {}
@@ -349,7 +363,11 @@ def main():
         save_inst_data(db)
         fetched_count += 1
         
-    conn.close()
+    if conn:
+        try:
+            conn.close()
+        except:
+            pass
     print(f"三大法人籌碼抓取完畢！本次共處理 {fetched_count} 個交易日。")
 
     # ⚡ 盤中 Feather 數據批次歸檔至 DuckDB 主庫 (EOD Speed Layer Archive)
@@ -359,24 +377,27 @@ def main():
         try:
             import pandas as pd
             df_temp = pd.read_feather(FEATHER_PATH)
-            duck_conn = duckdb.connect(DUCK_PATH)
-            duck_conn.execute("""
-                CREATE TABLE IF NOT EXISTS intraday_history (
-                    timestamp VARCHAR,
-                    code VARCHAR,
-                    name VARCHAR,
-                    price DOUBLE,
-                    volume BIGINT,
-                    pct_change DOUBLE
-                )
-            """)
-            duck_conn.execute("INSERT INTO intraday_history SELECT * FROM df_temp;")
-            duck_conn.commit()
-            duck_conn.close()
-            os.remove(FEATHER_PATH)
-            print("✓ [DuckDB] 今日盤中 Feather 行情已成功批量歸檔至 intraday_history，暫存檔已清理。")
+            try:
+                duck_conn = duckdb.connect(DUCK_PATH)
+                duck_conn.execute("""
+                    CREATE TABLE IF NOT EXISTS intraday_history (
+                        timestamp VARCHAR,
+                        code VARCHAR,
+                        name VARCHAR,
+                        price DOUBLE,
+                        volume BIGINT,
+                        pct_change DOUBLE
+                    )
+                """)
+                duck_conn.execute("INSERT INTO intraday_history SELECT * FROM df_temp;")
+                duck_conn.commit()
+                duck_conn.close()
+                os.remove(FEATHER_PATH)
+                print("✓ [DuckDB] 今日盤中 Feather 行情已成功批量歸檔至 intraday_history，暫存檔已清理。")
+            except Exception as db_err:
+                print(f"⚠️ [DuckDB] 寫入鎖定衝突，無法歸檔 Feather 數據: {db_err}")
         except Exception as e:
-            print(f"⚠️ [DuckDB] 盤中 Feather 歸檔失敗: {e}")
+            print(f"⚠️ [Feather] 處理 Feather 暫存檔失敗: {e}")
 
 if __name__ == "__main__":
     main()

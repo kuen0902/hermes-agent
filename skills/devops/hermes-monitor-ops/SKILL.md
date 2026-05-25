@@ -16,9 +16,10 @@ metadata:
 This skill governs the maintenance and troubleshooting of the custom **Hermes/Star Platinum** stock monitoring engine (Swift-Python bridge).
 
 ## Persona & Communication Style
-- **Status Alerts (Star Platinum)**: Use a precise, powerful tone. Include anime-inspired anchors like **"ORA ORA ORA!"** or **"Precision Monitoring"**. Maintain Taiwan market colors: 🔴 (Up), 🟢 (Down).
+- **Persona & Communication Style**: Use a precise, powerful tone. Include anime-inspired anchors like **"ORA ORA ORA!"** or **"Precision Monitoring"**. Maintain Taiwan market colors: 🔴 (Up), 🟢 (Down).
 - **System Failure/Restoration (GER)**: Use a cold, absolute tone. Anchors: **"這就是目前的絕對現實"**, **"無駄無駄無駄！"**.
 - **User Preference**: The user prefers "Result-Oriented" responses. Avoid long apologies or flowery explanations. Report **[Root Cause] -> [Action] -> [Result]**.
+- **Dialogue Anchor**: Always consider adding **「無駄無駄無駄！」** to technical confirmations for flavor.
 
 ## Key Architecture
 - **Orchestrator**: `hermes_orchestrator` (Swift) triggers the cycle.
@@ -49,6 +50,7 @@ Any time a script, token, or path is modified:
 ### 4. Robust Token Verification & Diagnosis
 - **Avoid False Positives**: Do not assume a `404 Not Found` on `getMe` means the token is dead without re-verifying the extraction logic (e.g., shell-escaping or truncation issues in `grep`).
 - **Chat Not Found (400)**: This usually means the bot is not a member of the group or the user hasn't messaged the bot yet. It is **NOT** a token error.
+- **Forbidden (403)**: Bot cannot initiate conversation. See `references/telegram_403_handshake.md` for the handshake protocol.
 - **Recovery sequence**:
   1. Check `~/.hermes/logs/gateway.log` for specific API error codes.
   2. Use `execute_code` to perform a clean `urllib` test with the raw token string from `lib_market_delivery.py`.

@@ -64,6 +64,20 @@ When Cron jobs or orchestrators fail to run Swift-compiled Mach-O executables (c
    - No extension / `.swift` binary → run directly
    - `.swift` source → run with `swift`
 
+## 4. Historical Data Expansion & Backfilling
+
+Specialized patterns for large-scale historical data retrieval (e.g., K-Bar backfilling).
+
+### Checkpoints for Backfill Progress
+- **Inventory Audit**: Compare directory file count against the target stock registry (`eligible_5y_stocks.json`).
+- **Database Consistency**: For DuckDB storage, verify `SELECT count(distinct ticker) FROM table` matches CSV counts.
+- **Resampling Integrity**: When resampling 1m bars to 5m, check if resulting bar counts per day are exactly 54 (TAIEX 09:00-13:30 = 270 mins / 5).
+- **Concurrency & WAF avoidance**: Maintain a `time.sleep(2.5)` or similar delay between tickers to avoid Yahoo Finance or FinMind web-application firewall (WAF) blocks.
+
+### Self-Healing Logic
+- **Header check**: Use `with open(csv_path) as f: sum(1 for _ in f)` to check for truncated files. A full 150-day 1m bar file should be ~50,000 lines; 5m bar file ~1,000+ lines.
+- **Auto-Overwrite**: Use a `--force` flag pattern in scripts to skip healthy caches while allowing re-builts for corrupted ones.
+
 ## Pitfalls
 - `__main__` Guard Corruption: Ensure code generation correctly parses `"__main__"` without escaping errors.
 - File-Write Races: Re-read file content before writing if sibling agents are active.

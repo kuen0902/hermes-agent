@@ -7,7 +7,7 @@ import duckdb
 
 # Configuration
 DATA_DIR = os.path.expanduser("~/.hermes/data")
-SAVE_DIR = os.path.expanduser("~/Documents/StockData_History_5Y")
+SAVE_DIR = os.path.expanduser("~/.hermes/data/StockData_History_5Y")
 DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 ELIGIBLE_JSON_PATH = os.path.join(DATA_DIR, "eligible_5y_stocks.json")
 PRED_JSON_PATH = os.path.join(DATA_DIR, "top_50_potential_stocks.json")
@@ -21,6 +21,7 @@ def get_db_connection():
 def init_tables(conn):
     """Creates tables with clean schemas and appropriate keys."""
     cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS daily_stock_data")
     
     # 1. Table: eligible_stocks
     cursor.execute("""
@@ -56,6 +57,15 @@ def init_tables(conn):
             foreign_net DOUBLE,
             trust_net DOUBLE,
             dealer_net DOUBLE,
+            margin_net DOUBLE,
+            major_net DOUBLE,
+            short_net DOUBLE,
+            short_balance DOUBLE,
+            margin_balance DOUBLE,
+            short_margin_ratio DOUBLE,
+            large_holder_rate DOUBLE,
+            retail_holder_rate DOUBLE,
+            total_holders DOUBLE,
             PRIMARY KEY (date, code)
         )
     """)
@@ -114,7 +124,29 @@ def load_eligible_stocks(conn):
 
 def load_daily_stock_data(conn):
     """Bulk loads all merged stock price + institutional flow CSVs into daily_stock_data."""
-    csv_files = glob.glob(os.path.join(SAVE_DIR, "*.csv"))
+    final_dir = os.path.expanduser("~/.hermes/data/StockData_History_Final")
+    five_y_dir = os.path.expanduser("~/.hermes/data/StockData_History_5Y")
+    full_dir = os.path.expanduser("~/.hermes/data/StockData_History_Full")
+    
+    files_final = glob.glob(os.path.join(final_dir, "*.csv")) if os.path.exists(final_dir) else []
+    files_5y = glob.glob(os.path.join(five_y_dir, "*.csv")) if os.path.exists(five_y_dir) else []
+    files_full = glob.glob(os.path.join(full_dir, "*.csv")) if os.path.exists(full_dir) else []
+    
+    unique_tickers = {}
+    # Combine lists: prefer final_dir, then five_y_dir, then full_dir
+    for f in files_final:
+        ticker = os.path.basename(f).split('_')[0]
+        unique_tickers[ticker] = f
+    for f in files_5y:
+        ticker = os.path.basename(f).split('_')[0]
+        if ticker not in unique_tickers:
+            unique_tickers[ticker] = f
+    for f in files_full:
+        ticker = os.path.basename(f).split('_')[0]
+        if ticker not in unique_tickers:
+            unique_tickers[ticker] = f
+            
+    csv_files = list(unique_tickers.values())
     print(f"Scanning {len(csv_files)} CSV files for DuckDB bulk load...")
     
     # Load mapping for correct CJK names
@@ -148,6 +180,13 @@ def load_daily_stock_data(conn):
             name = code_to_name.get(code, basename.replace('.csv', '').split('_')[1] if '_' in basename else "")
             name = name.replace('\ufffd', '').replace('*', '').strip()
             
+            # Ensure columns exist, fill with 0.0 if missing
+            for col in ['Foreign_Net', 'Trust_Net', 'Dealer_Net', 'Margin_Net', 'Major_Net',
+                        'Short_Net', 'Short_Balance', 'Margin_Balance', 'Short_Margin_Ratio',
+                        'Large_Holder_Rate', 'Retail_Holder_Rate', 'Total_Holders']:
+                if col not in df.columns:
+                    df[col] = 0.0
+            
             # Map columns
             df['Date'] = pd.to_datetime(df['Date']).dt.date
             df['code'] = code
@@ -157,8 +196,14 @@ def load_daily_stock_data(conn):
             # Ensure proper columns and order
             # Handles 'Adj Close' with double quotes or spaces
             adj_col = 'Adj Close' if 'Adj Close' in df.columns else df.columns[5] # Fallback to 5th col
-            df_temp = df[['Date', 'code', 'ticker', 'name', 'Open', 'High', 'Low', 'Close', adj_col, 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']].copy()
-            df_temp.columns = ['date', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'adj_close', 'volume', 'foreign_net', 'trust_net', 'dealer_net']
+            df_temp = df[['Date', 'code', 'ticker', 'name', 'Open', 'High', 'Low', 'Close', adj_col, 'Volume', 
+                           'Foreign_Net', 'Trust_Net', 'Dealer_Net', 'Margin_Net', 'Major_Net',
+                           'Short_Net', 'Short_Balance', 'Margin_Balance', 'Short_Margin_Ratio',
+                           'Large_Holder_Rate', 'Retail_Holder_Rate', 'Total_Holders']].copy()
+            df_temp.columns = ['date', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'adj_close', 'volume', 
+                               'foreign_net', 'trust_net', 'dealer_net', 'margin_net', 'major_net',
+                               'short_net', 'short_balance', 'margin_balance', 'short_margin_ratio',
+                               'large_holder_rate', 'retail_holder_rate', 'total_holders']
             
             batch_dfs.append(df_temp)
             loaded_count += 1

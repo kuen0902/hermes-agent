@@ -84,6 +84,11 @@
    - 重構 `scripts/send_pnl_report.swift` 通知器，使用 Swift 原生 `multipart/form-data` 對接 Telegram `sendPhoto` 接口，實現「損益圖表圖片 + 手動交易明細文字 Caption」的一體化高階推播，並內建了極具韌性的純文字 Fallback 發送機制。
    - 於 `scripts/run_daily_pnl_report.sh` 整合此視覺化管線，透過 E2E 實測與 24 項系統健康度診斷全數亮綠燈驗收。
 
+18. **夜盤報價橋接與監測報告自動化 (Session 2026-05-25)**
+   - 建立了 `market_prices_bridge.json` 資料橋接機制，由 Agent 手動抓取 NQ, TSM, NVDA, SYNA, FITXP 即時報價並寫入。
+   - 成功執行 `run_night_report.py` 利用此橋接資料生成夜盤監測報告，並發送至 Telegram。
+   - 解決了夜盤期間 ADR 資料抓取不穩定導致的分析落差問題。
+
 ## 🎯 下階段待辦事項 (Pending / Next Steps)
 
 1. **持續觀察手動平倉交易曲線與視覺化排版調整**

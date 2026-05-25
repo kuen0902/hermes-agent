@@ -8,9 +8,9 @@ from datetime import datetime
 
 # Configuration
 DATA_DIR = os.path.expanduser("~/.hermes/data")
-FINAL_DIR = os.path.expanduser("~/Documents/StockData_History_Final")
-FIVE_Y_DIR = os.path.expanduser("~/Documents/StockData_History_5Y")
-FULL_DIR = os.path.expanduser("~/Documents/StockData_History_Full")
+FINAL_DIR = os.path.expanduser("~/.hermes/data/StockData_History_Final")
+FIVE_Y_DIR = os.path.expanduser("~/.hermes/data/StockData_History_5Y")
+FULL_DIR = os.path.expanduser("~/.hermes/data/StockData_History_Full")
 DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 TRASH_JSON_PATH = os.path.join(DATA_DIR, "removed_trash_stocks.json")
 MAPPING_JSON_PATH = os.path.join(DATA_DIR, "stock_mapping.json")

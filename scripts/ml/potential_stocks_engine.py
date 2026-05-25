@@ -32,7 +32,13 @@ def prepare_features(df):
             return None
         df[col] = pd.to_numeric(df[col], errors='coerce')
         
+    for col in ['Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM', 'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin']:
+        if col not in df.columns:
+            df[col] = 0.0
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+        
     df = df.dropna(subset=['Close', 'Volume'])
+    df = df[df['Close'] > 0.0]
     
     # 1. Technical Indicators
     df['SMA_20'] = ta.sma(df['Close'], length=20)
@@ -129,6 +135,14 @@ def train_and_predict(inference_only=False):
         
     print(f"Total tickers found in DuckDB: {len(tickers_df)}")
     
+    # 獲取資料庫中最新的交易日期，用以過濾因停牌或故障而無最新報價的商品
+    try:
+        global_max_date = pd.to_datetime(conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()[0])
+        print(f"Latest trading day in DuckDB: {global_max_date.strftime('%Y-%m-%d')}")
+    except Exception as e:
+        print(f"⚠️ 無法取得最新交易日期: {e}")
+        global_max_date = pd.to_datetime(datetime.now().date())
+        
     full_data = []
     latest_inference_rows = []
     
@@ -141,19 +155,68 @@ def train_and_predict(inference_only=False):
             # Query all daily records for this ticker sorted by date ASC
             df = conn.execute("""
                 SELECT 
-                    date AS Date, 
-                    open AS Open, 
-                    high AS High, 
-                    low AS Low, 
-                    close AS Close, 
-                    adj_close AS "Adj Close", 
-                    volume AS Volume, 
-                    foreign_net AS Foreign_Net, 
-                    trust_net AS Trust_Net, 
-                    dealer_net AS Dealer_Net 
-                FROM daily_stock_data 
-                WHERE ticker = ? 
-                ORDER BY date ASC
+                    d.date AS Date, 
+                    d.open AS Open, 
+                    d.high AS High, 
+                    d.low AS Low, 
+                    d.close AS Close, 
+                    d.adj_close AS "Adj Close", 
+                    d.volume AS Volume, 
+                    d.foreign_net AS Foreign_Net, 
+                    d.trust_net AS Trust_Net, 
+                    d.dealer_net AS Dealer_Net,
+                    (
+                        SELECT r.revenue 
+                        FROM monthly_revenue r 
+                        WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date 
+                        ORDER BY r.date DESC 
+                        LIMIT 1
+                    ) AS Monthly_Revenue,
+                    (
+                        SELECT r.yoy 
+                        FROM monthly_revenue r 
+                        WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date 
+                        ORDER BY r.date DESC 
+                        LIMIT 1
+                    ) AS Revenue_YoY,
+                    (
+                        SELECT r.mom 
+                        FROM monthly_revenue r 
+                        WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date 
+                        ORDER BY r.date DESC 
+                        LIMIT 1
+                    ) AS Revenue_MoM,
+                    (
+                        SELECT r.eps 
+                        FROM financial_statements r 
+                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
+                        ORDER BY CAST(r.report_date AS DATE) DESC 
+                        LIMIT 1
+                    ) AS EPS,
+                    (
+                        SELECT r.gross_profit_margin 
+                        FROM financial_statements r 
+                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
+                        ORDER BY CAST(r.report_date AS DATE) DESC 
+                        LIMIT 1
+                    ) AS Gross_Profit_Margin,
+                    (
+                        SELECT r.operating_profit_margin 
+                        FROM financial_statements r 
+                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
+                        ORDER BY CAST(r.report_date AS DATE) DESC 
+                        LIMIT 1
+                    ) AS Operating_Profit_Margin,
+                    (
+                        SELECT r.net_profit_margin 
+                        FROM financial_statements r 
+                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
+                        ORDER BY CAST(r.report_date AS DATE) DESC 
+                        LIMIT 1
+                    ) AS Net_Profit_Margin
+                FROM daily_stock_data d
+                WHERE d.ticker = ? 
+                ORDER BY d.date ASC
             """, (ticker,)).fetchdf()
             
             if df.empty or len(df) < 80:
@@ -164,9 +227,13 @@ def train_and_predict(inference_only=False):
                 assert isinstance(processed, pd.DataFrame)
                 # 1. Split out the last row (without a target, used for current inference)
                 last_row = processed.iloc[-1].copy()
-                last_row['Ticker'] = ticker
-                last_row['Name'] = name
-                latest_inference_rows.append(last_row)
+                last_row_date = pd.to_datetime(last_row['Date'])
+                
+                # 僅在該商品的最新有效交易日在最新交易日 7 天之內時，才將其納入實時推論（防範長期停牌商品）
+                if (global_max_date - last_row_date).days <= 7:
+                    last_row['Ticker'] = ticker
+                    last_row['Name'] = name
+                    latest_inference_rows.append(last_row)
                 
                 # 2. Keep the historical rows for training (僅在需要訓練時才收集)
                 if not inference_only:
@@ -190,7 +257,9 @@ def train_and_predict(inference_only=False):
         'Foreign_Cum_5', 'Foreign_Cum_20', 'Foreign_Cum_60',
         'Trust_Cum_5', 'Trust_Cum_20', 'Trust_Cum_60',
         'Dual_Force_5', 'Dual_Force_20',
-        'Foreign_Buy_Days_5', 'Trust_Buy_Days_5'
+        'Foreign_Buy_Days_5', 'Trust_Buy_Days_5',
+        'Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM',
+        'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin'
     ]
     
     if not inference_only:
@@ -205,10 +274,12 @@ def train_and_predict(inference_only=False):
         # Ensure all feature columns exist and have no NaNs
         feature_cols = [c for c in feature_cols if c in train_val_df.columns]
         
-        # Drop rows that have NaN in features
+        # Drop rows that have NaN/Inf in features or target, and filter out extreme outliers in target return
         assert isinstance(train_val_df, pd.DataFrame)
-        train_val_df = train_val_df.dropna(subset=feature_cols)
-        print(f"Dataset size after dropping feature NaNs: {len(train_val_df)} rows.")
+        train_val_df = train_val_df.replace([np.inf, -np.inf], np.nan)
+        train_val_df = train_val_df.dropna(subset=feature_cols + ['Target_Ret_20'])
+        train_val_df = train_val_df[train_val_df['Target_Ret_20'].abs() <= 10.0]
+        print(f"Dataset size after cleaning NaNs, Infs, and extreme outliers: {len(train_val_df)} rows.")
         
         X = train_val_df[feature_cols]
         y = train_val_df['Target_Ret_20']
@@ -310,7 +381,11 @@ def train_and_predict(inference_only=False):
             "trust_net_5d": float(row['Trust_Cum_5']),
             "dual_force_5d": float(row['Dual_Force_5']),
             "foreign_net_20d": float(row['Foreign_Cum_20']),
-            "trust_net_20d": float(row['Trust_Cum_20'])
+            "trust_net_20d": float(row['Trust_Cum_20']),
+            "eps": float(row['EPS']),
+            "gross_profit_margin": float(row['Gross_Profit_Margin']),
+            "operating_profit_margin": float(row['Operating_Profit_Margin']),
+            "net_profit_margin": float(row['Net_Profit_Margin'])
         })
         
     with open(OUTPUT_JSON_PATH, 'w', encoding='utf-8') as f:
