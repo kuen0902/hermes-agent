@@ -272,8 +272,12 @@ def train_model():
                 else:
                     bias5 = bias10 = bias20 = bias60 = bias120 = bias240 = 0.0
                     spread_5_20 = spread_20_60 = spread_60_240 = 0.0
+                    ma5 = ma20 = ma60 = 0.0
                     
                 features.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
+                
+                # 4b. 增加新的絕對價格與均線維度 (4 維)
+                features.extend([prices[-1], ma5, ma20, ma60])
                 
                 # 5. 變異與誤差項計算 (1 維)
                 actual_today_pct = (prices[-1] - prices[0]) / prices[0]
@@ -307,7 +311,7 @@ def train_model():
     print(f"特徵萃取完成，總樣本數：{len(all_X)}，特徵維度：{len(all_X[0])}")
     
     # 訓練分類器
-    print("正在訓練 RandomForest 分類器 (31維)...")
+    print("正在訓練 RandomForest 分類器 (40維)...")
     model_clf = RandomForestClassifier(n_estimators=150, max_depth=10, min_samples_leaf=3, random_state=42)
     model_clf.fit(all_X, all_y_clf)
     
@@ -317,7 +321,7 @@ def train_model():
     print(f"分類器訓練完成！訓練集準確率 (Accuracy): {acc*100:.2f}%")
     
     # 訓練迴歸器
-    print("正在訓練 RandomForest 迴歸器 (31維)...")
+    print("正在訓練 RandomForest 迴歸器 (40維)...")
     model_reg = RandomForestRegressor(n_estimators=150, max_depth=10, min_samples_leaf=3, random_state=42)
     model_reg.fit(all_X, all_y_reg)
     print("迴歸器訓練完成！")

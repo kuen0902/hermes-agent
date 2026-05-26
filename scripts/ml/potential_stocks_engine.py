@@ -41,6 +41,7 @@ def prepare_features(df):
     df = df[df['Close'] > 0.0]
     
     # 1. Technical Indicators
+    df['SMA_5'] = ta.sma(df['Close'], length=5)
     df['SMA_20'] = ta.sma(df['Close'], length=20)
     df['SMA_60'] = ta.sma(df['Close'], length=60)
     df['EMA_12'] = ta.ema(df['Close'], length=12)
@@ -250,7 +251,7 @@ def train_and_predict(inference_only=False):
     
     # Feature columns for training
     feature_cols = [
-        'SMA_20', 'SMA_60', 'EMA_12', 'EMA_26', 'RSI_14', 
+        'Close', 'SMA_5', 'SMA_20', 'SMA_60', 'EMA_12', 'EMA_26', 'RSI_14', 
         'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9',
         'ATR_14', 'Vol_Ratio', 'Ret_1', 'Ret_5', 'Ret_20',
         'Foreign_Net_Ratio', 'Trust_Net_Ratio', 'Dealer_Net_Ratio',

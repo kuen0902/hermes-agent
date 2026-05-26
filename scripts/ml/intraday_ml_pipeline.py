@@ -15,6 +15,7 @@ import matplotlib
 import yfinance as yf
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 import joblib
+import pandas_ta_classic as ta
 
 # 設定 matplotlib 支援中文 (macOS)
 plt.rcParams['font.sans-serif'] = ['PingFang TC', 'Arial Unicode MS', 'Heiti TC']
@@ -185,9 +186,105 @@ def load_rolling_institutional_data(iso_date, code_normalized):
         dealer_20d = sum(r[1] for r in rows) if rows else 0
         
         return trust_5d, trust_20d, dealer_5d, dealer_20d
+        return trust_5d, trust_20d, dealer_5d, dealer_20d
     except Exception as e:
         print(f"計算滾動籌碼特徵失敗 ({code_normalized}): {e}")
     return 0, 0, 0, 0
+
+
+DAILY_FEATURES = [
+    'Close', 'SMA_5', 'SMA_20', 'SMA_60', 'EMA_12', 'EMA_26', 'RSI_14', 
+    'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9',
+    'ATR_14', 'Vol_Ratio', 'Ret_1', 'Ret_5', 'Ret_20',
+    'Foreign_Net_Ratio', 'Trust_Net_Ratio', 'Dealer_Net_Ratio',
+    'Foreign_Cum_5', 'Foreign_Cum_20', 'Foreign_Cum_60',
+    'Trust_Cum_5', 'Trust_Cum_20', 'Trust_Cum_60',
+    'Dual_Force_5', 'Dual_Force_20',
+    'Foreign_Buy_Days_5', 'Trust_Buy_Days_5',
+    'Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM',
+    'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin'
+]
+
+def get_daily_model_prediction(code_normalized, today_str, today_actual_close):
+    model_path = os.path.expanduser(f"~/.hermes/models/daily_model_{code_normalized}.pkl")
+    if not os.path.exists(model_path):
+        return 0.0
+    try:
+        db_path = os.path.join(DATA_DIR, "potential_analysis.ddb")
+        conn = duckdb.connect(db_path)
+        df = conn.execute("""
+            SELECT 
+                d.date AS Date, 
+                d.open AS Open, 
+                d.high AS High, 
+                d.low AS Low, 
+                d.close AS Close, 
+                d.volume AS Volume, 
+                d.foreign_net AS Foreign_Net, 
+                d.trust_net AS Trust_Net, 
+                d.dealer_net AS Dealer_Net,
+                (SELECT r.revenue FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Monthly_Revenue,
+                (SELECT r.yoy FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Revenue_YoY,
+                (SELECT r.mom FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Revenue_MoM,
+                (SELECT r.eps FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS EPS,
+                (SELECT r.gross_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS Gross_Profit_Margin,
+                (SELECT r.operating_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS Operating_Profit_Margin,
+                (SELECT r.net_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS Net_Profit_Margin
+            FROM daily_stock_data d
+            WHERE d.code = ?
+            ORDER BY d.date ASC
+        """, (code_normalized,)).fetchdf()
+        conn.close()
+        
+        if df.empty or len(df) < 20:
+            return 0.0
+            
+        df.iloc[-1, df.columns.get_loc('Close')] = today_actual_close
+        
+        df = df.copy()
+        df['SMA_5'] = ta.sma(df['Close'], length=5)
+        df['SMA_20'] = ta.sma(df['Close'], length=20)
+        df['SMA_60'] = ta.sma(df['Close'], length=60)
+        df['EMA_12'] = ta.ema(df['Close'], length=12)
+        df['EMA_26'] = ta.ema(df['Close'], length=26)
+        df['RSI_14'] = ta.rsi(df['Close'], length=14)
+        
+        macd = ta.macd(df['Close'])
+        if macd is not None:
+            df = pd.concat([df, macd], axis=1)
+            
+        df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+        vol_sma = ta.sma(df['Volume'], length=20)
+        df['VOL_SMA_20'] = vol_sma if vol_sma is not None else np.nan
+        df['Vol_Ratio'] = df['Volume'] / df['VOL_SMA_20'].replace(0, 1)
+        
+        df['Ret_1'] = df['Close'].pct_change(1)
+        df['Ret_5'] = df['Close'].pct_change(5)
+        df['Ret_20'] = df['Close'].pct_change(20)
+        
+        df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].replace(0, 1)
+        df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].replace(0, 1)
+        df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].replace(0, 1)
+        
+        df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
+        df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
+        df['Foreign_Cum_60'] = df['Foreign_Net'].rolling(60).sum()
+        df['Trust_Cum_5'] = df['Trust_Net'].rolling(5).sum()
+        df['Trust_Cum_20'] = df['Trust_Net'].rolling(20).sum()
+        df['Trust_Cum_60'] = df['Trust_Net'].rolling(60).sum()
+        
+        df['Dual_Force_5'] = df['Foreign_Cum_5'] + df['Trust_Cum_5']
+        df['Dual_Force_20'] = df['Foreign_Cum_20'] + df['Trust_Cum_20']
+        df['Foreign_Buy_Days_5'] = (df['Foreign_Net'] > 0).rolling(5).sum()
+        df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
+        
+        df_clean = df[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        
+        daily_model = joblib.load(model_path)
+        return float(daily_model.predict(df_clean.tail(1))[0])
+    except Exception as e:
+        print(f"⚠️ Error computing daily model prediction for {code_normalized}: {e}")
+        return 0.0
 
 
 def load_historical_ma_features(code_normalized, today_actual_close):
@@ -207,7 +304,7 @@ def load_historical_ma_features(code_normalized, today_actual_close):
         data_dir = documents_dir
         
     if not os.path.exists(data_dir):
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         
     match_file = None
     for f in os.listdir(data_dir):
@@ -216,7 +313,7 @@ def load_historical_ma_features(code_normalized, today_actual_close):
             break
             
     if not match_file:
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
         
     try:
         df = pd.read_csv(os.path.join(data_dir, match_file))
@@ -228,7 +325,7 @@ def load_historical_ma_features(code_normalized, today_actual_close):
         
         n_days = len(closes_240d)
         if n_days == 0:
-            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+            return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
             
         ma5 = sum(closes_240d[-min(5, n_days):]) / min(5, n_days)
         ma10 = sum(closes_240d[-min(10, n_days):]) / min(10, n_days)
@@ -248,10 +345,10 @@ def load_historical_ma_features(code_normalized, today_actual_close):
         spread_20_60 = (ma20 - ma60) / ma60 if ma60 else 0.0
         spread_60_240 = (ma60 - ma240) / ma240 if ma240 else 0.0
         
-        return bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240
+        return bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240, ma5, ma20, ma60
     except Exception as e:
         print(f"載入歷史均線特徵失敗 ({code_normalized}): {e}")
-        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+        return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 
 
 def init_ml_db():
@@ -554,14 +651,31 @@ def run_intraday_pipeline(silent=False, target_date=None):
         t_5d, t_20d, d_5d, d_20d = load_rolling_institutional_data(today.isoformat(), code_norm)
         features.extend([t_5d, t_20d, d_5d, d_20d])
         
-        # 2c. 載入歷史日線資料計算 MA 乖離率與間距 (5MA/10MA/月線/季線/半年線/年線及結構間距)
-        bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240 = load_historical_ma_features(code_norm, prices[-1])
+        # 2c. 載入歷史日線資料計算 MA 乖離率與間距及原始 MA 數值
+        bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240, ma5, ma20, ma60 = load_historical_ma_features(code_norm, prices[-1])
         features.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
+        
+        # 2d. 增加新的絕對價格與均線維度 (4 維)
+        features.extend([prices[-1], ma5, ma20, ma60])
+        
+        # 2e. 獲取日線 XGBoost 模型的 predicted return 作為高頻前置特徵 (1 維)
+        daily_pred_ret_20d = get_daily_model_prediction(code_norm, today.isoformat(), prices[-1])
+        features.append(daily_pred_ret_20d)
         
         # 3. 卡爾曼式誤差反饋 (Feedback control loop) 與偏差計算
         error_val = 0.0
         bias_val = 0.0
         error_str = "今日新納入估值"
+        
+        # 嘗試載入個股自適應優化後的預置 rolling bias 值
+        opt_bias = 0.0
+        meta_path = os.path.expanduser(f"~/.hermes/models/rolling_state_{code_norm}.json")
+        if os.path.exists(meta_path):
+            try:
+                with open(meta_path, 'r', encoding='utf-8') as f:
+                    opt_bias = json.load(f).get("optimized_bias", 0.0)
+            except Exception:
+                pass
         
         # 平滑因子 alpha = 0.2
         alpha = 0.2
@@ -574,6 +688,10 @@ def run_intraday_pipeline(silent=False, target_date=None):
             # 昨估今日價格 (校正後)
             prev_calibrated_val = prev_record.get("calibrated_val", prices[-1])
             prev_bias = prev_record.get("bias", 0.0)
+            
+            # 如果存在個股預置優化 bias，優先繼承
+            if opt_bias != 0.0:
+                prev_bias = opt_bias
             
             # 今日實際价格
             current_actual_price = prices[-1]
@@ -589,6 +707,10 @@ def run_intraday_pipeline(silent=False, target_date=None):
             
             # 回寫上一交易日記錄的真實誤差，方便日後稽核
             update_previous_kalman_error(code_norm, prev_date, current_actual_price, error_val)
+        else:
+            if opt_bias != 0.0:
+                bias_val = opt_bias
+                error_str = f"已套用個股預置滾動優化偏置: {bias_val:+.2f}"
         
         features.append(error_val) # 將前一日誤差本身作為反饋特徵注入 ML 特徵集
         
@@ -646,9 +768,45 @@ def run_intraday_pipeline(silent=False, target_date=None):
         model_reg.fit(X_infer, dummy_y_reg)
         joblib.dump(model_reg, MODEL_REG_FILE)
 
-    # 5. 雙模型推理
-    preds_clf = model_clf.predict_proba(X_infer)[:, 1]  # 看多機率
-    preds_reg = model_reg.predict(X_infer)              # 明日預期漲跌幅
+    # 5. 雙模型推理 (個股專屬模型優先載入，無則 fallback 至全局模型)
+    preds_clf = []
+    preds_reg = []
+    
+    for i, item in enumerate(codes_infer):
+        code_norm = item["code_norm"]
+        feats = X_infer[i]
+        
+        path_clf = os.path.expanduser(f"~/.hermes/models/intraday_model_{code_norm}.pkl")
+        path_reg = os.path.expanduser(f"~/.hermes/models/intraday_model_reg_{code_norm}.pkl")
+        
+        model_clf_local = None
+        if os.path.exists(path_clf):
+            try:
+                model_clf_local = joblib.load(path_clf)
+            except:
+                pass
+        if model_clf_local is None:
+            model_clf_local = model_clf
+            
+        model_reg_local = None
+        if os.path.exists(path_reg):
+            try:
+                model_reg_local = joblib.load(path_reg)
+            except:
+                pass
+        if model_reg_local is None:
+            model_reg_local = model_reg
+            
+        try:
+            prob = float(model_clf_local.predict_proba([feats])[0][1])
+            pred_ret = float(model_reg_local.predict([feats])[0])
+        except Exception as e:
+            print(f"⚠️ 個股本地模型 {code_norm} 預測失敗或維度 mismatch，將 fallback 至全域模型。Error: {e}")
+            prob = float(model_clf.predict_proba([feats])[0][1])
+            pred_ret = float(model_reg.predict([feats])[0])
+            
+        preds_clf.append(prob)
+        preds_reg.append(pred_ret)
 
     # 6. 計算收斂後估值並寫入誤差歷史
     new_predictions = {}
