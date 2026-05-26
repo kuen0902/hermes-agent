@@ -125,16 +125,18 @@ def sync_5m_data():
         except Exception as e:
             print(f"  ⚠️ 無法以唯讀模式連接 DuckDB: {e}")
             
+    dfs_to_sync = []
+
     for idx, code in enumerate(active_codes, 1):
         suffix = get_stock_suffix(code)
         ticker = f"{code}{suffix}"
         output_path = os.path.join(DATA_DIR, f"{code}_intraday_5m.csv")
         
-        print(f"  [{idx}/{len(active_codes)}] 正在同步 {ticker} 過去 60 天的 5m 價量...")
+        print(f"  [{idx}/{len(active_codes)}] 正在同步 {ticker} 5m 價量...")
         
-        df = None
+        df_db_clean = None
         
-        # 1. 優先從本地 DuckDB kbars_5m 資料表提取高頻數據 (極速、零網路開銷)
+        # 1. 優先從本地 DuckDB kbars_5m 資料表提取高頻歷史數據 (極速、零網路開銷)
         if conn:
             try:
                 query = """
@@ -151,16 +153,46 @@ def sync_5m_data():
                     
                     # 📌 轉換為與 yfinance 完全一致的 UTC 時區與 ISO 字串格式
                     df_db['timestamp'] = pd.to_datetime(df_db['timestamp'])
-                    df_db['timestamp'] = df_db['timestamp'].dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC')
+                    if df_db['timestamp'].dt.tz is None:
+                        df_db['timestamp'] = df_db['timestamp'].dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC')
+                    else:
+                        df_db['timestamp'] = df_db['timestamp'].dt.tz_convert('UTC')
                     df_db['timestamp'] = df_db['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
                     
-                    df = df_db[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
+                    df_db_clean = df_db[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
             except Exception as d_err:
                 print(f"    ⚠️ 從 DuckDB 讀取 {code} 失敗: {d_err}")
                 
-        # 2. 備用方案：若 DuckDB 無此商品資料，則降級為 yfinance 下載 (防禦性 fallback)
+        # 2. 抓取最新 5 天的 5m 價量以實現增量更新 (覆蓋這兩日：週一與週二)
+        df_latest = None
+        try:
+            df_yf = yf.download(ticker, period="5d", interval="5m", progress=False)
+            if not df_yf.empty:
+                if isinstance(df_yf.columns, pd.MultiIndex):
+                    df_yf.columns = df_yf.columns.get_level_values(0)
+                    
+                df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
+                df_yf = df_yf.reset_index()
+                df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+                df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                df_latest = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
+        except Exception as e:
+            print(f"    ⚠️ 從 yfinance 下載 {ticker} 5日增量失敗: {e}")
+
+        # 3. 合併歷史與最新增量數據
+        df = None
+        if df_db_clean is not None and df_latest is not None:
+            df = pd.concat([df_db_clean, df_latest], ignore_index=True)
+            df = df.drop_duplicates(subset=['timestamp'], keep='last')
+            df = df.sort_values('timestamp').reset_index(drop=True)
+        elif df_db_clean is not None:
+            df = df_db_clean
+        elif df_latest is not None:
+            df = df_latest
+            
+        # 4. 如果兩者皆空，作為最後防線，直接下載完整 60 天備份
         if df is None or df.empty:
-            print(f"    ⚠️ 本地無 {ticker} 資料，嘗試從 yfinance 下載備份...")
+            print(f"    ⚠️ 無本地與增量資料，嘗試下載 60d 完整備份...")
             try:
                 df_yf = yf.download(ticker, period="60d", interval="5m", progress=False)
                 if not df_yf.empty:
@@ -170,16 +202,38 @@ def sync_5m_data():
                     df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
                     df_yf = df_yf.reset_index()
                     df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
-                    df = df_yf
+                    df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                    df = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
             except Exception as e:
-                print(f"    ❌ 下載 {ticker} 備份失敗: {e}")
+                print(f"    ❌ 下載 {ticker} 60d 備份失敗: {e}")
                 
-        # 3. 儲存與統計
+        # 5. 儲存 CSV 檔，並收集以供批次回寫資料庫
         if df is not None and not df.empty:
             try:
+                # 限制檔案最大長度，只保留最近 10000 筆高頻 K 線
+                df = df.tail(10000)
                 df.to_csv(output_path, index=False)
                 print(f"    ✓ 成功更新 5m 高頻資料檔案: {output_path} ({len(df)} 筆)")
                 success_count += 1
+                
+                # 收集資料，加入 code, ticker, name 供批次寫入 DuckDB
+                df_temp = df.copy()
+                df_temp['code'] = code
+                df_temp['ticker'] = ticker
+                fixes = {
+                    "3481": "群創", "2330": "台積電", "2317": "鴻海", "2454": "聯發科",
+                    "2382": "廣達", "2409": "友達", "2408": "南亞科", "2327": "國巨",
+                    "1513": "中興電", "2049": "上銀", "5347": "世界", "4543": "萬在",
+                    "3709": "鑫聯大投控", "3260": "威剛", "6770": "力積電", "5443": "均豪",
+                    "2368": "金像電", "2344": "華邦電", "1802": "台玻", "0050": "元大台灣50",
+                    "00965": "元大航太防衛科技", "00981A": "主動統一台股增長", "0052": "富邦科技",
+                }
+                df_temp['name'] = fixes.get(code, code)
+                df_temp.rename(columns={
+                    'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'
+                }, inplace=True)
+                df_temp = df_temp[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume']]
+                dfs_to_sync.append(df_temp)
             except Exception as e:
                 print(f"    ❌ 儲存 {ticker} CSV 檔失敗: {e}")
                 fail_count += 1
@@ -192,6 +246,21 @@ def sync_5m_data():
             conn.close()
         except:
             pass
+            
+    # 📌 6. 批次將更新後的最新高頻增量數據寫回 DuckDB 保持快取新鮮度 (自我修復)
+    if dfs_to_sync:
+        print("\n  ⏳ 正在將更新後的 5m 高頻快取數據批次寫入 DuckDB...")
+        try:
+            df_all_sync = pd.concat(dfs_to_sync, ignore_index=True)
+            df_all_sync['timestamp'] = pd.to_datetime(df_all_sync['timestamp'])
+            
+            conn_write = duckdb.connect(potential_ddb)
+            conn_write.execute("INSERT OR REPLACE INTO kbars_5m SELECT * FROM df_all_sync")
+            conn_write.commit()
+            conn_write.close()
+            print(f"  ✓ 成功批次更新 DuckDB kbars_5m 主庫 (共 {len(df_all_sync)} 筆資料)")
+        except Exception as db_err:
+            print(f"  ❌ 批次寫入 DuckDB 失敗: {db_err}")
             
     print("=========================================================================")
     print(f"  🎉 歷史股票 5m 同步完成！ 成功：{success_count} 檔 | 失敗：{fail_count} 檔")
