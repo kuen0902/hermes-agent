@@ -239,8 +239,21 @@ def main():
             
     conn.close()
     
+    # 📌 3. 執行 5m 高頻資料健康體檢與缺漏自動回補
+    try:
+        print("\n⏳ 啟動 5m 高頻資料健康體檢與缺漏自動回補...")
+        import subprocess
+        # 執行體檢
+        subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/audit_5m_data.py"])
+        # 執行回補
+        subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/backfill_missing_5m.py"])
+        print("✓ 5m 高頻資料健康體檢與自動回補完成！")
+    except Exception as e:
+        print(f"⚠️ 5m 高頻資料體檢或回補失敗: {e}")
+
     elapsed = time.time() - start_time
     print(f"\n  ✓ 同步完成！月營收增量個股: {success_rev} 檔 | 季報新增/更新個股: {success_fin} 檔 | 總耗時: {elapsed:.2f} 秒")
+
     
     # 📌 3. 發送 summary 報告至「黃金體驗-鎮魂曲」 (GER Bot)
     ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：現實同步 (月營收與財務季報) 🌅**
