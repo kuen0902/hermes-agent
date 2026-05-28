@@ -78,37 +78,106 @@ def backfill_gaps():
         print(f"\n[補全] {ticker} ... 缺漏/不足天數: {total_gaps_days} 天")
         
         # 1. 下載完整的 60 天 5m 數據 (覆蓋所有缺漏日)
+        df_yf_clean = None
+        finmind_success = False
         try:
-            print(f"  ▸ 正在從 yfinance 下載 60 天 5m 歷史資料...")
-            df_yf = yf.download(ticker, period="60d", interval="5m", progress=False)
-            if df_yf.empty:
-                print(f"  ❌ 下載 {ticker} 失敗或無資料。")
+            print(f"  ▸ 正在從 FinMind 下載 60 天 5m 歷史資料...")
+            sixty_days_ago = (datetime.now() - pd.Timedelta(days=62)).strftime("%Y-%m-%d")
+            url = "https://api.finmindtrade.com/api/v4/data"
+            params = {
+                'dataset': 'TaiwanStockKBar',
+                'data_id': code,
+                'start_date': sixty_days_ago,
+                'token': "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYm9va2lkIiwiZW1haWwiOiJib29raWQyMDAwQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.MaUs7zQVYm5qKtlpIRdZ-s-I6WXCfcdtIowZiR7mXM4"
+            }
+            r = requests.get(url, params=params, timeout=30, verify=False)
+            if r.status_code == 200:
+                res_data = r.json()
+                if res_data.get('status') == 200 or res_data.get('msg') == 'success':
+                    raw_data = res_data.get('data', [])
+                    if raw_data:
+                        df_raw = pd.DataFrame(raw_data)
+                        df_raw['timestamp'] = pd.to_datetime(df_raw['date'] + ' ' + df_raw['minute'])
+                        df_raw = df_raw.set_index('timestamp').sort_index()
+                        
+                        # 轉換為數值
+                        for col in ['open', 'high', 'low', 'close', 'volume', 'turnover', 'transaction']:
+                            if col in df_raw.columns:
+                                df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce').fillna(0.0)
+                        
+                        # 重採樣成 5m
+                        resampled = df_raw.resample('5Min', closed='right', label='right').agg({
+                            'open': 'first',
+                            'high': 'max',
+                            'low': 'min',
+                            'close': 'last',
+                            'volume': 'sum',
+                            'turnover': 'sum',
+                            'transaction': 'sum'
+                        }).dropna()
+                        
+                        resampled = resampled[resampled['volume'] > 0.0].reset_index()
+                        resampled.rename(columns={
+                            'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume',
+                            'turnover': 'Amount', 'transaction': 'Transaction'
+                        }, inplace=True)
+                        
+                        # 轉為 ISO UTC 時區
+                        resampled['timestamp'] = pd.to_datetime(resampled['timestamp']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                        df_yf_clean = resampled[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+                        finmind_success = True
+                        print(f"  ✓ [FinMind] 成功下載 60日全維度數據。")
+        except Exception as fm_err:
+            print(f"  ⚠️ 從 FinMind 下載 60d 失敗: {fm_err}")
+            
+        # yfinance 備援降級方案
+        if not finmind_success:
+            try:
+                print(f"  ▸ 正在從 yfinance 下載 60 天 5m 歷史資料...")
+                df_yf = yf.download(ticker, period="60d", interval="5m", progress=False)
+                if df_yf.empty:
+                    print(f"  ❌ 下載 {ticker} 失敗或無資料。")
+                    continue
+                    
+                if isinstance(df_yf.columns, pd.MultiIndex):
+                    df_yf.columns = df_yf.columns.get_level_values(0)
+                    
+                df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
+                df_yf = df_yf.reset_index()
+                df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+                
+                # 轉換為 UTC ISO 格式
+                df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                df_yf['Amount'] = 0.0
+                df_yf['Transaction'] = 0
+                df_yf_clean = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+            except Exception as e:
+                print(f"  ❌ 處理 {ticker} 發生異常: {e}")
                 continue
-                
-            if isinstance(df_yf.columns, pd.MultiIndex):
-                df_yf.columns = df_yf.columns.get_level_values(0)
-                
-            df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
-            df_yf = df_yf.reset_index()
-            df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
-            
-            # 轉換為 UTC ISO 格式
-            df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-            df_yf_clean = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
-            
-            # 2. 合併本地已有的 CSV 資料以防遺失更久以前的快取
-            if os.path.exists(output_path):
-                try:
-                    df_local = pd.read_csv(output_path)
-                    df_local['timestamp'] = pd.to_datetime(df_local['timestamp']).dt.tz_localize('UTC', ambiguous='NaT').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                    df_combined = pd.concat([df_local, df_yf_clean], ignore_index=True)
-                    df_combined = df_combined.drop_duplicates(subset=['timestamp'], keep='last')
-                    df_combined = df_combined.sort_values('timestamp').reset_index(drop=True)
-                except Exception as merge_err:
-                    print(f"  ⚠️ 合併本地資料失敗，採用最新下載資料: {merge_err}")
-                    df_combined = df_yf_clean
-            else:
+
+        # 2. 合併本地已有的 CSV 資料以防遺失更久以前的快取
+        if os.path.exists(output_path):
+            try:
+                df_local = pd.read_csv(output_path)
+                # 補全欄位以相容於新 Schema
+                if 'Amount' not in df_local.columns and 'amount' in df_local.columns:
+                    df_local.rename(columns={'amount': 'Amount'}, inplace=True)
+                if 'Transaction' not in df_local.columns and 'transaction' in df_local.columns:
+                    df_local.rename(columns={'transaction': 'Transaction'}, inplace=True)
+                    
+                for col in ['Amount', 'Transaction']:
+                    if col not in df_local.columns:
+                        df_local[col] = 0.0 if col == 'Amount' else 0
+                        
+                df_local['timestamp'] = pd.to_datetime(df_local['timestamp']).dt.tz_localize('UTC', ambiguous='NaT').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                df_combined = pd.concat([df_local, df_yf_clean], ignore_index=True)
+                df_combined = df_combined.drop_duplicates(subset=['timestamp'], keep='last')
+                df_combined = df_combined.sort_values('timestamp').reset_index(drop=True)
+            except Exception as merge_err:
+                print(f"  ⚠️ 合併本地資料失敗，採用最新下載資料: {merge_err}")
                 df_combined = df_yf_clean
+        else:
+            df_combined = df_yf_clean
                 
             # 3. 限制長度並寫回 CSV
             df_combined = df_combined.tail(10000)
@@ -134,10 +203,11 @@ def backfill_gaps():
                     df_db_sync['name'] = stock_name
                     
                     df_db_sync.rename(columns={
-                        'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'
+                        'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume',
+                        'Amount': 'amount', 'Transaction': 'transaction'
                     }, inplace=True)
                     
-                    df_db_sync = df_db_sync[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume']]
+                    df_db_sync = df_db_sync[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume', 'amount', 'transaction']]
                     
                     conn.execute("INSERT OR REPLACE INTO kbars_5m SELECT * FROM df_db_sync")
                     conn.commit()

@@ -90,13 +90,14 @@
       "id": "1b9e65d2b69b",
       "max_iterations": 200,
       "name": "earnings-daily-downloader",
-      "prompt": "Check the local earnings calendar `~/.hermes/data/earnings_calendar.json`. \n1. Identify any stock who announced earnings ON OR BEFORE YESTERDAY (event_date < today) and hasn't been downloaded.\n2. For each identified stock, search for its latest quarterly financial report (2025 Q4 or 2026 Q1 as applicable) from the official company investor relations website or TWSE.\n3. Download the PDF to `~/Documents/Reports/2026_Q1/`.\n4. Perform a health check on the downloaded PDF.\n5. Update the calendar `downloaded_q1: true` upon success.\n6. Report findings to the user.",
+      "prompt": null,
       "skills": [],
       "skill": null,
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": null,
+      "script": "/Users/bookid/.hermes/scripts/run_earnings_downloader.sh",
+      "no_agent": true,
       "context_from": null,
       "schedule": {
         "kind": "cron",
@@ -106,17 +107,17 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 22
+        "completed": 23
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-05-29T06:00:00+08:00",
-      "last_run_at": "2026-05-28T06:07:04.801334+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-30T06:00:00+08:00",
+      "last_run_at": "2026-05-29T06:14:42.373111+08:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 429: 429 Too Many Requests: you (kuen0902) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add extra usage: https://ollama.com/settings (ref: 91cd0a36-588e-4e31-8251-f05a4ff85980)",
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -125,11 +126,7 @@
         "chat_name": "Jojo",
         "thread_id": null
       },
-      "enabled_toolsets": [
-        "browser",
-        "file",
-        "terminal"
-      ],
+      "enabled_toolsets": [],
       "workdir": null
     },
     {
@@ -281,15 +278,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 315
+        "completed": 320
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-29T01:00:00+08:00",
-      "last_run_at": "2026-05-29T00:00:32.685816+08:00",
+      "next_run_at": "2026-05-29T15:00:00+08:00",
+      "last_run_at": "2026-05-29T05:00:50.379777+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -540,15 +537,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 21
+        "completed": 22
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-05-29T05:00:00+08:00",
-      "last_run_at": "2026-05-28T05:08:09.375111+08:00",
+      "next_run_at": "2026-05-30T05:00:00+08:00",
+      "last_run_at": "2026-05-29T05:06:58.838887+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -708,15 +705,15 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 15
+        "completed": 16
       },
       "enabled": true,
       "state": "paused",
       "paused_at": "2026-05-25T23:04:12.479614+08:00",
       "paused_reason": null,
       "created_at": "2026-05-11T23:44:58.197993+08:00",
-      "next_run_at": "2026-05-29T05:00:00+08:00",
-      "last_run_at": "2026-05-28T05:00:12.464259+08:00",
+      "next_run_at": "2026-05-30T05:00:00+08:00",
+      "last_run_at": "2026-05-29T05:00:47.846245+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -787,15 +784,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 14
+        "completed": 15
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-05-29T04:00:00+08:00",
-      "last_run_at": "2026-05-28T04:00:41.496562+08:00",
+      "next_run_at": "2026-05-30T04:00:00+08:00",
+      "last_run_at": "2026-05-29T04:00:43.812420+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -861,15 +858,15 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 1825
+        "completed": 1892
       },
       "enabled": true,
       "state": "paused",
       "paused_at": "2026-05-25T23:04:14.615884+08:00",
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-29T00:20:00+08:00",
-      "last_run_at": "2026-05-29T00:15:42.136251+08:00",
+      "next_run_at": "2026-05-29T15:00:00+08:00",
+      "last_run_at": "2026-05-29T05:55:46.777593+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1071,17 +1068,17 @@
       "schedule_display": "0 1 * * *",
       "repeat": {
         "times": null,
-        "completed": 4
+        "completed": 5
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-24T07:41:14.009094+00:00",
-      "next_run_at": "2026-05-29T01:00:00+08:00",
-      "last_run_at": "2026-05-28T01:00:11.302718+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-30T01:00:00+08:00",
+      "last_run_at": "2026-05-29T01:00:07.220041+08:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 1\nstdout:\n=== [2026-05-29 01:00:06] Starting batch backfill for retained stocks ===\n=========================================================================\n  \ud83e\udd86 HERMES QUANT: \u5168\u5e02\u5834\u5728\u7dda\u4fdd\u7559\u500b\u80a1 15 \u5e74\u6b77\u53f2\u65e5\u7dda\u5206\u6279\u56de\u88dc\u5f15\u64ce (v2.0)\n=========================================================================\n\ud83d\udca1 \u7cfb\u7d71\u512a\u5316\uff1a\u5df2\u5167\u5efa\u5206\u6279\u57f7\u884c\u6a21\u5f0f\uff0c\u672c\u6b21\u6700\u591a\u50c5\u8655\u7406\u524d 100 \u6a94\u500b\u80a1\u3002\n\ud83d\udca1 \u4e0b\u8f09\u6a5f\u5236\uff1a5 \u7a2e\u6975\u81f4\u5099\u63f4\u7ba1\u9053 + \u667a\u6167\u7565\u904e\u5df2\u5b8c\u6210\u500b\u80a1\n\u274c \u7121\u4fdd\u7559\u80a1\u6e05\u55ae\uff0c\u7a0b\u5e8f\u7d50\u675f\u3002",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1155,15 +1152,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-27T01:10:00.000000+08:00",
-      "next_run_at": "2026-05-29T03:00:00+08:00",
-      "last_run_at": "2026-05-28T03:01:06.916520+08:00",
+      "next_run_at": "2026-05-30T03:00:00+08:00",
+      "last_run_at": "2026-05-29T03:01:16.167019+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1220,5 +1217,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-05-29T00:15:42.136751+08:00"
+  "updated_at": "2026-05-29T06:14:42.373548+08:00"
 }

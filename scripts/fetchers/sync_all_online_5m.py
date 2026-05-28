@@ -82,22 +82,34 @@ def load_monitored_codes():
             
     return {c for c in codes if c.isdigit()}
 
+def load_all_active_stock_codes():
+    """從 daily_stock_data 中動態加載全市場所有活躍的股票代碼"""
+    active_codes = set()
+    if os.path.exists(POTENTIAL_DDB):
+        try:
+            conn = duckdb.connect(POTENTIAL_DDB)
+            rows = conn.execute("SELECT DISTINCT code FROM daily_stock_data").fetchall()
+            conn.close()
+            for r in rows:
+                if r[0] and str(r[0]).isdigit():
+                    active_codes.add(str(r[0]).strip())
+        except Exception as e:
+            print(f"⚠️ DuckDB active code lookup failed: {e}")
+    return sorted(list(active_codes))
+
 def load_remaining_online_codes():
-    """Loads all stock codes in registry except those already monitored."""
+    """Loads all active stock codes from DuckDB except those already monitored."""
     monitored = load_monitored_codes()
-    all_codes = set()
-    official_names = {}
+    all_codes = load_all_active_stock_codes()
     
+    official_names = {}
     if os.path.exists(REGISTRY_PATH):
         try:
             with open(REGISTRY_PATH, 'r', encoding='utf-8') as f:
                 registry = json.load(f)
             official_names = registry.get("official_names", {})
-            for code in official_names.keys():
-                if code.isdigit():
-                    all_codes.add(code)
-        except Exception as e:
-            print(f"⚠️ Failed to read registry: {e}")
+        except:
+            pass
             
     remaining = sorted([c for c in all_codes if c not in monitored])
     return remaining, official_names
@@ -176,12 +188,16 @@ def sync_all_online_5m():
                 df_ticker['ticker'] = ticker
                 df_ticker['name'] = name
                 
+                # ⚡ 【新 Schema 對齊】補全新增欄位以相容於 DuckDB 7 維度結構
+                df_ticker['amount'] = 0.0
+                df_ticker['transaction'] = 0
+                
                 # Rename columns to match DuckDB schema
                 df_ticker.rename(columns={
                     'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'
                 }, inplace=True)
                 
-                df_final = df_ticker[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume']]
+                df_final = df_ticker[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume', 'amount', 'transaction']]
                 success_dfs.append(df_final)
                 success_count += 1
                 
@@ -198,6 +214,9 @@ def sync_all_online_5m():
         try:
             df_all = pd.concat(success_dfs, ignore_index=True)
             df_all['timestamp'] = pd.to_datetime(df_all['timestamp'])
+            
+            # ⚡ 【方案 B 重複值移除】在內存中先去重，同一個 (timestamp, code) 只保留最新的一筆
+            df_all = df_all.drop_duplicates(subset=['timestamp', 'code'], keep='last')
             
             conn = duckdb.connect(POTENTIAL_DDB)
             conn.execute("INSERT OR REPLACE INTO kbars_5m SELECT * FROM df_all")

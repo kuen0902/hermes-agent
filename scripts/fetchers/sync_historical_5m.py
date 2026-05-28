@@ -15,7 +15,7 @@ import json
 import requests
 import yfinance as yf
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Configuration
 DATA_DIR = os.path.expanduser("~/.hermes/data")
@@ -141,7 +141,7 @@ def sync_5m_data():
         if conn:
             try:
                 query = """
-                    SELECT timestamp, open AS Open, high AS High, low AS Low, close AS Close, volume AS Volume
+                    SELECT timestamp, open AS Open, high AS High, low AS Low, close AS Close, volume AS Volume, amount AS Amount, transaction AS Transaction
                     FROM kbars_5m
                     WHERE code = ?
                     ORDER BY timestamp DESC
@@ -160,25 +160,83 @@ def sync_5m_data():
                         df_db['timestamp'] = df_db['timestamp'].dt.tz_convert('UTC')
                     df_db['timestamp'] = df_db['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
                     
-                    df_db_clean = df_db[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
+                    df_db_clean = df_db[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
             except Exception as d_err:
                 print(f"    ⚠️ 從 DuckDB 讀取 {code} 失敗: {d_err}")
                 
-        # 2. 抓取最新 5 天的 5m 價量以實現增量更新 (覆蓋這兩日：週一與週二)
+        # 2. 抓取最新 5 天的 5m 價量與全維度籌碼以實現增量更新
         df_latest = None
+        # A. 優先嘗試 FinMind API (拉取 1m 資料並重採樣為 5m)
+        finmind_success = False
         try:
-            df_yf = yf.download(ticker, period="5d", interval="5m", progress=False)
-            if not df_yf.empty:
-                if isinstance(df_yf.columns, pd.MultiIndex):
-                    df_yf.columns = df_yf.columns.get_level_values(0)
+            five_days_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+            url = "https://api.finmindtrade.com/api/v4/data"
+            params = {
+                'dataset': 'TaiwanStockKBar',
+                'data_id': code,
+                'start_date': five_days_ago,
+                'token': "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYm9va2lkIiwiZW1haWwiOiJib29raWQyMDAwQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.MaUs7zQVYm5qKtlpIRdZ-s-I6WXCfcdtIowZiR7mXM4"
+            }
+            r = requests.get(url, params=params, timeout=15, verify=False)
+            if r.status_code == 200:
+                res_data = r.json()
+                if res_data.get('status') == 200 or res_data.get('msg') == 'success':
+                    raw_data = res_data.get('data', [])
+                    if raw_data:
+                        df_raw = pd.DataFrame(raw_data)
+                        df_raw['timestamp'] = pd.to_datetime(df_raw['date'] + ' ' + df_raw['minute'])
+                        df_raw = df_raw.set_index('timestamp').sort_index()
+                        
+                        # 轉換為數值
+                        for col in ['open', 'high', 'low', 'close', 'volume', 'turnover', 'transaction']:
+                            if col in df_raw.columns:
+                                df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce').fillna(0.0)
+                        
+                        # 重採樣成 5m
+                        resampled = df_raw.resample('5Min', closed='right', label='right').agg({
+                            'open': 'first',
+                            'high': 'max',
+                            'low': 'min',
+                            'close': 'last',
+                            'volume': 'sum',
+                            'turnover': 'sum',
+                            'transaction': 'sum'
+                        }).dropna()
+                        
+                        resampled = resampled[resampled['volume'] > 0.0].reset_index()
+                        resampled.rename(columns={
+                            'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume',
+                            'turnover': 'Amount', 'transaction': 'Transaction'
+                        }, inplace=True)
+                        
+                        # 轉為 ISO UTC 時區
+                        resampled['timestamp'] = pd.to_datetime(resampled['timestamp']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                        df_latest = resampled[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+                        finmind_success = True
+                        print(f"    ✓ [FinMind] 成功同步最新 5日全維度增量數據。")
+        except Exception as fm_err:
+            print(f"    ⚠️ 從 FinMind 下載 {ticker} 5日增量失敗: {fm_err}")
+            
+        # B. 降級備用方案：若 FinMind 失敗，則使用 yfinance 抓取 OHLCV，並把 Amount 與 Transaction 補 0
+        if not finmind_success:
+            try:
+                df_yf = yf.download(ticker, period="5d", interval="5m", progress=False)
+                if not df_yf.empty:
+                    if isinstance(df_yf.columns, pd.MultiIndex):
+                        df_yf.columns = df_yf.columns.get_level_values(0)
+                        
+                    df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
+                    df_yf = df_yf.reset_index()
+                    df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+                    df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
                     
-                df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
-                df_yf = df_yf.reset_index()
-                df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
-                df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                df_latest = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
-        except Exception as e:
-            print(f"    ⚠️ 從 yfinance 下載 {ticker} 5日增量失敗: {e}")
+                    df_yf['Amount'] = 0.0
+                    df_yf['Transaction'] = 0
+                    
+                    df_latest = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+                    print(f"    ⚠️ [yfinance 備援] 已降級下載 {ticker} 5日基本價量資料。")
+            except Exception as e:
+                print(f"    ❌ 從 yfinance 下載 {ticker} 5日增量失敗: {e}")
 
         # 3. 合併歷史與最新增量數據
         df = None
@@ -191,9 +249,9 @@ def sync_5m_data():
         elif df_latest is not None:
             df = df_latest
             
-        # 4. 如果兩者皆空，作為最後防線，直接下載完整 60 天備份
+        # 4. 如果兩者皆空，作為最後防線，嘗試下載 60d yfinance 備份
         if df is None or df.empty:
-            print(f"    ⚠️ 無本地與增量資料，嘗試下載 60d 完整備份...")
+            print(f"    ⚠️ 無本地與增量資料，嘗試下載 60d yfinance 備份...")
             try:
                 df_yf = yf.download(ticker, period="60d", interval="5m", progress=False)
                 if not df_yf.empty:
@@ -204,7 +262,11 @@ def sync_5m_data():
                     df_yf = df_yf.reset_index()
                     df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
                     df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                    df = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume']]
+                    
+                    df_yf['Amount'] = 0.0
+                    df_yf['Transaction'] = 0
+                    
+                    df = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
             except Exception as e:
                 print(f"    ❌ 下載 {ticker} 60d 備份失敗: {e}")
                 
@@ -231,9 +293,10 @@ def sync_5m_data():
                 }
                 df_temp['name'] = fixes.get(code, code)
                 df_temp.rename(columns={
-                    'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume'
+                    'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume',
+                    'Amount': 'amount', 'Transaction': 'transaction'
                 }, inplace=True)
-                df_temp = df_temp[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume']]
+                df_temp = df_temp[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume', 'amount', 'transaction']]
                 dfs_to_sync.append(df_temp)
             except Exception as e:
                 print(f"    ❌ 儲存 {ticker} CSV 檔失敗: {e}")

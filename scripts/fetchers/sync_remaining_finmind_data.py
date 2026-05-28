@@ -239,17 +239,27 @@ def main():
             
     conn.close()
     
-    # 📌 3. 執行 5m 高頻資料健康體檢與缺漏自動回補
+    # 📌 3. 執行 14年日線與 5m 高頻資料健康體檢與缺漏自動回補 (排查 -> 回補 -> 二次複檢驗證閉環)
     try:
-        print("\n⏳ 啟動 5m 高頻資料健康體檢與缺漏自動回補...")
+        print("\n⏳ [第一輪排查] 啟動日線與 5m 高頻資料健康體檢...")
         import subprocess
-        # 執行體檢
+        # A. 執行 14年日線歷史大排查
+        subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/audit_daily_history_data.py"])
+        # B. 執行 5m 高頻體檢
         subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/audit_5m_data.py"])
-        # 執行回補
+        
+        print("\n⏳ [自動回補] 執行高頻資料定點自動補全...")
+        # C. 執行 5m 高頻回補
         subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/backfill_missing_5m.py"])
-        print("✓ 5m 高頻資料健康體檢與自動回補完成！")
+        
+        print("\n⏳ [第二輪複檢] 再次排查確認回補有效性與一致性...")
+        # D. 回補後「再次排查」以驗證回補結果，刷新待回補清單
+        subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/audit_daily_history_data.py"])
+        subprocess.run(["/Users/bookid/.hermes/.venv/bin/python", "/Users/bookid/.hermes/scripts/fetchers/audit_5m_data.py"])
+        
+        print("✓ [自癒閉環] 資料健康排查、自動回補、以及二次複檢驗證全部順暢完成！")
     except Exception as e:
-        print(f"⚠️ 5m 高頻資料體檢或回補失敗: {e}")
+        print(f"⚠️ 資料自癒閉環執行失敗: {e}")
 
     elapsed = time.time() - start_time
     print(f"\n  ✓ 同步完成！月營收增量個股: {success_rev} 檔 | 季報新增/更新個股: {success_fin} 檔 | 總耗時: {elapsed:.2f} 秒")
