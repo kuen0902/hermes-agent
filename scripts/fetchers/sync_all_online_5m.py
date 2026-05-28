@@ -126,7 +126,7 @@ def sync_all_online_5m():
     print(f"  偵測到監控個股外之「在線其餘個股」共 {len(remaining_codes)} 檔。")
     print("  正在啟動高效能批次下載 (每批 50 檔)...")
     
-    success_dfs = []
+    success_dfs: list[pd.DataFrame] = []
     success_count = 0
     fail_count = 0
     
@@ -212,7 +212,8 @@ def sync_all_online_5m():
     if success_dfs:
         print(f"\n  ⏳ 正在將 {success_count} 檔個股當日 5分增量數據批次寫入 DuckDB...")
         try:
-            df_all = pd.concat(success_dfs, ignore_index=True)
+            df_all: pd.DataFrame = pd.concat(success_dfs, ignore_index=True)
+            assert isinstance(df_all, pd.DataFrame)
             df_all['timestamp'] = pd.to_datetime(df_all['timestamp'])
             
             # ⚡ 【方案 B 重複值移除】在內存中先去重，同一個 (timestamp, code) 只保留最新的一筆
