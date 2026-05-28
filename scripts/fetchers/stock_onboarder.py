@@ -369,7 +369,11 @@ def step3_backfill_5y_institutional_data(code, name, suffix):
         df_temp = df_temp[['Date', 'code', 'ticker', 'name', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']]
         df_temp.columns = ['date', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'adj_close', 'volume', 'foreign_net', 'trust_net', 'dealer_net']
         
-        conn.execute("INSERT OR REPLACE INTO daily_stock_data SELECT * FROM df_temp")
+        conn.execute("""
+            INSERT OR REPLACE INTO daily_stock_data 
+            (date, code, ticker, name, open, high, low, close, adj_close, volume, foreign_net, trust_net, dealer_net) 
+            SELECT * FROM df_temp
+        """)
         conn.close()
         print(f"  ✓ [DuckDB potential_analysis.ddb] 成功增量寫入/更新 {len(df_temp)} 筆日歷史數據。")
     except Exception as e:
