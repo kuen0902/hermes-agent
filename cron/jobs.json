@@ -236,15 +236,15 @@
       "schedule_display": "30 13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 18
+        "completed": 19
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T18:15:42.884626+08:00",
-      "next_run_at": "2026-05-28T13:30:00+08:00",
-      "last_run_at": "2026-05-27T13:30:30.140665+08:00",
+      "next_run_at": "2026-05-29T13:30:00+08:00",
+      "last_run_at": "2026-05-28T13:30:34.759883+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -264,13 +264,14 @@
     {
       "id": "92761c4c3e4e",
       "name": "Taiwan Stock Night Session Hourly Update",
-      "prompt": "1. Use your tools to fetch the current real-time prices for the following tickers:\n- Nasdaq 100 Futures (NQ)\n- TSM (TSMC ADR)\n- NVDA (Nvidia Corporation)\n- SYNA (Synaptics)\n- Taiwan Index Futures Night Session (\u53f0\u6307\u671f\u591c\u76e4 / FITXP)\n\n2. Write these prices to `/Users/bookid/.hermes/data/market_prices_bridge.json` in JSON format: {\"NQ\": price, \"TSM\": price, \"NVDA\": price, \"SYNA\": price, \"FITXP\": price, \"timestamp\": \"ISO-TIME\"}.\n\n3. Execute the combined night session monitoring script: `/Users/bookid/.hermes/scripts/run_night_report.py`.\n\n4. Produce the final aggregated report as your response.",
+      "prompt": null,
       "skills": [],
       "skill": null,
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": null,
+      "script": "/Users/bookid/.hermes/scripts/run_night_session_hourly.sh",
+      "no_agent": true,
       "context_from": null,
       "schedule": {
         "kind": "cron",
@@ -280,15 +281,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 305
+        "completed": 315
       },
       "enabled": true,
-      "state": "paused",
-      "paused_at": "2026-05-25T23:04:13.541782+08:00",
+      "state": "scheduled",
+      "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-05-28T15:00:00+08:00",
-      "last_run_at": "2026-05-28T05:01:19.740807+08:00",
+      "next_run_at": "2026-05-29T01:00:00+08:00",
+      "last_run_at": "2026-05-29T00:00:32.685816+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -299,11 +300,7 @@
         "chat_name": "Jojo",
         "thread_id": null
       },
-      "enabled_toolsets": [
-        "browser",
-        "file",
-        "terminal"
-      ],
+      "enabled_toolsets": [],
       "workdir": null
     },
     {
@@ -370,15 +367,15 @@
       "schedule_display": "*/5 9-13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 666
+        "completed": 718
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T09:44:30.413848+08:00",
-      "next_run_at": "2026-05-28T09:40:00+08:00",
-      "last_run_at": "2026-05-28T09:36:11.758660+08:00",
+      "next_run_at": "2026-05-29T09:00:00+08:00",
+      "last_run_at": "2026-05-28T13:55:15.522337+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -456,15 +453,15 @@
       "schedule_display": "0 14 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 15
+        "completed": 16
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T23:20:47.078400+08:00",
-      "next_run_at": "2026-05-28T14:00:00+08:00",
-      "last_run_at": "2026-05-27T14:00:04.480769+08:00",
+      "next_run_at": "2026-05-29T14:00:00+08:00",
+      "last_run_at": "2026-05-28T14:00:16.830143+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -497,15 +494,15 @@
       "schedule_display": "30 23 * * *",
       "repeat": {
         "times": null,
-        "completed": 20
+        "completed": 21
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-06T21:58:27.890264+08:00",
-      "next_run_at": "2026-05-28T23:30:00+08:00",
-      "last_run_at": "2026-05-27T23:32:56.942166+08:00",
+      "next_run_at": "2026-05-29T23:30:00+08:00",
+      "last_run_at": "2026-05-28T23:30:51.708449+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -585,15 +582,15 @@
       "schedule_display": "30 14 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 13
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:21:57.694271+08:00",
-      "next_run_at": "2026-05-28T14:30:00+08:00",
-      "last_run_at": "2026-05-27T14:30:25.777694+08:00",
+      "next_run_at": "2026-05-29T14:30:00+08:00",
+      "last_run_at": "2026-05-28T14:30:41.127671+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -627,15 +624,15 @@
       "schedule_display": "50 13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 15
+        "completed": 16
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:25:25.947235+08:00",
-      "next_run_at": "2026-05-28T13:50:00+08:00",
-      "last_run_at": "2026-05-27T13:50:54.574414+08:00",
+      "next_run_at": "2026-05-29T13:50:00+08:00",
+      "last_run_at": "2026-05-28T13:50:05.629224+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -669,15 +666,15 @@
       "schedule_display": "35 15 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 14
+        "completed": 16
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T15:14:22.198385+08:00",
-      "next_run_at": "2026-05-28T15:35:00+08:00",
-      "last_run_at": "2026-05-27T15:45:42.302069+08:00",
+      "next_run_at": "2026-05-29T15:35:00+08:00",
+      "last_run_at": "2026-05-28T23:01:50.319760+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -864,15 +861,15 @@
       "schedule_display": "*/5 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 1716
+        "completed": 1825
       },
       "enabled": true,
       "state": "paused",
       "paused_at": "2026-05-25T23:04:14.615884+08:00",
       "paused_reason": null,
       "created_at": "2026-05-16T01:29:21.424550+08:00",
-      "next_run_at": "2026-05-28T15:00:00+08:00",
-      "last_run_at": "2026-05-28T05:55:43.432668+08:00",
+      "next_run_at": "2026-05-29T00:20:00+08:00",
+      "last_run_at": "2026-05-29T00:15:42.136251+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -948,15 +945,15 @@
       "schedule_display": "0 17 * * *",
       "repeat": {
         "times": null,
-        "completed": 8
+        "completed": 9
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-21T21:14:00+08:00",
-      "next_run_at": "2026-05-28T17:00:00+08:00",
-      "last_run_at": "2026-05-27T17:02:21.590243+08:00",
+      "next_run_at": "2026-05-29T17:00:00+08:00",
+      "last_run_at": "2026-05-28T17:02:59.933490+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -990,17 +987,17 @@
       "schedule_display": "30 15 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 6
+        "completed": 7
       },
-      "enabled": true,
-      "state": "scheduled",
-      "paused_at": null,
-      "paused_reason": null,
+      "enabled": false,
+      "state": "paused",
+      "paused_at": "2026-05-29T00:10:00+08:00",
+      "paused_reason": "Deprecated duplicate in favor of All Active Stocks Institutional Sync (16:00) which runs perfectly once data is fully populated.",
       "created_at": "2026-05-21T21:57:42.534753+08:00",
-      "next_run_at": "2026-05-28T15:30:00+08:00",
-      "last_run_at": "2026-05-27T15:30:37.602328+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-05-29T15:30:00+08:00",
+      "last_run_at": "2026-05-28T15:40:52.217847+08:00",
+      "last_status": "error",
+      "last_error": "Script timed out after 600s: /Users/bookid/.hermes/scripts/run_institutional_sync.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1116,15 +1113,15 @@
       "schedule_display": "0 16 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 1
+        "completed": 2
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-27T01:10:00.000000+08:00",
-      "next_run_at": "2026-05-28T16:00:00+08:00",
-      "last_run_at": "2026-05-27T16:00:50.051263+08:00",
+      "next_run_at": "2026-05-29T16:00:00+08:00",
+      "last_run_at": "2026-05-28T16:00:21.784848+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1179,7 +1176,49 @@
       },
       "enabled_toolsets": [],
       "workdir": null
+    },
+    {
+      "id": "all-online-stocks-5m-sync-1630",
+      "name": "Remaining Online Stocks 5m Data Daily Sync (16:30)",
+      "prompt": null,
+      "skills": [],
+      "skill": null,
+      "model": null,
+      "provider": null,
+      "base_url": null,
+      "script": "/Users/bookid/.hermes/scripts/run_all_online_5m_sync.sh",
+      "no_agent": true,
+      "context_from": null,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 16 * * 1-5",
+        "display": "30 16 * * 1-5"
+      },
+      "schedule_display": "30 16 * * 1-5",
+      "repeat": {
+        "times": null,
+        "completed": 0
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "paused_at": null,
+      "paused_reason": null,
+      "created_at": "2026-05-28T23:18:00.000000+08:00",
+      "next_run_at": "2026-05-29T16:30:00+08:00",
+      "last_run_at": null,
+      "last_status": null,
+      "last_error": null,
+      "last_delivery_error": null,
+      "deliver": "local",
+      "origin": {
+        "platform": "telegram",
+        "chat_id": "6326497055",
+        "chat_name": "Jojo",
+        "thread_id": null
+      },
+      "enabled_toolsets": [],
+      "workdir": null
     }
   ],
-  "updated_at": "2026-05-28T09:36:11.759146+08:00"
+  "updated_at": "2026-05-29T00:15:42.136751+08:00"
 }

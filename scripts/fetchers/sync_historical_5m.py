@@ -59,18 +59,10 @@ def get_stock_suffix(code):
     return ".TW"
 
 def load_historically_active_codes():
-    """Compiles all historically active stock codes in the system."""
+    """Compiles only actively monitored and held stock codes in the system."""
     codes = set()
     
-    # 1. Scan for existing {code}_intraday_5m.csv files
-    files = glob.glob(os.path.join(DATA_DIR, "*_intraday_5m.csv"))
-    for f in files:
-        basename = os.path.basename(f)
-        code = basename.split('_')[0]
-        if code.isdigit():
-            codes.add(code)
-            
-    # 2. Read SQLite current holdings and watchlist
+    # 1. Read SQLite current holdings and watchlist
     if os.path.exists(DB_PATH):
         try:
             conn = sqlite3.connect(DB_PATH)
@@ -88,20 +80,29 @@ def load_historically_active_codes():
                 
             conn.close()
         except Exception as e:
-            print(f"⚠️ 無法讀取 SQLite 歷史股號: {e}")
+            print(f"⚠️ 無法讀取 SQLite 監控股號: {e}")
             
-    # 3. Read registry official names
+    # 2. Read registry groups and William codes as fallback active targets
     if os.path.exists(REGISTRY_PATH):
         try:
             with open(REGISTRY_PATH, 'r', encoding='utf-8') as f:
                 registry = json.load(f)
-            for code in registry.get("official_names", {}).keys():
-                if code.isdigit():
-                    codes.add(code)
-        except:
-            pass
             
-    return sorted(list(codes))
+            # Add William codes
+            for code in registry.get("william_codes", []):
+                codes.add(str(code).strip())
+                
+            # Add group category codes
+            group_categories = registry.get("group_categories", {})
+            for grp, grp_codes in group_categories.items():
+                for code in grp_codes:
+                    codes.add(str(code).strip())
+        except Exception as e:
+            print(f"⚠️ 無法讀取 Registry 備份股號: {e}")
+            
+    # Filter out empty or non-digit codes
+    valid_codes = {c for c in codes if c.isdigit()}
+    return sorted(list(valid_codes))
 
 def sync_5m_data():
     print("=========================================================================")

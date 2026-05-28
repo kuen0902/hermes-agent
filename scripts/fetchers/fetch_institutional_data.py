@@ -105,17 +105,17 @@ def load_target_codes():
             print(f"無法讀取監控清單以擴展三大法人同步目標: {e}")
 
     # 3. 讀取 DuckDB 中所有歷史上存在過的三大法人代碼，確保已移除股依然維持資料庫更新
-    try:
-        if os.path.exists(DUCK_PATH):
-            conn = duckdb.connect(DUCK_PATH)
-            rows = conn.execute("SELECT DISTINCT code FROM institutional_data").fetchall()
-            for r in rows:
-                code = str(r[0]).replace(".TW", "").replace(".TWO", "").strip()
-                if code:
-                    target_codes.add(code)
-            conn.close()
-    except Exception as e:
-        print(f"無法讀取 DuckDB 歷史三大法人代碼: {e}")
+    # try:
+    #     if os.path.exists(DUCK_PATH):
+    #         conn = duckdb.connect(DUCK_PATH)
+    #         rows = conn.execute("SELECT DISTINCT code FROM institutional_data").fetchall()
+    #         for r in rows:
+    #             code = str(r[0]).replace(".TW", "").replace(".TWO", "").strip()
+    #             if code:
+    #                 target_codes.add(code)
+    #         conn.close()
+    # except Exception as e:
+    #     print(f"無法讀取 DuckDB 歷史三大法人代碼: {e}")
             
     return target_codes
 
@@ -238,16 +238,15 @@ def save_to_duckdb(conn, date_str, twse_data, tpex_data):
     import concurrent.futures
     finmind_cache = {}
     
-    def fetch_task(code, delay):
-        if delay > 0:
-            time.sleep(delay)
+    def fetch_task(code):
         return code, fetch_finmind_single(date_str, code)
         
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = []
         for idx, code in enumerate(codes_to_fetch):
-            stagger = idx * 0.05
-            f = executor.submit(fetch_task, code, stagger)
+            if idx > 0:
+                time.sleep(0.05)
+            f = executor.submit(fetch_task, code)
             futures.append(f)
             
         for future in concurrent.futures.as_completed(futures):

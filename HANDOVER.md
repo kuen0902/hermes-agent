@@ -93,6 +93,11 @@
    - 建立了 `stock-monitoring-ops` 技能，規範新增/修改自選個股分群時的多語言一致性同步與重編譯流程。
    - 修正了 `hermes_monitor.swift` 漏設「AI推的組（6806, 1591, 3349）」的問題，並使用自訂模組快取重導成功在 IDE 沙盒環境內將 Swift 引擎重新編譯為全新二進位檔，徹底修復 09:00 開盤即時戰報分群缺漏問題。
 
+20. **新增「高潮不斷群 (HTNM森組)」個股分群與 00881 同步 (Session 2026-05-28)**
+   - 於 `master_stock_registry.json` 中建立了全新分群「高潮不斷群 (HTNM森組)」並加入 00881。
+   - 同步修正了 `hermes_monitor.swift` 中的 `getTargetStocks` 邏輯，確保開盤戰報與盤中監報能正確分組顯示。
+   - 重新編譯了 Swift 引擎二進位檔。
+
 ## 🎯 下階段待辦事項 (Pending / Next Steps)
 
 1. **持續觀察手動平倉交易曲線與視覺化排版調整**

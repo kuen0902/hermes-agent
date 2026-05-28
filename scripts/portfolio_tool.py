@@ -321,7 +321,73 @@ def print_portfolio():
     print(f"🗂️ 總持股檔數: {len(port)} 檔")
     print(f"📦 總持股張數: {qty_str} 張")
 
+def sync_watchlist_from_registry():
+    """
+    Synchronizes the SQLite watchlist table from master_stock_registry.json.
+    This acts as an automatic synchronization gate to prevent split-brain issues.
+    """
+    if not os.path.exists(REGISTRY_FILE):
+        return
+    try:
+        with open(REGISTRY_FILE, "r", encoding="utf-8") as f:
+            registry = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Failed to read registry file for sync: {e}")
+        return
+
+    group_categories = registry.get("group_categories", {})
+    william_codes = registry.get("william_codes", [])
+    official_names = registry.get("official_names", {})
+
+    conn = init_db()
+    cursor = conn.cursor()
+
+    # Get all currently registered codes in SQLite watchlist
+    cursor.execute("SELECT code, group_name FROM watchlist")
+    db_watchlist = {row[0]: row[1] for row in cursor.fetchall()}
+
+    # Build target mappings from registry
+    target_watchlist = {} # code -> group_name
+    
+    # 1. Process group categories
+    for grp, codes in group_categories.items():
+        # Format db group name
+        if grp.startswith("高潮不斷群 (") and grp.endswith(")"):
+            db_grp = grp
+        else:
+            db_grp = f"高潮不斷群 ({grp})"
+        for code in codes:
+            # If a stock is in multiple groups, let the specific one override '其他群組關注'
+            if code not in target_watchlist or target_watchlist[code] == "高潮不斷群 (其他群組關注)":
+                target_watchlist[code] = db_grp
+
+    # 2. Process William codes
+    for code in william_codes:
+        target_watchlist[code] = "William哥推薦組"
+
+    # Synchronize
+    now = datetime.datetime.now().isoformat()
+    updated_count = 0
+    inserted_count = 0
+    
+    for code, grp in target_watchlist.items():
+        name = official_names.get(code) or get_name(code)
+        if code in db_watchlist:
+            if db_watchlist[code] != grp:
+                cursor.execute("UPDATE watchlist SET group_name = ?, name = ? WHERE code = ?", (grp, name, code))
+                updated_count += 1
+        else:
+            cursor.execute("INSERT INTO watchlist (code, name, added_at, group_name) VALUES (?, ?, ?, ?)",
+                           (code, name, now, grp))
+            inserted_count += 1
+
+    if updated_count > 0 or inserted_count > 0:
+        conn.commit()
+        print(f"🔄 [Auto-Sync] Watchlist synced from registry: {inserted_count} added, {updated_count} updated.")
+    conn.close()
+
 def add_watchlist(code, group_name="個人追蹤"):
+    sync_watchlist_from_registry()
     # 📌 自動整合標準上架流程 (Auto-Onboarding for watchlists)
     import subprocess
     scripts_dir = os.path.dirname(os.path.abspath(__file__))
@@ -358,6 +424,7 @@ def add_watchlist(code, group_name="個人追蹤"):
     conn.close()
 
 def remove_watchlist(code):
+    sync_watchlist_from_registry()
     conn = init_db()
     cursor = conn.cursor()
     name = get_name(code)
@@ -370,6 +437,7 @@ def remove_watchlist(code):
     conn.close()
 
 def print_watchlist():
+    sync_watchlist_from_registry()
     conn = init_db()
     cursor = conn.cursor()
     cursor.execute("SELECT code, name, group_name FROM watchlist ORDER BY group_name, added_at DESC")
