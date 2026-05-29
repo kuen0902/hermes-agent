@@ -148,7 +148,12 @@ def fetch_yahoo_history(ticker, name):
     
     for idx, ch in enumerate(channels, 1):
         try:
-            r = requests.get(ch["url"], params=ch["params"], headers=headers, timeout=12)
+            url = ch["url"]
+            params = ch["params"]
+            if isinstance(url, str) and isinstance(params, dict):
+                r = requests.get(url, params=params, headers=headers, timeout=12)
+            else:
+                continue
             if r.status_code == 200:
                 if ch["type"] == "json":
                     df = _parse_json(r.json(), ticker, name)
@@ -250,8 +255,12 @@ def main():
         
     stocks = get_retained_stocks()
     if not stocks:
-        print("❌ 無保留股清單，程序結束。")
-        sys.exit(1)
+        if os.path.exists(RETAINED_MD):
+            print("🎉 所有保留股已回補完畢，或審查清單無剩餘待處理個股，程序結束。")
+            sys.exit(0)
+        else:
+            print("❌ 找不到保留股審查清單，程序結束。")
+            sys.exit(1)
         
     conn = duckdb.connect(DB_PATH)
     
@@ -300,7 +309,8 @@ def main():
         
         # 取得舊筆數
         try:
-            old_cnt = conn.execute("SELECT count(*) FROM full_daily_prices WHERE ticker = ?", (ticker,)).fetchone()[0]
+            res_old = conn.execute("SELECT count(*) FROM full_daily_prices WHERE ticker = ?", (ticker,)).fetchone()
+            old_cnt = res_old[0] if res_old is not None else 0
         except Exception:
             old_cnt = 0
             
@@ -321,7 +331,8 @@ def main():
                 df_db = df[["date", "code", "ticker", "name", "open", "high", "low", "close", "adj_close", "volume"]]
                 conn.execute("INSERT OR REPLACE INTO full_daily_prices SELECT * FROM df_db")
                 
-                new_cnt = conn.execute("SELECT count(*) FROM full_daily_prices WHERE ticker = ?", (real_ticker,)).fetchone()[0]
+                res_new = conn.execute("SELECT count(*) FROM full_daily_prices WHERE ticker = ?", (real_ticker,)).fetchone()
+                new_cnt = res_new[0] if res_new is not None else 0
                 added = new_cnt - old_cnt
                 
                 # 同步寫入 CSV 快取備份

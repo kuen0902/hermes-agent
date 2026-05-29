@@ -15,6 +15,7 @@ import json
 import requests
 import yfinance as yf
 import pandas as pd
+import duckdb
 from datetime import datetime, timedelta
 
 # Configuration
@@ -38,7 +39,6 @@ def get_stock_suffix(code):
     potential_ddb = os.path.join(DATA_DIR, "potential_analysis.ddb")
     if os.path.exists(potential_ddb):
         try:
-            import duckdb
             conn = duckdb.connect(potential_ddb)
             row = conn.execute("SELECT DISTINCT ticker FROM daily_stock_data WHERE code = ?", (code,)).fetchone()
             conn.close()
@@ -120,7 +120,6 @@ def sync_5m_data():
     conn = None
     if os.path.exists(potential_ddb):
         try:
-            import duckdb
             conn = duckdb.connect(potential_ddb, read_only=True)
             print("  ✓ 成功建立 DuckDB 唯讀資料連線，啟動高速本地同步。")
         except Exception as e:
@@ -153,12 +152,12 @@ def sync_5m_data():
                     df_db = df_db.sort_values('timestamp').reset_index(drop=True)
                     
                     # 📌 轉換為與 yfinance 完全一致的 UTC 時區與 ISO 字串格式
-                    df_db['timestamp'] = pd.to_datetime(df_db['timestamp'])
-                    if df_db['timestamp'].dt.tz is None:
-                        df_db['timestamp'] = df_db['timestamp'].dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC')
+                    df_db['timestamp'] = pd.to_datetime(df_db['timestamp']) # type: ignore
+                    if df_db['timestamp'].dt.tz is None: # type: ignore
+                        df_db['timestamp'] = df_db['timestamp'].dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC') # type: ignore
                     else:
-                        df_db['timestamp'] = df_db['timestamp'].dt.tz_convert('UTC')
-                    df_db['timestamp'] = df_db['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                        df_db['timestamp'] = df_db['timestamp'].dt.tz_convert('UTC') # type: ignore
+                    df_db['timestamp'] = df_db['timestamp'].dt.strftime('%Y-%m-%d %H:%M:%S+00:00') # type: ignore
                     
                     df_db_clean = df_db[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
             except Exception as d_err:
@@ -241,7 +240,7 @@ def sync_5m_data():
         # 3. 合併歷史與最新增量數據
         df = None
         if df_db_clean is not None and df_latest is not None:
-            df = pd.concat([df_db_clean, df_latest], ignore_index=True)
+            df = pd.concat([df_db_clean, df_latest], ignore_index=True) # type: ignore
             df = df.drop_duplicates(subset=['timestamp'], keep='last')
             df = df.sort_values('timestamp').reset_index(drop=True)
         elif df_db_clean is not None:
