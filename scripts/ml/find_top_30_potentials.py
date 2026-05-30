@@ -99,9 +99,9 @@ def load_all_data_optimized():
     df_fin['Code'] = df_fin['Code'].apply(normalize_code)
     
     # Convert dates to datetime objects for merge_asof
-    df_daily['Date_dt'] = pd.to_datetime(df_daily['Date'])  # type: ignore
-    df_rev['Rev_Date_dt'] = pd.to_datetime(df_rev['Rev_Date'])  # type: ignore
-    df_fin['Fin_Date_dt'] = pd.to_datetime(df_fin['Fin_Date'])  # type: ignore
+    df_daily['Date_dt'] = pd.to_datetime(df_daily['Date']).astype('datetime64[ns]')  # type: ignore
+    df_rev['Rev_Date_dt'] = pd.to_datetime(df_rev['Rev_Date']).astype('datetime64[ns]')  # type: ignore
+    df_fin['Fin_Date_dt'] = pd.to_datetime(df_fin['Fin_Date']).astype('datetime64[ns]')  # type: ignore
     
     # Sort by datetime keys for pd.merge_asof requirement
     df_daily = df_daily.sort_values('Date_dt')
