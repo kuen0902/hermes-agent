@@ -294,6 +294,67 @@ def get_daily_model_prediction(code_normalized, today_str, today_actual_close, c
     except Exception as e:
         return 0.0
 
+def prepare_daily_features(df):
+    """Generates 35 features for the Daily Ticker Model."""
+    if len(df) < 80:
+        return None
+    df = df.copy()
+    
+    # Ensure numeric columns
+    for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']:
+        if col not in df.columns:
+            return None
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+    for col in ['Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM', 'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin']:
+        if col not in df.columns:
+            df[col] = 0.0
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
+        
+    df = df.dropna(subset=['Close', 'Volume'])
+    df = df[df['Close'] > 0.0]
+    
+    # Technical Indicators
+    df['SMA_5'] = ta.sma(df['Close'], length=5)
+    df['SMA_20'] = ta.sma(df['Close'], length=20)
+    df['SMA_60'] = ta.sma(df['Close'], length=60)
+    df['EMA_12'] = ta.ema(df['Close'], length=12)
+    df['EMA_26'] = ta.ema(df['Close'], length=26)
+    df['RSI_14'] = ta.rsi(df['Close'], length=14)
+    
+    macd = ta.macd(df['Close'])
+    if macd is not None:
+        df = df.join(pd.DataFrame(macd))
+        
+    df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
+    vol_sma_val = ta.sma(df['Volume'], length=20)
+    vol_sma_series = pd.Series(vol_sma_val) if vol_sma_val is not None else pd.Series(np.nan, index=df.index)
+    df['VOL_SMA_20'] = vol_sma_series  # type: ignore
+    df['Vol_Ratio'] = df['Volume'] / vol_sma_series.where(vol_sma_series != 0, 1.0)
+    
+    df['Ret_1'] = df['Close'].pct_change(1)
+    df['Ret_5'] = df['Close'].pct_change(5)
+    df['Ret_20'] = df['Close'].pct_change(20)
+    
+    df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
+    df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
+    df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
+    
+    df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
+    df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
+    df['Foreign_Cum_60'] = df['Foreign_Net'].rolling(60).sum()
+    df['Trust_Cum_5'] = df['Trust_Net'].rolling(5).sum()
+    df['Trust_Cum_20'] = df['Trust_Net'].rolling(20).sum()
+    df['Trust_Cum_60'] = df['Trust_Net'].rolling(60).sum()
+    
+    df['Dual_Force_5'] = df['Foreign_Cum_5'] + df['Trust_Cum_5']
+    df['Dual_Force_20'] = df['Foreign_Cum_20'] + df['Trust_Cum_20']
+    df['Foreign_Buy_Days_5'] = (df['Foreign_Net'] > 0).rolling(5).sum()
+    df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
+    
+    df['Target_Ret_20'] = df['Close'].shift(-20) / df['Close'] - 1.0
+    return df
+
 def train_model():
     print("--- 啟動歷史 5 分鐘 K 線預訓練引擎 (Pre-training) ---")
     print(f"目標股票數量：{len(CORE_SYMBOLS)}")
@@ -366,6 +427,47 @@ def train_model():
             daily_history = load_symbol_daily_history(symbol)
             dates = sorted(grouped['date'].unique())
             prev_pred_prob = 0.5
+            
+            # 📌 O(1) 優化：預先一次性載入個股完整的日線歷史資料，並預先載入個股 XGBoost 模型以防重複讀取硬碟
+            daily_df = pd.DataFrame()
+            if conn_pot:
+                try:
+                    daily_df = conn_pot.execute("""
+                        SELECT 
+                            d.date AS Date, 
+                            d.open AS Open, 
+                            d.high AS High, 
+                            d.low AS Low, 
+                            d.close AS Close, 
+                            d.volume AS Volume, 
+                            d.foreign_net AS Foreign_Net, 
+                            d.trust_net AS Trust_Net, 
+                            d.dealer_net AS Dealer_Net,
+                            (SELECT r.revenue FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Monthly_Revenue,
+                            (SELECT r.yoy FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Revenue_YoY,
+                            (SELECT r.mom FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Revenue_MoM,
+                            (SELECT r.eps FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS EPS,
+                            (SELECT r.gross_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS Gross_Profit_Margin,
+                            (SELECT r.operating_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS Operating_Profit_Margin,
+                            (SELECT r.net_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY CAST(r.report_date AS DATE) DESC LIMIT 1) AS Net_Profit_Margin
+                        FROM daily_stock_data d
+                        WHERE d.code = ?
+                        ORDER BY d.date ASC
+                    """, (code_norm,)).fetchdf()
+                except Exception as daily_err:
+                    print(f"  ⚠️ 無法讀取 {code_norm} 歷史日線: {daily_err}")
+                    
+            processed_daily = None
+            if not daily_df.empty and len(daily_df) >= 80:
+                processed_daily = prepare_daily_features(daily_df)
+                
+            daily_model_path = os.path.expanduser(f"~/.hermes/models/daily_model_{code_norm}.pkl")
+            daily_model = None
+            if os.path.exists(daily_model_path):
+                try:
+                    daily_model = joblib.load(daily_model_path)
+                except Exception as m_err:
+                    print(f"  ⚠️ 無法載入日線模型 {code_norm}: {m_err}")
             
             for i in range(1, len(dates) - 1):
                 today = dates[i]
@@ -502,8 +604,16 @@ def train_model():
                 features.extend([chip_concentration, large_holder_5d_diff, margin_balance, short_margin_ratio, major_net, major_net_5d_sum])
                 features.extend([revenue_yoy, revenue_mom])
                 
-                # 5. 獲取日線 XGBoost 模型的 predicted return (共享 DuckDB 連線，實現極速 $O(1)$)
-                daily_pred_ret_20d = get_daily_model_prediction(code_norm, today_str, prices[-1], conn=conn_pot)
+                # 5. 獲取日線 XGBoost 模型的 predicted return (極速 O(1) 記憶體內查詢與預測)
+                daily_pred_ret_20d = 0.0
+                if processed_daily is not None and daily_model is not None:
+                    df_day = processed_daily[processed_daily['Date'] == today_str]
+                    if not df_day.empty:
+                        df_clean = df_day[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+                        try:
+                            daily_pred_ret_20d = float(daily_model.predict(df_clean.tail(1))[0])
+                        except Exception:
+                            pass
                 features.append(daily_pred_ret_20d)
                 
                 # 6. 卡爾曼誤差反饋
