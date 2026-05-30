@@ -111,19 +111,19 @@ def load_all_data_optimized():
     # Perform fast pd.merge_asof
     print("  - 合併歷史日線與月營收特徵...")
     df_merged = pd.merge_asof(
-        df_daily, df_rev,
+        df_daily, df_rev,  # type: ignore
         left_on='Date_dt', right_on='Rev_Date_dt',
         by='Code',
         direction='backward'
-    )  # type: ignore
+    )
     
     print("  - 合併歷史日線與財務季報特徵...")
     df_merged = pd.merge_asof(
-        df_merged, df_fin,
+        df_merged, df_fin,  # type: ignore
         left_on='Date_dt', right_on='Fin_Date_dt',
         by='Code',
         direction='backward'
-    )  # type: ignore
+    )
     
     df_merged = df_merged.drop(columns=['Date_dt', 'Rev_Date_dt', 'Fin_Date_dt'])
     return df_merged, code_to_name
