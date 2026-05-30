@@ -128,61 +128,11 @@ def load_all_data_optimized():
     return df_merged, code_to_name
 
 def prepare_daily_features_local(df):
-    """Generates 35 features locally for a single stock DataFrame."""
-    if len(df) < 80:
-        return None
-    df = df.copy()
-    
-    # Ensure numeric columns
-    for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-    for col in ['Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM', 'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin']:
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-        
-    df = df.dropna(subset=['Close', 'Volume'])
-    df = df[df['Close'] > 0.0]
-    if len(df) < 80:
-        return None
-        
-    # Technical Indicators
-    df['SMA_5'] = ta.sma(df['Close'], length=5)
-    df['SMA_20'] = ta.sma(df['Close'], length=20)
-    df['SMA_60'] = ta.sma(df['Close'], length=60)
-    df['EMA_12'] = ta.ema(df['Close'], length=12)
-    df['EMA_26'] = ta.ema(df['Close'], length=26)
-    df['RSI_14'] = ta.rsi(df['Close'], length=14)
-    
-    macd = ta.macd(df['Close'])
-    if macd is not None:
-        df = pd.concat([df, macd], axis=1)
-        
-    df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    vol_sma = ta.sma(df['Volume'], length=20)
-    df['VOL_SMA_20'] = vol_sma if vol_sma is not None else np.nan
-    df['Vol_Ratio'] = df['Volume'] / df['VOL_SMA_20'].replace(0, 1)
-    
-    df['Ret_1'] = df['Close'].pct_change(1)
-    df['Ret_5'] = df['Close'].pct_change(5)
-    df['Ret_20'] = df['Close'].pct_change(20)
-    
-    df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].replace(0, 1)
-    df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].replace(0, 1)
-    df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].replace(0, 1)
-    
-    df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
-    df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
-    df['Foreign_Cum_60'] = df['Foreign_Net'].rolling(60).sum()
-    df['Trust_Cum_5'] = df['Trust_Net'].rolling(5).sum()
-    df['Trust_Cum_20'] = df['Trust_Net'].rolling(20).sum()
-    df['Trust_Cum_60'] = df['Trust_Net'].rolling(60).sum()
-    
-    df['Dual_Force_5'] = df['Foreign_Cum_5'] + df['Trust_Cum_5']
-    df['Dual_Force_20'] = df['Foreign_Cum_20'] + df['Trust_Cum_20']
-    df['Foreign_Buy_Days_5'] = (df['Foreign_Net'] > 0).rolling(5).sum()
-    df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
-    
-    return df
+    """Generates 35 features locally using shared DRY features_utils."""
+    import sys
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    from features_utils import prepare_daily_features  # type: ignore
+    return prepare_daily_features(df)
 
 def main():
     print("=========================================================")
