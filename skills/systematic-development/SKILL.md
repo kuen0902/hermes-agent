@@ -26,6 +26,7 @@ This umbrella skill defines the "Scientific Method" for software engineering—p
 - **Phase 1: Root Cause Investigation**: Never propose a fix until you can explain WHY it fails.
 - **Phase 2: Pattern Analysis**: Find working examples before patching.
 - **Phase 3: Minimal Testing**: Test hypotheses with the smallest possible change.
+- **Phase 4: Exploratory QA (Dogfooding)**: For web apps, use systematic exploration, console audits, and vision-based evidence gathering. See `references/dogfood_qa.md` and `templates/dogfood-report-template.md`.
 
 ## 4. Debugging Tools & Environments
 - **Python**: Use `debugpy` / `pdb` for remote or interactive inspection.

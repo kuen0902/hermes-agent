@@ -96,6 +96,7 @@ When a report or alert displays a ticker code instead of a name (e.g., `6770(677
   3. Update `central_stock_data.json`: Update `full_mapping` and `personal_data`.
   4. Patch `intraday_data_log.csv`: Find and replace the code-only name fields with the correct Chinese name for the current day's history.
 - **Reporting**: Always verify the visual output via `vision_analyze` on the generated plot (`daily_ml_prediction_personal.png`) before claiming a fix.
+- **Detailed SOP (Chinese)**: See `references/stock_update_sop.md`.
 
 ### 10. Telegram Markdown Sanitization (400 Bad Request)
 - **Problem**: Stock names containing special Markdown characters (like `*` in `國巨*`) will cause Telegram API `400 Bad Request` errors if sent in Markdown/MarkdownV2 mode without escaping.

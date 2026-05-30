@@ -20,6 +20,7 @@ This umbrella skill covers structured workflows for generating rich visual asset
 
 ## 2. Stylized Art Generation
 - **Pixel Art**: Generate art with era-specific palettes (NES, PICO-8, Game Boy).
+- **ComfyUI Integration**: For advanced parametric workflows, node-based automation, and model management, see `references/comfyui_workflow.md` and the support files in `comfyui/`.
 - **Humanizing AI Content**: Techniques for stripping "AI-isms" and adding a genuine voice to generated descriptions and alt-text.
 
 ## Core Workflow

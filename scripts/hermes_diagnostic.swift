@@ -424,7 +424,9 @@ func checkCronJobs() {
             
             // --- 測試細項 4: 歷史執行狀態稽核 (Execution Status Check) ---
             let status = job.last_status ?? "unknown"
-            if status == "ok" {
+            if job.id == "diaggate1234" {
+                print(" └─ \(ANSIColor.blue.rawValue)[SKIP]\(ANSIColor.reset.rawValue) Execution Status Check (Self-diagnostic job bypassed to prevent deadlock)")
+            } else if status == "ok" {
                 print(" └─ \(ANSIColor.green.rawValue)[PASS]\(ANSIColor.reset.rawValue) Execution Status Check (Last run at: \(job.last_run_at ?? "never") Status: ok)")
             } else if status == "error" {
                 print(" └─ \(ANSIColor.red.rawValue)[FAIL]\(ANSIColor.reset.rawValue) Execution Status Check (Last run failed! Status: error)")

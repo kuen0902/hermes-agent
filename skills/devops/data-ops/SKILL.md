@@ -48,6 +48,9 @@ The **"Sync-Store-Dispatch"** pattern prevents API rate-limiting and ensures con
 Prevent flooding and redundant bursts by checking a `.lock` timestamp.
 - **Recommended Window**: 8 minutes (`480s`) for 10-minute cron jobs.
 
+### Event-Driven Triggers (Webhooks)
+For dynamic subscriptions where external services (GitHub, Stripe, etc.) trigger agent runs via POST, see `references/webhook_events.md`.
+
 ### Swift Mach-O Binary Wrapping
 When Cron jobs or orchestrators fail to run Swift-compiled Mach-O executables (common with `no_agent=True` scripts):
 1. **Do NOT assume Python interpreter**: If a script has no extension (or is `.swift` but compiled to binary), **do not** invoke `python` or `python3`.
