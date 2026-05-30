@@ -1,7 +1,28 @@
 #!/Users/bookid/.hermes/.venv/bin/python
 import os
+import sys
 import sqlite3
 import duckdb
+# 📌 內建指數型退避防鎖管理器 (DuckDB Resilient Lock Manager)
+original_duckdb_connect = duckdb.connect
+def resilient_duckdb_connect(*args, **kwargs):
+    import time
+    delay = 0.1
+    max_retries = 5
+    database = args[0] if len(args) > 0 else (kwargs.get("database", ":memory:"))
+    for i in range(max_retries):
+        try:
+            return original_duckdb_connect(*args, **kwargs)
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "lock" in err_msg or "locked" in err_msg or "resource temporarily unavailable" in err_msg:
+                print(f"⚠️ [DuckDB Lock] Database {database} is locked, retrying in {delay:.2f}s... (Attempt {i+1}/{max_retries})")
+                time.sleep(delay)
+                delay *= 2
+            else:
+                raise e
+    return original_duckdb_connect(*args, **kwargs)
+duckdb.connect = resilient_duckdb_connect  # type: ignore
 import pandas as pd
 import numpy as np
 import json
@@ -239,12 +260,12 @@ def load_all_daily_features_cache(active_codes):
             return cache
             
         # 將 date 欄位統一轉為字串 YYYY-MM-DD
-        df_daily['date_str'] = pd.to_datetime(df_daily['date'].values).strftime('%Y-%m-%d')
+        df_daily['date_str'] = pd.to_datetime(df_daily['date']).dt.strftime('%Y-%m-%d')  # type: ignore
         
         # 建立月營收的記憶體快取，方便滾動 ASOF 查詢
         rev_cache = {}
         if not df_revenue.empty:
-            df_revenue['date_str'] = pd.to_datetime(df_revenue['date'].values).strftime('%Y-%m-%d')
+            df_revenue['date_str'] = pd.to_datetime(df_revenue['date']).dt.strftime('%Y-%m-%d')  # type: ignore
             for code, grp in df_revenue.groupby('code'):
                 grp_sorted = grp.sort_values('date_str')
                 rev_cache[code] = {
@@ -375,44 +396,15 @@ def get_daily_model_prediction(code_normalized, today_str, today_actual_close, c
             
         df.loc[df.index[-1], 'Close'] = today_actual_close
         
-        df = df.copy()
-        df['SMA_5'] = ta.sma(df['Close'], length=5)
-        df['SMA_20'] = ta.sma(df['Close'], length=20)
-        df['SMA_60'] = ta.sma(df['Close'], length=60)
-        df['EMA_12'] = ta.ema(df['Close'], length=12)
-        df['EMA_26'] = ta.ema(df['Close'], length=26)
-        df['RSI_14'] = ta.rsi(df['Close'], length=14)
+        # Call shared feature generator
+        sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+        from features_utils import prepare_daily_features, DAILY_FEATURES  # type: ignore
         
-        macd = ta.macd(df['Close'])
-        if isinstance(macd, pd.DataFrame):
-            df = pd.concat([df, macd], axis=1)
+        df_feat = prepare_daily_features(df)
+        if df_feat is None:
+            return 0.0
             
-        df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-        vol_sma = ta.sma(df['Volume'], length=20)
-        df['VOL_SMA_20'] = vol_sma if vol_sma is not None else np.nan
-        df['Vol_Ratio'] = df['Volume'] / np.where(df['VOL_SMA_20'] == 0, 1.0, df['VOL_SMA_20'])
-        
-        df['Ret_1'] = df['Close'].pct_change(1)
-        df['Ret_5'] = df['Close'].pct_change(5)
-        df['Ret_20'] = df['Close'].pct_change(20)
-        
-        df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].replace(0, 1)
-        df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].replace(0, 1)
-        df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].replace(0, 1)
-        
-        df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
-        df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
-        df['Foreign_Cum_60'] = df['Foreign_Net'].rolling(60).sum()
-        df['Trust_Cum_5'] = df['Trust_Net'].rolling(5).sum()
-        df['Trust_Cum_20'] = df['Trust_Net'].rolling(20).sum()
-        df['Trust_Cum_60'] = df['Trust_Net'].rolling(60).sum()
-        
-        df['Dual_Force_5'] = df['Foreign_Cum_5'] + df['Trust_Cum_5']
-        df['Dual_Force_20'] = df['Foreign_Cum_20'] + df['Trust_Cum_20']
-        df['Foreign_Buy_Days_5'] = (df['Foreign_Net'] > 0).rolling(5).sum()
-        df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
-        
-        df_clean = df[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+        df_clean = df_feat[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
         
         daily_model = joblib.load(model_path)
         return float(daily_model.predict(df_clean.tail(1))[0])
@@ -570,6 +562,40 @@ def save_current_kalman_record(date_str, code_norm, price, prob, pred_return, ra
         conn.close()
     except Exception as e:
         print(f"寫入 DuckDB 今日卡爾曼紀錄失敗 ({code_norm}): {e}")
+
+def get_adaptive_alpha(code_norm, today_iso_str, default_alpha=0.2):
+    """
+    基於最近 5 日的預估誤差變異數，動態計算卡爾曼自適應平滑因子 alpha。
+    當最近預估誤差波動度小，信任模型，增益加大；波動度大，信任度低，降低增益過濾雜訊。
+    """
+    db_path = os.path.join(DATA_DIR, "portfolio.ddb")
+    if not os.path.exists(db_path):
+        return default_alpha
+    try:
+        conn = duckdb.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT error, calibrated_val 
+            FROM ml_valuation_history 
+            WHERE code = ? AND date < ? AND error IS NOT NULL AND error != 0.0
+            ORDER BY date DESC LIMIT 5
+        ''', (code_norm, today_iso_str))
+        rows = cursor.fetchall()
+        conn.close()
+        
+        if len(rows) >= 3:
+            pct_errors = [r[0] / r[1] for r in rows if r[1] is not None and r[1] != 0.0]
+            if len(pct_errors) >= 3:
+                var_err = float(np.var(pct_errors))
+                # 基準雜訊變異數設定為 1.5% 每日波動率的平方 (0.015^2 = 0.000225)
+                var_noise = 0.000225
+                alpha = var_err / (var_err + var_noise)
+                # 限制 alpha 在安全區間 [0.05, 0.40] 之間，防止增益鎖死或極端震盪
+                alpha = max(0.05, min(0.40, alpha))
+                return alpha
+    except Exception as e:
+        print(f"⚠️ 計算自適應卡爾曼增益失敗 ({code_norm}): {e}")
+    return default_alpha
 
 def run_intraday_pipeline(silent=False, target_date=None):
     print("--- 啟動持股專屬 ML 雙指標（方向與估值）盤後預判系統 ---")
@@ -858,8 +884,8 @@ def run_intraday_pipeline(silent=False, target_date=None):
             except Exception:
                 pass
         
-        # 平滑因子 alpha = 0.2
-        alpha = 0.2
+        # 自適應卡爾曼增益平滑因子 alpha 計算 (動態適應市場波動)
+        alpha = get_adaptive_alpha(code_norm, today.isoformat())
         
         # 從 SQLite 載入該商品前一交易日紀錄
         prev_record = load_previous_kalman_record(code_norm, today.isoformat())
@@ -884,7 +910,7 @@ def run_intraday_pipeline(silent=False, target_date=None):
             bias_val = prev_bias * (1.0 - alpha) + error_val * alpha
             
             error_pct = (error_val / prev_calibrated_val) * 100.0 if prev_calibrated_val else 0.0
-            error_str = f"誤差: {error_val:+.2f} ({error_pct:+.2f}%) | 偏置修正: {bias_val:+.2f}"
+            error_str = f"誤差: {error_val:+.2f} ({error_pct:+.2f}%) | 偏置修正: {bias_val:+.2f} (動態增益: {alpha:.3f})"
             
             # 回寫上一交易日記錄的真實誤差，方便日後稽核
             update_previous_kalman_error(code_norm, prev_date, current_actual_price, error_val)
@@ -1013,7 +1039,6 @@ def run_intraday_pipeline(silent=False, target_date=None):
         # 預估明日價格 (收斂平滑後)
         calibrated_val = raw_val + bias
         
-        # 寫入歷史日誌
         # 寫入今日最新的卡爾曼預估結果 (SQLite 增量 Upsert)
         save_current_kalman_record(
             today.isoformat(),
@@ -1059,7 +1084,6 @@ def run_intraday_pipeline(silent=False, target_date=None):
             })
             
     save_predictions(new_predictions)
-    # 已改由 SQLite 進行實時增量更新，廢棄 save_valuation_history 步驟
     
     if trade_signals:
         signals_file = os.path.join(DATA_DIR, "trade_signals.json")
@@ -1069,11 +1093,9 @@ def run_intraday_pipeline(silent=False, target_date=None):
 
     # 7. 為各 profile 生成與發送報告 (限於持股)
     for p_key, p_cfg in PROFILES.items():
-        # 如果是個人持股，直接包含所有持股商品
         if p_key == "personal":
             profile_stocks = list(holdings.keys())
         else:
-            # 群組與小智只顯示他們有訂閱，且剛好是我們持股的商品
             central_data = {}
             if os.path.exists(os.path.join(DATA_DIR, "central_stock_data.json")):
                 try:
@@ -1151,21 +1173,26 @@ def run_intraday_pipeline(silent=False, target_date=None):
         if not p_report_lines:
             continue
             
-        # 繪圖展示明天的股價估計變動率 (%)、方向機率 (%) 與今日三大法人籌碼分析
-        # 使用 1 row, 3 columns 三子圖以容納更多資訊，並提供極致清晰的科技質感
+        # 🚀 繪圖展示明天的股價估計變動率 (%)、方向機率 (%) 與今日三大法人籌碼分析 (極致深色科技質感儀表板) 🚀
+        plt.style.use('dark_background')
         num_items = len(p_y_labels)
-        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, max(5.5, num_items * 0.7)))
+        fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, max(5.5, num_items * 0.7)), dpi=200)
         
+        # 背景配色調整：Slate 900
+        fig.patch.set_facecolor('#0f172a')
+        for ax in [ax1, ax2, ax3]:
+            ax.set_facecolor('#0f172a')
+            
         y_pos = np.arange(num_items)
         
         # --- 子圖 1：預估明日收盤漲跌幅 (%) [Regressor] ---
         colors_ret = ['#ff7675' if r > 0 else '#55efc4' for r in p_returns] # 高級珊瑚紅與薄荷綠
-        bars1 = ax1.barh(y_pos, p_returns, color=colors_ret, alpha=0.85, edgecolor='#2d3436', height=0.55)
-        ax1.set_xlabel("預估明日收盤漲跌幅 (%)", fontsize=11, fontweight='bold', color='#2d3436')
+        bars1 = ax1.barh(y_pos, p_returns, color=colors_ret, alpha=0.85, edgecolor='#1e293b', height=0.55)
+        ax1.set_xlabel("預估明日收盤漲跌幅 (%)", fontsize=11, fontweight='bold', color='#f1f5f9')
         ax1.set_yticks(y_pos)
-        ax1.set_yticklabels(p_y_labels, fontsize=10, fontweight='bold', color='#2d3436')
-        ax1.axvline(x=0.0, color='#2d3436', linestyle='-', alpha=0.6, linewidth=1.2)
-        ax1.grid(axis='x', linestyle='--', alpha=0.3, color='#dfe6e9')
+        ax1.set_yticklabels(p_y_labels, fontsize=10, fontweight='bold', color='#cbd5e1')
+        ax1.axvline(x=0.0, color='#475569', linestyle='-', alpha=0.8, linewidth=1.2)
+        ax1.grid(axis='x', linestyle=':', alpha=0.5, color='#334155')
         
         # 動態調整 xlim 防止標籤溢出重疊 Y 軸
         max_ret = max([abs(r) for r in p_returns] + [0.5])
@@ -1177,15 +1204,11 @@ def run_intraday_pipeline(silent=False, target_date=None):
             offset = max_ret * 0.05
             if width >= 0:
                 ax1.text(width + offset, bar.get_y() + bar.get_height()/2, 
-                         f"{width:+.2f}%", va='center', ha='left', fontweight='bold', color='#c0392b', fontsize=9)
+                         f"{width:+.2f}%", va='center', ha='left', fontweight='bold', color='#ff7675', fontsize=9)
             else:
                 ax1.text(width - offset, bar.get_y() + bar.get_height()/2, 
-                         f"{width:+.2f}%", va='center', ha='right', fontweight='bold', color='#27ae60', fontsize=9)
-        ax1.set_title("漲跌估值預測 (Regressor)", fontsize=12, fontweight='bold', pad=10, color='#2d3436')
-        ax1.spines['top'].set_visible(False)
-        ax1.spines['right'].set_visible(False)
-        ax1.spines['left'].set_color('#dfe6e9')
-        ax1.spines['bottom'].set_color('#dfe6e9')
+                         f"{width:+.2f}%", va='center', ha='right', fontweight='bold', color='#55efc4', fontsize=9)
+        ax1.set_title("漲跌估值預測 (Regressor)", fontsize=12, fontweight='bold', pad=10, color='#f8fafc')
         
         # --- 子圖 2：多空方向信心指數 (%) [Classifier] ---
         colors_prob = []
@@ -1195,56 +1218,52 @@ def run_intraday_pipeline(silent=False, target_date=None):
             elif p <= 45.0:
                 colors_prob.append('#55efc4') # 偏空：薄荷綠
             else:
-                colors_prob.append('#b2bec3') # 盤整：中性灰
+                colors_prob.append('#64748b') # 盤整：中性灰
                 
         # 計算相對於 50% 的偏差值
         p_probs_deviations = [p - 50.0 for p in p_probs]
         
         # 使用 left=50.0 參數繪製對稱條形圖
-        bars2 = ax2.barh(y_pos, p_probs_deviations, left=50.0, color=colors_prob, alpha=0.85, edgecolor='#2d3436', height=0.55)
-        ax2.set_xlabel("多空預測與絕對信心指數 (%)", fontsize=11, fontweight='bold', color='#2d3436')
+        bars2 = ax2.barh(y_pos, p_probs_deviations, left=50.0, color=colors_prob, alpha=0.85, edgecolor='#1e293b', height=0.55)
+        ax2.set_xlabel("多空預測與絕對信心指數 (%)", fontsize=11, fontweight='bold', color='#f1f5f9')
         ax2.set_yticks(y_pos)
         ax2.set_yticklabels([]) # 右側不重複顯示 Y 軸標籤，維持清爽
-        ax2.axvline(x=50.0, color='#2d3436', linestyle='-', alpha=0.8, linewidth=1.5, label="多空分界 (50%)")
+        ax2.axvline(x=50.0, color='#94a3b8', linestyle='-', alpha=0.8, linewidth=1.5, label="多空分界 (50%)")
         ax2.set_xlim(0, 115) # 保留空間放置左右側的信心標籤
-        ax2.grid(axis='x', linestyle='--', alpha=0.3, color='#dfe6e9')
-        ax2.legend(loc='lower right', framealpha=0.8, fontsize=9)
+        ax2.grid(axis='x', linestyle=':', alpha=0.5, color='#334155')
+        ax2.legend(loc='lower right', framealpha=0.9, facecolor='#1e293b', edgecolor='#334155', fontsize=9)
         
         # 加上多空信心標籤，偏多顯示在條形圖右側，偏空顯示在左側
         for bar, p in zip(bars2, p_probs):
             if p >= 55.0:
                 lbl = f"偏多 {p:.0f}%"
-                color_text = '#c0392b'
+                color_text = '#ff7675'
                 ax2.text(p + 2, bar.get_y() + bar.get_height()/2, 
                          lbl, va='center', ha='left', fontweight='bold', color=color_text, fontsize=9)
             elif p <= 45.0:
                 lbl = f"偏空 {100.0 - p:.0f}%"
-                color_text = '#27ae60'
+                color_text = '#55efc4'
                 ax2.text(p - 2, bar.get_y() + bar.get_height()/2, 
                          lbl, va='center', ha='right', fontweight='bold', color=color_text, fontsize=9)
             else:
                 # 接近 50% 盤整
                 lbl = f"盤整 {p:.0f}%"
-                color_text = '#7f8c8d'
+                color_text = '#94a3b8'
                 ax2.text(p + 2 if p >= 50 else p - 2, bar.get_y() + bar.get_height()/2, 
                          lbl, va='center', ha='left' if p >= 50 else 'right', fontweight='bold', color=color_text, fontsize=9)
-                         
-        ax2.set_title("多空方向信心指數 (Classifier)", fontsize=12, fontweight='bold', pad=10, color='#2d3436')
-        ax2.spines['top'].set_visible(False)
-        ax2.spines['right'].set_visible(False)
-        ax2.spines['left'].set_color('#dfe6e9')
-        ax2.spines['bottom'].set_color('#dfe6e9')
+                          
+        ax2.set_title("多空方向信心指數 (Classifier)", fontsize=12, fontweight='bold', pad=10, color='#f8fafc')
         
         # --- 子圖 3：今日三大法人籌碼分析 (張) ---
         p_total_inst = [f + t + d for f, t, d in zip(p_f_buys, p_t_buys, p_d_buys)]
-        colors_inst = ['#74b9ff' if tot > 0 else ('#a29bfe' if tot < 0 else '#b2bec3') for tot in p_total_inst] # 合計買超為亮藍，賣超為優雅紫，無買賣為灰色
+        colors_inst = ['#38bdf8' if tot > 0 else ('#818cf8' if tot < 0 else '#64748b') for tot in p_total_inst] # 合計買超為亮藍，賣超為優雅紫，無買賣為灰色
         
-        bars3 = ax3.barh(y_pos, p_total_inst, color=colors_inst, alpha=0.85, edgecolor='#2d3436', height=0.55)
-        ax3.set_xlabel("今日三大法人合計淨買超 (張)", fontsize=11, fontweight='bold', color='#2d3436')
+        bars3 = ax3.barh(y_pos, p_total_inst, color=colors_inst, alpha=0.85, edgecolor='#1e293b', height=0.55)
+        ax3.set_xlabel("今日三大法人合計淨買超 (張)", fontsize=11, fontweight='bold', color='#f1f5f9')
         ax3.set_yticks(y_pos)
         ax3.set_yticklabels([]) # 維持清爽
-        ax3.axvline(x=0.0, color='#2d3436', linestyle='-', alpha=0.6, linewidth=1.2)
-        ax3.grid(axis='x', linestyle='--', alpha=0.3, color='#dfe6e9')
+        ax3.axvline(x=0.0, color='#475569', linestyle='-', alpha=0.8, linewidth=1.2)
+        ax3.grid(axis='x', linestyle=':', alpha=0.5, color='#334155')
         
         # 計算 X 軸極限，防止標籤溢出
         max_inst = max([abs(tot) for tot in p_total_inst] + [100])
@@ -1262,27 +1281,31 @@ def run_intraday_pipeline(silent=False, target_date=None):
             offset = max_inst * 0.05
             if width >= 0:
                 ax3.text(width + offset, bar.get_y() + bar.get_height()/2, 
-                         f"+{width:.0f}張\n{lbl_str}", va='center', ha='left', fontweight='bold', color='#0984e3', fontsize=7.5)
+                         f"+{width:.0f}張\n{lbl_str}", va='center', ha='left', fontweight='bold', color='#38bdf8', fontsize=7.5)
             else:
                 ax3.text(width - offset, bar.get_y() + bar.get_height()/2, 
-                         f"{width:.0f}張\n{lbl_str}", va='center', ha='right', fontweight='bold', color='#6c5ce7', fontsize=7.5)
-                         
-        ax3.set_title("今日三大法人籌碼 (張) & 外資持股比", fontsize=12, fontweight='bold', pad=10, color='#2d3436')
-        ax3.spines['top'].set_visible(False)
-        ax3.spines['right'].set_visible(False)
-        ax3.spines['left'].set_color('#dfe6e9')
-        ax3.spines['bottom'].set_color('#dfe6e9')
+                         f"{width:.0f}張\n{lbl_str}", va='center', ha='right', fontweight='bold', color='#818cf8', fontsize=7.5)
+                          
+        ax3.set_title("今日三大法人籌碼 (張) & 外資持股比", fontsize=12, fontweight='bold', pad=10, color='#f8fafc')
+        
+        # 統一處理子圖邊框美化
+        for ax in [ax1, ax2, ax3]:
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.spines['left'].set_color('#334155')
+            ax.spines['bottom'].set_color('#334155')
+            ax.tick_params(colors='#94a3b8')
         
         # 總標題
         title_prefix = "持股" if p_key == "personal" else "監控商品"
         plt.suptitle(f"{title_prefix} ML 雙指標 & 三大法人籌碼分析圖 - {p_cfg['title']}\n數據日期: {today.strftime('%Y-%m-%d')}", 
-                     fontsize=14, fontweight='bold', y=0.97, color='#2d3436')
+                     fontsize=14, fontweight='bold', y=0.97, color='#f1f5f9')
         
         # 調整邊距與間距，徹底解決 Y 軸長股名與標籤的 overlap 缺陷，並保留足夠欄寬
         plt.subplots_adjust(left=0.22, right=0.96, top=0.86, bottom=0.12, wspace=0.25)
         
         image_path = os.path.join(DATA_DIR, f"daily_ml_prediction_{p_key}.png")
-        plt.savefig(image_path, dpi=200) # 提升至 200 DPI 確保高清晰度
+        plt.savefig(image_path, facecolor='#0f172a', edgecolor='none', bbox_inches='tight', dpi=200) # 提升至 200 DPI 確保高清晰度
         plt.close()
         
         # 發送 Telegram

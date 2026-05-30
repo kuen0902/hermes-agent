@@ -6,6 +6,26 @@ import json
 import time
 import sqlite3
 import duckdb
+# 📌 內建指數型退避防鎖管理器 (DuckDB Resilient Lock Manager)
+original_duckdb_connect = duckdb.connect
+def resilient_duckdb_connect(*args, **kwargs):
+    import time
+    delay = 0.1
+    max_retries = 5
+    database = args[0] if len(args) > 0 else (kwargs.get("database", ":memory:"))
+    for i in range(max_retries):
+        try:
+            return original_duckdb_connect(*args, **kwargs)
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "lock" in err_msg or "locked" in err_msg or "resource temporarily unavailable" in err_msg:
+                print(f"⚠️ [DuckDB Lock] Database {database} is locked, retrying in {delay:.2f}s... (Attempt {i+1}/{max_retries})")
+                time.sleep(delay)
+                delay *= 2
+            else:
+                raise e
+    return original_duckdb_connect(*args, **kwargs)
+duckdb.connect = resilient_duckdb_connect  # type: ignore
 import joblib
 import pandas as pd
 import numpy as np
@@ -232,64 +252,12 @@ def get_global_latest_trading_day():
 
 def prepare_daily_features(df):
     """Generates 35 features for the Daily Ticker Model."""
-    if len(df) < 80:
-        return None
-    df = df.copy()
-    
-    # Ensure numeric columns
-    for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']:
-        if col not in df.columns:
-            return None
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-    for col in ['Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM', 'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin']:
-        if col not in df.columns:
-            df[col] = 0.0
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-        
-    df = df.dropna(subset=['Close', 'Volume'])
-    df = df[df['Close'] > 0.0]
-    
-    # Technical Indicators
-    df['SMA_5'] = ta.sma(df['Close'], length=5)
-    df['SMA_20'] = ta.sma(df['Close'], length=20)
-    df['SMA_60'] = ta.sma(df['Close'], length=60)
-    df['EMA_12'] = ta.ema(df['Close'], length=12)
-    df['EMA_26'] = ta.ema(df['Close'], length=26)
-    df['RSI_14'] = ta.rsi(df['Close'], length=14)
-    
-    macd = ta.macd(df['Close'])
-    if macd is not None:
-        df = df.join(pd.DataFrame(macd))
-        
-    df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    vol_sma_val = ta.sma(df['Volume'], length=20)
-    vol_sma_series = pd.Series(vol_sma_val) if vol_sma_val is not None else pd.Series(np.nan, index=df.index)
-    df['VOL_SMA_20'] = vol_sma_series  # type: ignore
-    df['Vol_Ratio'] = df['Volume'] / vol_sma_series.where(vol_sma_series != 0, 1.0)
-    
-    df['Ret_1'] = df['Close'].pct_change(1)
-    df['Ret_5'] = df['Close'].pct_change(5)
-    df['Ret_20'] = df['Close'].pct_change(20)
-    
-    df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
-    df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
-    df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
-    
-    df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
-    df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
-    df['Foreign_Cum_60'] = df['Foreign_Net'].rolling(60).sum()
-    df['Trust_Cum_5'] = df['Trust_Net'].rolling(5).sum()
-    df['Trust_Cum_20'] = df['Trust_Net'].rolling(20).sum()
-    df['Trust_Cum_60'] = df['Trust_Net'].rolling(60).sum()
-    
-    df['Dual_Force_5'] = df['Foreign_Cum_5'] + df['Trust_Cum_5']
-    df['Dual_Force_20'] = df['Foreign_Cum_20'] + df['Trust_Cum_20']
-    df['Foreign_Buy_Days_5'] = (df['Foreign_Net'] > 0).rolling(5).sum()
-    df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
-    
-    df['Target_Ret_20'] = df['Close'].shift(-20) / df['Close'] - 1.0
-    return df
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    # Call shared feature generator
+    from features_utils import prepare_daily_features as prep  # type: ignore
+    return prep(df)
 
 def query_ticker_daily_db(code):
     """Retrieves all daily records for a stock from DuckDB."""

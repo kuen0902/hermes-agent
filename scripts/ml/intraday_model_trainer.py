@@ -296,64 +296,12 @@ def get_daily_model_prediction(code_normalized, today_str, today_actual_close, c
 
 def prepare_daily_features(df):
     """Generates 35 features for the Daily Ticker Model."""
-    if len(df) < 80:
-        return None
-    df = df.copy()
-    
-    # Ensure numeric columns
-    for col in ['Open', 'High', 'Low', 'Close', 'Volume', 'Foreign_Net', 'Trust_Net', 'Dealer_Net']:
-        if col not in df.columns:
-            return None
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-        
-    for col in ['Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM', 'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin']:
-        if col not in df.columns:
-            df[col] = 0.0
-        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0.0)
-        
-    df = df.dropna(subset=['Close', 'Volume'])
-    df = df[df['Close'] > 0.0]
-    
-    # Technical Indicators
-    df['SMA_5'] = ta.sma(df['Close'], length=5)
-    df['SMA_20'] = ta.sma(df['Close'], length=20)
-    df['SMA_60'] = ta.sma(df['Close'], length=60)
-    df['EMA_12'] = ta.ema(df['Close'], length=12)
-    df['EMA_26'] = ta.ema(df['Close'], length=26)
-    df['RSI_14'] = ta.rsi(df['Close'], length=14)
-    
-    macd = ta.macd(df['Close'])
-    if macd is not None:
-        df = df.join(pd.DataFrame(macd))
-        
-    df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    vol_sma_val = ta.sma(df['Volume'], length=20)
-    vol_sma_series = pd.Series(vol_sma_val) if vol_sma_val is not None else pd.Series(np.nan, index=df.index)
-    df['VOL_SMA_20'] = vol_sma_series  # type: ignore
-    df['Vol_Ratio'] = df['Volume'] / vol_sma_series.where(vol_sma_series != 0, 1.0)
-    
-    df['Ret_1'] = df['Close'].pct_change(1)
-    df['Ret_5'] = df['Close'].pct_change(5)
-    df['Ret_20'] = df['Close'].pct_change(20)
-    
-    df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
-    df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
-    df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
-    
-    df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
-    df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
-    df['Foreign_Cum_60'] = df['Foreign_Net'].rolling(60).sum()
-    df['Trust_Cum_5'] = df['Trust_Net'].rolling(5).sum()
-    df['Trust_Cum_20'] = df['Trust_Net'].rolling(20).sum()
-    df['Trust_Cum_60'] = df['Trust_Net'].rolling(60).sum()
-    
-    df['Dual_Force_5'] = df['Foreign_Cum_5'] + df['Trust_Cum_5']
-    df['Dual_Force_20'] = df['Foreign_Cum_20'] + df['Trust_Cum_20']
-    df['Foreign_Buy_Days_5'] = (df['Foreign_Net'] > 0).rolling(5).sum()
-    df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
-    
-    df['Target_Ret_20'] = df['Close'].shift(-20) / df['Close'] - 1.0
-    return df
+    import sys
+    import os
+    sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+    # Call shared feature generator
+    from features_utils import prepare_daily_features as prep  # type: ignore
+    return prep(df)
 
 def train_model():
     print("--- 啟動歷史 5 分鐘 K 線預訓練引擎 (Pre-training) ---")
@@ -399,25 +347,49 @@ def train_model():
     for symbol in CORE_SYMBOLS:
         if symbol == "^TWII": continue
         code_norm = symbol.split(".")[0]
-        print(f"正在抓取 {symbol} 過去 60 天的 5 分鐘高頻資料...")
         try:
-            # Download 60 days of 5-minute data
-            df = yf.download(symbol, period="60d", interval="5m", progress=False)
-            if df.empty:
-                continue
-                
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.get_level_values(0)
-                
-            df = df[['Close', 'Volume']].dropna()
-            df = df.reset_index()
-            df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+            # 1. 優先嘗試自本地 DuckDB 讀取 5 分鐘 K 線 (O(1) 本地優先)
+            df = pd.DataFrame()
+            db_path = os.path.join(DATA_DIR, "potential_analysis.ddb")
+            if os.path.exists(db_path):
+                try:
+                    conn_temp = duckdb.connect(db_path, read_only=True)
+                    df_db = conn_temp.execute("""
+                        SELECT timestamp, close, volume 
+                        FROM kbars_5m 
+                        WHERE code = ? 
+                        ORDER BY timestamp ASC
+                    """, (code_norm,)).fetchdf()
+                    conn_temp.close()
+                    
+                    if not df_db.empty and len(df_db) >= 500:
+                        df = df_db.copy()
+                        df.rename(columns={
+                            'close': 'Close',
+                            'volume': 'Volume'
+                        }, inplace=True)
+                        df = df[['timestamp', 'Close', 'Volume']].dropna()
+                        print(f"  ✓ 成功自本地 DuckDB 載入 {len(df)} 筆 5 分鐘 K 線 (免除網路下載)")
+                except Exception as db_err:
+                    print(f"  ⚠️ 本地 DuckDB 讀取失敗: {db_err}，將備援採用 yfinance 線上抓取...")
             
-            if df['timestamp'].dt.tz is not None:
-                df['timestamp'] = df['timestamp'].dt.tz_convert('Asia/Taipei').dt.tz_localize(None)
+            # 2. 如果本地無資料或資料不足，則啟動 yfinance 備援下載
+            if df.empty or len(df) < 500:
+                print(f"正在自 yfinance 抓取 {symbol} 過去 60 天的 5 分鐘高頻資料...")
+                df = yf.download(symbol, period="60d", interval="5m", progress=False)
+                if df.empty:
+                    continue
+                if isinstance(df.columns, pd.MultiIndex):
+                    df.columns = df.columns.get_level_values(0)
+                df = df[['Close', 'Volume']].dropna()
+                df = df.reset_index()
+                df.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+            
+            if df['timestamp'].dt.tz is not None:  # type: ignore
+                df['timestamp'] = df['timestamp'].dt.tz_convert('Asia/Taipei').dt.tz_localize(None)  # type: ignore
                 
-            df['5m_bin'] = df['timestamp'].dt.floor('5min')
-            df['date'] = df['timestamp'].dt.date
+            df['5m_bin'] = df['timestamp'].dt.floor('5min')  # type: ignore
+            df['date'] = df['timestamp'].dt.date  # type: ignore
             
             grouped = df.groupby(['date', '5m_bin']).agg({
                 'Close': 'last',
