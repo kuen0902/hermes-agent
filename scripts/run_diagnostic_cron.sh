@@ -3,7 +3,7 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:$PATH"
 
 echo "=== Running Morning Diagnostic Gatekeeper ==="
 # Run the diagnostic script in auto-heal mode
-RESULT=$(/usr/bin/swift /Users/bookid/.hermes/scripts/hermes_diagnostic.swift --auto-heal)
+RESULT=$(/usr/bin/swift -module-cache-path /Users/bookid/.hermes/cache/ModuleCache /Users/bookid/.hermes/scripts/hermes_diagnostic.swift --auto-heal)
 EXIT_CODE=$?
 
 # Fetch TELEGRAM_BOT_TOKEN and TELEGRAM_HOME_CHANNEL from .env
