@@ -40,6 +40,134 @@ DAILY_FEATURES = [
 def normalize_code(code_str):
     return str(code_str).replace(".TW", "").replace(".TWO", "").strip()
 
+def load_all_daily_features_cache(active_codes):
+    """
+    一次性自 DuckDB 批次載入所有個股的日線籌碼與基本面特徵，快取於記憶體中，
+    消除迴圈內高頻開啟資料庫的效能黑洞 (O(1) 效能優化)。
+    """
+    cache = {}
+    db_path = DUCK_PATH
+    port_path = PORTFOLIO_DDB
+    
+    if not os.path.exists(db_path):
+        return cache
+        
+    try:
+        conn = duckdb.connect(db_path, read_only=True)
+        if os.path.exists(port_path):
+            conn.execute(f"ATTACH '{port_path}' AS port")
+            
+        codes_placeholder = ", ".join([f"'{c}'" for c in active_codes])
+        
+        query = f"""
+            SELECT 
+                d.date, d.code,
+                d.foreign_net, d.trust_net, d.dealer_net,
+                COALESCE(i.foreign_ratio, 0.0) AS foreign_ratio,
+                d.large_holder_rate, d.retail_holder_rate, d.margin_balance, 
+                d.short_margin_ratio, d.major_net
+            FROM daily_stock_data d
+            LEFT JOIN port.institutional_data i
+              ON d.date = CAST(i.date AS DATE) AND d.code = i.code
+            WHERE d.code IN ({codes_placeholder})
+        """
+        df_daily = conn.execute(query).fetchdf()
+        
+        # 讀取月營收
+        df_revenue = pd.DataFrame()
+        try:
+            df_revenue = conn.execute(f"""
+                SELECT date, code, yoy, mom 
+                FROM monthly_revenue 
+                WHERE code IN ({codes_placeholder})
+            """).fetchdf()
+        except Exception as rev_err:
+            print(f"  ⚠️ 無法讀取月營收資料表: {rev_err}")
+            
+        conn.close()
+        
+        if df_daily.empty:
+            return cache
+            
+        # 將 date 欄位統一轉為字串 YYYY-MM-DD
+        df_daily['date_str'] = df_daily['date'].astype(str).str.slice(0, 10)
+        
+        # 建立月營收的記憶體快取，方便滾動 ASOF 查詢
+        rev_cache = {}
+        if not df_revenue.empty:
+            df_revenue['date_str'] = df_revenue['date'].astype(str).str.slice(0, 10)
+            # 按代號分組，排序日期
+            for code, grp in df_revenue.groupby('code'):
+                grp_sorted = grp.sort_values('date_str')
+                rev_cache[code] = {
+                    "dates": grp_sorted['date_str'].tolist(),
+                    "yoy": grp_sorted['yoy'].tolist(),
+                    "mom": grp_sorted['mom'].tolist()
+                }
+                
+        # 排序並計算滾動特徵
+        df_daily = df_daily.sort_values(['code', 'date_str'])
+        
+        # 集保大戶 5日 變動與主力 5日 滾動累計
+        df_daily['large_holder_5d_diff'] = df_daily.groupby('code')['large_holder_rate'].diff(5).fillna(0.0)
+        df_daily['major_net_5d_sum'] = df_daily.groupby('code')['major_net'].rolling(5).sum().reset_index(0, drop=True).fillna(0.0)
+        
+        # 投信與自營商滾動累計買賣超
+        df_daily['trust_buy_5d'] = df_daily.groupby('code')['trust_net'].rolling(5).sum().reset_index(0, drop=True).fillna(0.0)
+        df_daily['trust_buy_20d'] = df_daily.groupby('code')['trust_net'].rolling(20).sum().reset_index(0, drop=True).fillna(0.0)
+        df_daily['dealer_buy_5d'] = df_daily.groupby('code')['dealer_net'].rolling(5).sum().reset_index(0, drop=True).fillna(0.0)
+        df_daily['dealer_buy_20d'] = df_daily.groupby('code')['dealer_net'].rolling(20).sum().reset_index(0, drop=True).fillna(0.0)
+        
+        # 構建快取字典
+        for _, row in df_daily.iterrows():
+            c = str(row['code'])
+            d_str = str(row['date_str'])
+            
+            # 尋找月營收
+            yoy = 0.0
+            mom = 0.0
+            if c in rev_cache:
+                rev_dates = rev_cache[c]["dates"]
+                idx = -1
+                for k, rd in enumerate(rev_dates):
+                    if rd <= d_str:
+                        idx = k
+                    else:
+                        break
+                if idx != -1:
+                    yoy = rev_cache[c]["yoy"][idx]
+                    mom = rev_cache[c]["mom"][idx]
+            
+            # 計算大戶與散戶對峙比
+            large_rate = row['large_holder_rate'] if row['large_holder_rate'] is not None else 50.0
+            retail_rate = row['retail_holder_rate'] if row['retail_holder_rate'] is not None else 20.0
+            concentration = large_rate - retail_rate
+            
+            cache[(d_str, c)] = {
+                "foreign_buy": row['foreign_net'] if row['foreign_net'] is not None else 0.0,
+                "trust_buy": row['trust_net'] if row['trust_net'] is not None else 0.0,
+                "dealer_buy": row['dealer_net'] if row['dealer_net'] is not None else 0.0,
+                "foreign_ratio": row['foreign_ratio'] if row['foreign_ratio'] is not None else 0.0,
+                "t_5d": row['trust_buy_5d'],
+                "t_20d": row['trust_buy_20d'],
+                "d_5d": row['dealer_buy_5d'],
+                "d_20d": row['dealer_buy_20d'],
+                "large_holder_rate": large_rate,
+                "retail_holder_rate": retail_rate,
+                "chip_concentration": concentration,
+                "large_holder_5d_diff": row['large_holder_5d_diff'],
+                "margin_balance": row['margin_balance'] if row['margin_balance'] is not None else 0.0,
+                "short_margin_ratio": row['short_margin_ratio'] if row['short_margin_ratio'] is not None else 0.0,
+                "major_net": row['major_net'] if row['major_net'] is not None else 0.0,
+                "major_net_5d_sum": row['major_net_5d_sum'],
+                "revenue_yoy": yoy,
+                "revenue_mom": mom
+            }
+    except Exception as e:
+        print(f"⚠️ 載入日線與月營收特徵快取時發生錯誤: {e}")
+        
+    return cache
+
 def load_target_tickers():
     """Loads target tickers from current holdings and monitored lists."""
     holdings = {}
@@ -77,9 +205,10 @@ def check_stock_active(code, global_latest_date):
         return False
     try:
         conn = duckdb.connect(DUCK_PATH)
-        max_date_str = conn.execute("SELECT MAX(date) FROM daily_stock_data WHERE code = ?", (code,)).fetchone()[0]
+        row = conn.execute("SELECT MAX(date) FROM daily_stock_data WHERE code = ?", (code,)).fetchone()
         conn.close()
-        if max_date_str:
+        if row is not None and row[0] is not None:
+            max_date_str = row[0]
             max_dt = pd.to_datetime(max_date_str)
             if (global_latest_date - max_dt).days <= 7:
                 return True
@@ -92,12 +221,14 @@ def get_global_latest_trading_day():
         return datetime.now()
     try:
         conn = duckdb.connect(DUCK_PATH)
-        latest_date_str = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()[0]
+        row = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()
         conn.close()
-        return pd.to_datetime(latest_date_str)
+        if row is not None and row[0] is not None:
+            latest_date_str = row[0]
+            return pd.to_datetime(latest_date_str)
     except Exception as e:
         print(f"⚠️ Error querying latest date: {e}")
-        return datetime.now()
+    return datetime.now()
 
 def prepare_daily_features(df):
     """Generates 35 features for the Daily Ticker Model."""
@@ -129,20 +260,21 @@ def prepare_daily_features(df):
     
     macd = ta.macd(df['Close'])
     if macd is not None:
-        df = pd.concat([df, macd], axis=1)
+        df = df.join(pd.DataFrame(macd))
         
     df['ATR_14'] = ta.atr(df['High'], df['Low'], df['Close'], length=14)
-    vol_sma = ta.sma(df['Volume'], length=20)
-    df['VOL_SMA_20'] = vol_sma if vol_sma is not None else np.nan
-    df['Vol_Ratio'] = df['Volume'] / df['VOL_SMA_20'].replace(0, 1)
+    vol_sma_val = ta.sma(df['Volume'], length=20)
+    vol_sma_series = pd.Series(vol_sma_val) if vol_sma_val is not None else pd.Series(np.nan, index=df.index)
+    df['VOL_SMA_20'] = vol_sma_series  # type: ignore
+    df['Vol_Ratio'] = df['Volume'] / vol_sma_series.where(vol_sma_series != 0, 1.0)
     
     df['Ret_1'] = df['Close'].pct_change(1)
     df['Ret_5'] = df['Close'].pct_change(5)
     df['Ret_20'] = df['Close'].pct_change(20)
     
-    df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].replace(0, 1)
-    df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].replace(0, 1)
-    df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].replace(0, 1)
+    df['Foreign_Net_Ratio'] = (df['Foreign_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
+    df['Trust_Net_Ratio'] = (df['Trust_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
+    df['Dealer_Net_Ratio'] = (df['Dealer_Net'] * 1000) / df['Volume'].where(df['Volume'] != 0, 1.0)
     
     df['Foreign_Cum_5'] = df['Foreign_Net'].rolling(5).sum()
     df['Foreign_Cum_20'] = df['Foreign_Net'].rolling(20).sum()
@@ -215,47 +347,6 @@ def train_daily_ticker_model(code, df_processed):
     joblib.dump(model, path)
     return model
 
-# High-Frequency Intraday helper functions
-def load_latest_institutional_data(iso_date, code):
-    if not os.path.exists(PORTFOLIO_DDB):
-        return 0, 0, 0, 0.0
-    try:
-        conn = duckdb.connect(PORTFOLIO_DDB)
-        row = conn.execute('''
-            SELECT foreign_buy, trust_buy, dealer_buy, foreign_ratio 
-            FROM institutional_data 
-            WHERE date = ? AND code = ?
-        ''', (iso_date, code)).fetchone()
-        conn.close()
-        if row:
-            return row[0] or 0, row[1] or 0, row[2] or 0, row[3] or 0.0
-    except Exception:
-        pass
-    return 0, 0, 0, 0.0
-
-def load_rolling_institutional_data(iso_date, code):
-    if not os.path.exists(PORTFOLIO_DDB):
-        return 0, 0, 0, 0
-    try:
-        conn = duckdb.connect(PORTFOLIO_DDB)
-        rows = conn.execute('''
-            SELECT trust_buy, dealer_buy 
-            FROM institutional_data 
-            WHERE code = ? AND date <= ? 
-            ORDER BY date DESC LIMIT 20
-        ''', (code, iso_date)).fetchall()
-        conn.close()
-        
-        trust_5d = sum(r[0] or 0 for r in rows[:5]) if rows else 0
-        trust_20d = sum(r[0] or 0 for r in rows) if rows else 0
-        dealer_5d = sum(r[1] or 0 for r in rows[:5]) if rows else 0
-        dealer_20d = sum(r[1] or 0 for r in rows) if rows else 0
-        
-        return trust_5d, trust_20d, dealer_5d, dealer_20d
-    except Exception:
-        pass
-    return 0, 0, 0, 0
-
 def fetch_5m_kbars_duckdb(code):
     """Retrieves 5m kbars from DuckDB kbars_5m table."""
     if not os.path.exists(DUCK_PATH):
@@ -274,7 +365,7 @@ def fetch_5m_kbars_duckdb(code):
         print(f"⚠️ Error querying 5m K-bars for {code}: {e}")
         return pd.DataFrame()
 
-def run_rolling_training_and_feedback(code, daily_df, daily_model):
+def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache):
     """
     1. Trains high-frequency intraday models on days 150d-90d.
     2. Simulates rolling daily predictions and adaptive bias feedback on days 89 to 1.
@@ -285,8 +376,8 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
         print(f"⚠️ [{code}] Insufficient 5m K-bars for intraday model training.")
         return False
         
-    kb_df['timestamp'] = pd.to_datetime(kb_df['timestamp'])
-    kb_df['date'] = kb_df['timestamp'].dt.date
+    kb_df['timestamp'] = pd.to_datetime(kb_df['timestamp'].astype(str).tolist())  # type: ignore
+    kb_df['date'] = kb_df['timestamp'].dt.date  # type: ignore
     
     # Process 5-minute bins
     grouped = kb_df.groupby(['date', 'timestamp']).agg({
@@ -302,6 +393,10 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
     # Map Daily Features by Date
     daily_history = pd.Series(daily_df['Close'].values, index=daily_df['Date'])
     
+    # 📌 O(1) Optimization: Pre-calculate daily features ONCE outside the loop!
+    # This prevents prepare_daily_features from being executed hundreds of times inside the daily loop.
+    processed_daily_features = prepare_daily_features(daily_df)
+    
     # Align TAIEX 5-min returns
     taiex_features_by_date = {}
     try:
@@ -315,13 +410,13 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
         """).fetchdf()
         conn.close()
         if not taiex_db.empty:
-            taiex_db['timestamp'] = pd.to_datetime(taiex_db['timestamp'])
-            taiex_db['date'] = taiex_db['timestamp'].dt.date
+            taiex_db['timestamp'] = pd.to_datetime(taiex_db['timestamp'].astype(str).tolist())  # type: ignore
+            taiex_db['date'] = taiex_db['timestamp'].dt.date  # type: ignore
             taiex_grouped = taiex_db.groupby(['date', 'timestamp']).agg({'close': 'last'}).reset_index()
             for d, gp in taiex_grouped.groupby('date'):
                 gp = gp.sort_values('timestamp')
                 if len(gp) >= 6:
-                    t_prices = gp['close'].values
+                    t_prices = gp['close'].to_numpy(dtype=float)
                     t_ret = np.diff(t_prices) / t_prices[:-1]
                     if len(t_ret) >= 5:
                         taiex_features_by_date[d] = list(t_ret[-5:])
@@ -335,7 +430,7 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
     
     print(f"  - Pre-training days: {len(pretrain_dates)}, Rolling test & calibration days: {len(rolling_dates)}")
     
-    def extract_features_for_day(today, prev_pred_prob):
+    def extract_features_for_day(today, prev_pred_prob, error_val=0.0):
         # 1. Today TAIEX features
         taiex_feats = taiex_features_by_date.get(today, [0.0]*5)
         
@@ -351,20 +446,21 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
         if len(returns) < 5:
             return None, None
             
+        # 10 Dimensions: high frequency OHLCV returns & volume changes
         feats = list(returns[-5:]) + list(vol_changes[-5:])
         
-        # Technical
+        # Technical (3 Dimensions)
         close_series = pd.Series(prices)
         rsi_val = 50.0
         if len(close_series) > 14:
-            rsi_series = ta.rsi(close_series, length=14)
+            rsi_series = ta.rsi(close_series, length=14)  # type: ignore
             if rsi_series is not None and not rsi_series.empty:
                 rsi_val = rsi_series.iloc[-1]
                 if pd.isna(rsi_val): rsi_val = 50.0
                 
         macd_line, macd_hist = 0.0, 0.0
         if len(close_series) > 26:
-            macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)
+            macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)  # type: ignore
             if macd_df is not None and not macd_df.empty:
                 macd_line = macd_df.iloc[-1, 0]
                 macd_hist = macd_df.iloc[-1, 1]
@@ -372,17 +468,49 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
                 if pd.isna(macd_hist): macd_hist = 0.0
                 
         feats.extend([rsi_val, macd_line, macd_hist])
+        
+        # TAIEX market index returns (5 Dimensions)
         feats.extend(taiex_feats)
         
-        # Institutional
-        today_str = today.strftime("%Y-%m-%d") if isinstance(today, datetime) or hasattr(today, 'strftime') else str(today)
-        f_buy, t_buy, d_buy, f_ratio = load_latest_institutional_data(today_str, code)
+        # Institutional (8 Dimensions) - Retrieve from O(1) memory cache!
+        today_str = today.strftime("%Y-%m-%d") if hasattr(today, 'strftime') else str(today)
+        d_feats = daily_features_cache.get((today_str, code), None)
+        if d_feats:
+            f_buy = d_feats["foreign_buy"]
+            t_buy = d_feats["trust_buy"]
+            d_buy = d_feats["dealer_buy"]
+            f_ratio = d_feats["foreign_ratio"]
+            
+            t_5d = d_feats["t_5d"]
+            t_20d = d_feats["t_20d"]
+            d_5d = d_feats["d_5d"]
+            d_20d = d_feats["d_20d"]
+            
+            chip_concentration = d_feats["chip_concentration"]
+            large_holder_5d_diff = d_feats["large_holder_5d_diff"]
+            margin_balance = d_feats["margin_balance"]
+            short_margin_ratio = d_feats["short_margin_ratio"]
+            major_net = d_feats["major_net"]
+            major_net_5d_sum = d_feats["major_net_5d_sum"]
+            
+            revenue_yoy = d_feats["revenue_yoy"]
+            revenue_mom = d_feats["revenue_mom"]
+        else:
+            f_buy = t_buy = d_buy = f_ratio = 0.0
+            t_5d = t_20d = d_5d = d_20d = 0.0
+            chip_concentration = 30.0
+            large_holder_5d_diff = 0.0
+            margin_balance = 0.0
+            short_margin_ratio = 0.0
+            major_net = 0.0
+            major_net_5d_sum = 0.0
+            revenue_yoy = 0.0
+            revenue_mom = 0.0
+            
         feats.extend([f_buy, t_buy, d_buy, f_ratio])
-        
-        t_5d, t_20d, d_5d, d_20d = load_rolling_institutional_data(today_str, code)
         feats.extend([t_5d, t_20d, d_5d, d_20d])
         
-        # Daily MA features
+        # Daily MA features (13 Dimensions)
         hist_before_today = daily_history[daily_history.index < today_str]
         hist_closes = list(hist_before_today.tail(239).values)
         closes_240d = hist_closes + [prices[-1]]
@@ -409,24 +537,25 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
         feats.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
         feats.extend([prices[-1], ma5, ma20, ma60])
         
-        # Step 9: Inject Daily 14y Model predicted 20-day return rate as a prior feature!
+        # Advanced chips and fundamentals (8 Dimensions)
+        feats.extend([chip_concentration, large_holder_5d_diff, margin_balance, short_margin_ratio, major_net, major_net_5d_sum])
+        feats.extend([revenue_yoy, revenue_mom])
+        
+        # Step 9: Inject Daily 14y Model predicted 20-day return rate (1 Dimension)
         daily_pred_ret = 0.0
-        # Find daily process row for today to extract standard daily features
-        daily_row = daily_df[daily_df['Date'] == today_str]
-        if not daily_row.empty:
-            daily_feats_processed = prepare_daily_features(daily_df)
-            if daily_feats_processed is not None:
-                df_day = daily_feats_processed[daily_feats_processed['Date'] == today_str]
-                if not df_day.empty:
-                    df_clean = df_day[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
-                    try:
-                        daily_pred_ret = float(daily_model.predict(df_clean)[0])
-                    except Exception:
-                        pass
+        if processed_daily_features is not None:
+            df_day = processed_daily_features[processed_daily_features['Date'] == today_str]
+            if not df_day.empty:
+                df_clean = df_day[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+                try:
+                    daily_pred_ret = float(daily_model.predict(df_clean)[0])
+                except Exception:
+                    pass
         feats.append(daily_pred_ret)
         
-        # Step 10: Feedback control error
-        # In pre-training we set error_val = 0.0, but in rolling predictions we inject actual rolling error
+        # Step 10: Feedback control error (1 Dimension)
+        feats.append(error_val)
+        
         return feats, prices[-1]
 
     # Pre-train Intraday Model
@@ -440,13 +569,10 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
         today = pretrain_dates[idx]
         tomorrow = pretrain_dates[idx+1]
         
-        feats, today_close = extract_features_for_day(today, prev_pred_prob)
+        feats, today_close = extract_features_for_day(today, prev_pred_prob, error_val=0.0)
         if feats is None:
             continue
             
-        # Add feedback term 0.0 for pre-training phase
-        feats.append(0.0)
-        
         tomorrow_data = grouped[grouped['date'] == tomorrow].sort_values('5m_bin')
         if tomorrow_data.empty:
             continue
@@ -482,6 +608,7 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
     bias_val = 0.0
     alpha = 0.2
     prev_calibrated_val = daily_history.iloc[-1]
+    error_val = 0.0  # 📌 Initialize to prevent uninitialized warning if loop doesn't execute
     
     for idx in range(len(rolling_dates) - 1):
         today = rolling_dates[idx]
@@ -497,14 +624,11 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
         error_val = actual_today_price - prev_calibrated_val
         bias_val = bias_val * (1.0 - alpha) + error_val * alpha
         
-        # Extract features for today
-        feats, today_close = extract_features_for_day(today, prev_pred_prob)
-        if feats is None:
+        # Extract features for today with current feedback error_val
+        feats, today_close = extract_features_for_day(today, prev_pred_prob, error_val=error_val)
+        if feats is None or today_close is None:
             continue
             
-        # Inject adaptive bias error term
-        feats.append(error_val)
-        
         # Predict tomorrow's price using the current RandomForest models
         prob = float(model_clf.predict_proba([feats])[0][1])
         pred_ret = float(model_reg.predict([feats])[0])
@@ -553,7 +677,7 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model):
             "samples": len(rolling_X)
         }, f, indent=2)
         
-    print(f"  ✓ [{code}] Models & Bias state successfully optimized and saved. Final Bias: {bias_val:+.4f}")
+    print(f"  ✓ [{code}] Models & Bias state successfully optimized and saved. Final Bias: {bias_val:+.4f} (Samples: {len(rolling_X)})")
     return True
 
 def main():
@@ -571,6 +695,11 @@ def main():
     # 2. 篩選在線股票（只訓練目前還在線的個股，已經下市的不訓練）
     active_tickers = [c for c in target_tickers if check_stock_active(c, global_latest)]
     print(f"篩選後有效在線交易商品 (共計 {len(active_tickers)} 檔)：{active_tickers}")
+    
+    # 📌 O(1) Optimization: Load all institutional/fundamental daily features once into cache!
+    print("  ⏳ 正在為所有在線個股批次載入日線籌碼與基本面特徵至記憶體快取...")
+    daily_features_cache = load_all_daily_features_cache(active_tickers)
+    print(f"  ✓ 成功快取了 {len(daily_features_cache)} 個「日期-代號」組合的特徵。")
     
     success_count = 0
     start_time = time.time()
@@ -597,7 +726,7 @@ def main():
         print(f"  ✓ [{code}] 個股 14年日線 XGBoost 模型訓練成功！")
         
         # 3. 高頻 150-90日預訓練 & 89日-1日自適應滾動偏差更新
-        success = run_rolling_training_and_feedback(code, daily_df, daily_model)
+        success = run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache)
         if success:
             success_count += 1
             
@@ -607,6 +736,6 @@ def main():
     print(f"  - 成功處理/優化商品數：{success_count} 檔")
     print(f"  - 總計花費時間：{elapsed:.2f} 秒")
     print("=========================================================")
-
+ 
 if __name__ == "__main__":
     main()
