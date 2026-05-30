@@ -23,40 +23,49 @@ DATA_DIR = os.path.expanduser("~/.hermes/data")
 DB_PATH = os.path.join(DATA_DIR, "portfolio.db")
 REGISTRY_PATH = os.path.join(DATA_DIR, "master_stock_registry.json")
 
-def get_stock_suffix(code):
-    """Offline method using local files and DuckDB to determine the suffix reliably and instantly."""
-    # 1. Check existing CSV files in 5Y history directory
-    save_5y_dir = os.path.expanduser("~/Documents/StockData_History_5Y")
-    if os.path.exists(save_5y_dir):
-        files = glob.glob(os.path.join(save_5y_dir, f"{code}.TW_*.csv"))
-        if files:
-            return ".TW"
-        files_two = glob.glob(os.path.join(save_5y_dir, f"{code}.TWO_*.csv"))
-        if files_two:
-            return ".TWO"
-            
-    # 2. Query DuckDB potential_analysis.ddb for the ticker
+def load_stock_suffixes(active_codes):
+    """Loads all stock suffixes for active codes in a single highly-optimized DuckDB batch query."""
+    suffixes = {}
+    
+    # 1. Fallback initializations using the static OTC list
+    otc_set = {"3105", "3211", "3260", "3709", "4543", "4925", "5289", "5347", "6125", "6147", "6290", "6510", "6877", "7815", "7843", "7828", "8299"}
+    for code in active_codes:
+        suffixes[code] = ".TWO" if code in otc_set else ".TW"
+        
+    # 2. Try single optimized batch query in DuckDB
     potential_ddb = os.path.join(DATA_DIR, "potential_analysis.ddb")
     if os.path.exists(potential_ddb):
         try:
-            conn = duckdb.connect(potential_ddb)
-            row = conn.execute("SELECT DISTINCT ticker FROM daily_stock_data WHERE code = ?", (code,)).fetchone()
+            conn = duckdb.connect(potential_ddb, read_only=True)
+            rows = conn.execute("SELECT DISTINCT code, ticker FROM daily_stock_data").fetchall()
             conn.close()
-            if row and row[0]:
-                ticker = str(row[0])
-                if ticker.endswith(".TWO"):
-                    return ".TWO"
-                elif ticker.endswith(".TW"):
-                    return ".TW"
+            for code_db, ticker in rows:
+                if code_db and ticker:
+                    c = str(code_db).strip()
+                    t = str(ticker).strip()
+                    if t.endswith(".TWO"):
+                        suffixes[c] = ".TWO"
+                    elif t.endswith(".TW"):
+                        suffixes[c] = ".TW"
+        except Exception as e:
+            print(f"  ⚠️ 批次讀取 DuckDB 股號後綴失敗: {e}")
+            
+    # 3. Check existing CSV files in 5Y history directory as final override
+    save_5y_dir = os.path.expanduser("~/Documents/StockData_History_5Y")
+    if os.path.exists(save_5y_dir):
+        try:
+            for code in active_codes:
+                files = glob.glob(os.path.join(save_5y_dir, f"{code}.TW_*.csv"))
+                if files:
+                    suffixes[code] = ".TW"
+                    continue
+                files_two = glob.glob(os.path.join(save_5y_dir, f"{code}.TWO_*.csv"))
+                if files_two:
+                    suffixes[code] = ".TWO"
         except:
             pass
             
-    # 3. Registry fallback or standard OTC list check
-    otc_set = {"3105", "3211", "3260", "3709", "4543", "4925", "5289", "5347", "6125", "6147", "6290", "6510", "6877", "7815", "7843", "7828", "8299"}
-    if code in otc_set:
-        return ".TWO"
-        
-    return ".TW"
+    return suffixes
 
 def load_historically_active_codes():
     """Compiles only actively monitored and held stock codes in the system."""
@@ -114,6 +123,7 @@ def sync_5m_data():
     
     success_count = 0
     fail_count = 0
+    dfs_to_sync = []
     
     # 📌 唯讀模式開啟 DuckDB 連線，避免併發寫入鎖定衝突
     potential_ddb = os.path.join(DATA_DIR, "potential_analysis.ddb")
@@ -125,10 +135,11 @@ def sync_5m_data():
         except Exception as e:
             print(f"  ⚠️ 無法以唯讀模式連接 DuckDB: {e}")
             
-    dfs_to_sync = []
-
+    # 📌 批次一次性解析載入所有股票後綴快取，避免在迴圈內重複連接資料庫 (O(1) 效能優化)
+    stock_suffixes = load_stock_suffixes(active_codes)
+    
     for idx, code in enumerate(active_codes, 1):
-        suffix = get_stock_suffix(code)
+        suffix = stock_suffixes.get(code, ".TW")
         ticker = f"{code}{suffix}"
         output_path = os.path.join(DATA_DIR, f"{code}_intraday_5m.csv")
         

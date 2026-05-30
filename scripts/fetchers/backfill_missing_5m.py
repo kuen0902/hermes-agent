@@ -28,21 +28,29 @@ def send_telegram(token, chat_id, text):
     except Exception as e:
         print(f"Telegram failed: {e}")
 
-def get_stock_suffix(code):
-    # Determine suffix based on database or mapping
-    # By default, check if we can query daily_stock_data to find if it has TW or TWO
-    suffix = ".TW"
+def load_stock_suffixes(active_codes):
+    """Loads all stock suffixes for active codes in a single highly-optimized DuckDB batch query."""
+    suffixes = {}
+    otc_set = {"3105", "3211", "3260", "3709", "4543", "4925", "5289", "5347", "6125", "6147", "6290", "6510", "6877", "7815", "7843", "7828", "8299"}
+    for code in active_codes:
+        suffixes[code] = ".TWO" if code in otc_set else ".TW"
+        
     if os.path.exists(DB_PATH):
         try:
             conn = duckdb.connect(DB_PATH, read_only=True)
-            res = conn.execute("SELECT ticker FROM daily_stock_data WHERE code = ? LIMIT 1", (code,)).fetchone()
+            rows = conn.execute("SELECT DISTINCT code, ticker FROM daily_stock_data").fetchall()
             conn.close()
-            if res and res[0]:
-                if ".TWO" in res[0]:
-                    suffix = ".TWO"
-        except:
-            pass
-    return suffix
+            for code_db, ticker in rows:
+                if code_db and ticker:
+                    c = str(code_db).strip()
+                    t = str(ticker).strip()
+                    if t.endswith(".TWO"):
+                        suffixes[c] = ".TWO"
+                    elif t.endswith(".TW"):
+                        suffixes[c] = ".TW"
+        except Exception as e:
+            print(f"⚠️ 批次讀取 DuckDB 股號後綴失敗: {e}")
+    return suffixes
 
 def backfill_gaps():
     print("=========================================================================")
@@ -69,9 +77,13 @@ def backfill_gaps():
     success_count = 0
     fixed_details = []
     
+    # 📌 批次一次性解析載入所有股票後綴快取，避免在迴圈內重複連接資料庫 (O(1) 效能優化)
+    active_codes = list(gap_registry.keys())
+    stock_suffixes = load_stock_suffixes(active_codes)
+    
     for code, gaps in list(gap_registry.items()):
         try:
-            suffix = get_stock_suffix(code)
+            suffix = stock_suffixes.get(code, ".TW")
             ticker = f"{code}{suffix}"
             output_path = os.path.join(DATA_DIR, f"{code}_intraday_5m.csv")
             
