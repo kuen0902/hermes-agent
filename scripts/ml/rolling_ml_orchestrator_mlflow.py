@@ -607,7 +607,7 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
                 # 2. 記錄優化指標
                 mlflow.log_metric("optimized_bias", float(bias_val))
                 mlflow.log_metric("last_error", float(error_val))
-                mlflow.log_metric("training_samples", int(len(rolling_X)))
+                mlflow.log_metric("training_samples", len(rolling_X))
                 
                 # 3. 自動註冊與追蹤高頻預測模型版本
                 mlflow.sklearn.log_model(

@@ -14,7 +14,7 @@ from datetime import datetime
 # Add script folder to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from rolling_ml_orchestrator import (
+from rolling_ml_orchestrator import ( # type: ignore
     normalize_code,
     MODEL_DIR,
     DUCK_PATH,
@@ -41,10 +41,11 @@ def send_ger_notification(message):
 def load_all_data_optimized():
     conn = duckdb.connect(DUCK_PATH)
     try:
-        latest_date_str = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()[0]
-        if not latest_date_str:
+        row = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()
+        if not row or not row[0]:
             conn.close()
-            return None, None
+            return None, {}
+        latest_date_str = row[0]
         latest_dt = pd.to_datetime(latest_date_str)
         
         # 6 months (approx 200 calendar days) is safe to get 100 daily rows
@@ -98,9 +99,9 @@ def load_all_data_optimized():
     df_fin['Code'] = df_fin['Code'].apply(normalize_code)
     
     # Convert dates to datetime objects for merge_asof
-    df_daily['Date_dt'] = pd.to_datetime(df_daily['Date'])
-    df_rev['Rev_Date_dt'] = pd.to_datetime(df_rev['Rev_Date'])
-    df_fin['Fin_Date_dt'] = pd.to_datetime(df_fin['Fin_Date'])
+    df_daily['Date_dt'] = pd.to_datetime(df_daily['Date'])  # type: ignore
+    df_rev['Rev_Date_dt'] = pd.to_datetime(df_rev['Rev_Date'])  # type: ignore
+    df_fin['Fin_Date_dt'] = pd.to_datetime(df_fin['Fin_Date'])  # type: ignore
     
     # Sort by datetime keys for pd.merge_asof requirement
     df_daily = df_daily.sort_values('Date_dt')
@@ -114,7 +115,7 @@ def load_all_data_optimized():
         left_on='Date_dt', right_on='Rev_Date_dt',
         by='Code',
         direction='backward'
-    )
+    )  # type: ignore
     
     print("  - 合併歷史日線與財務季報特徵...")
     df_merged = pd.merge_asof(
@@ -122,7 +123,7 @@ def load_all_data_optimized():
         left_on='Date_dt', right_on='Fin_Date_dt',
         by='Code',
         direction='backward'
-    )
+    )  # type: ignore
     
     df_merged = df_merged.drop(columns=['Date_dt', 'Rev_Date_dt', 'Fin_Date_dt'])
     return df_merged, code_to_name

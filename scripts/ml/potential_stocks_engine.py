@@ -65,7 +65,10 @@ def train_and_predict(inference_only=False):
     
     # 獲取資料庫中最新的交易日期，用以過濾因停牌或故障而無最新報價的商品
     try:
-        global_max_date = pd.to_datetime(conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()[0])
+        row = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()
+        if not row or row[0] is None:
+            raise ValueError("No latest trading date found in daily_stock_data")
+        global_max_date = pd.to_datetime(row[0])
         print(f"Latest trading day in DuckDB: {global_max_date.strftime('%Y-%m-%d')}")
     except Exception as e:
         print(f"⚠️ 無法取得最新交易日期: {e}")
