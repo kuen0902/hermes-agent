@@ -98,6 +98,7 @@ def get_history_from_duckdb(ticker):
 
 def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
     """Fills missing institutional net buys in the DataFrame and writes/updates to DuckDB potential_analysis.ddb"""
+    df = df.reset_index(drop=True)
     inst_ddb_path = os.path.expanduser("~/.hermes/data/portfolio.ddb")
     potential_ddb_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
     
@@ -319,10 +320,10 @@ def sync_all(fast_mode=False, force=False):
                     old_df = pd.read_csv(file_path)
                     
                     # Merge and deduplicate
-                    combined: pd.DataFrame = pd.concat([old_df, new_data.reset_index()])  # type: ignore
+                    combined: pd.DataFrame = pd.concat([old_df, new_data.reset_index()], ignore_index=True)  # type: ignore
                     # Normalize Date string to avoid dups from different formats
                     combined['Date'] = pd.to_datetime(combined['Date']).dt.strftime('%Y-%m-%d')  # type: ignore
-                    combined = combined.drop_duplicates(subset=['Date']).sort_values('Date')
+                    combined = combined.drop_duplicates(subset=['Date']).sort_values('Date').reset_index(drop=True)
                     
                     # Fill institutional flows and update DuckDB
                     combined = fill_institutional_data_and_sync_to_duckdb(ticker, combined, symbols_map)
