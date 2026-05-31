@@ -157,8 +157,12 @@ def main():
     grouped = df_all.groupby('Code')
     
     processed_count = 0
+    vetoed_count = 0
+    RISK_THRESHOLD = 0.50  # 審查者停損風險閾值 (大於 50% 則攔截)
+    
     for code, group in grouped:
         model_path = os.path.join(MODEL_DIR, f"daily_model_{code}.pkl")
+        auditor_path = os.path.join(MODEL_DIR, f"auditor_model_{code}.pkl")
         if not os.path.exists(model_path):
             continue
             
@@ -171,9 +175,21 @@ def main():
             latest_row = df_feat.tail(1)
             feats_clean = latest_row[DAILY_FEATURES].replace([np.inf, -np.inf], np.nan).fillna(0.0)
             
-            # 載入專屬模型進行預估
+            # 1. 提案者預估報酬率
             model = joblib.load(model_path)
             pred_ret = float(model.predict(feats_clean)[0])
+            
+            # 2. 審查者預估停損風險率
+            risk_prob = 0.0
+            if os.path.exists(auditor_path):
+                auditor = joblib.load(auditor_path)
+                risk_prob = float(auditor.predict_proba(feats_clean)[0][1])
+                
+            if risk_prob > RISK_THRESHOLD:
+                print(f"  🚫 [{code}] 遭風險審查者攔截 (停損機率: {risk_prob * 100:.1f}%)")
+                vetoed_count += 1
+                continue
+                
             latest_price = float(latest_row['Close'].values[0])
             latest_date = str(latest_row['Date'].values[0])[:10]
             
@@ -189,7 +205,8 @@ def main():
                 "price": latest_price,
                 "date": latest_date,
                 "foreign_net": f_net,
-                "trust_net": t_net
+                "trust_net": t_net,
+                "risk_prob": risk_prob * 100
             })
             processed_count += 1
         except Exception:
@@ -213,28 +230,29 @@ def main():
     elapsed = time.time() - start_time
     print(f"\n✓ 成功篩選出 Top 30 潛力個股，並已儲存至：{output_path}")
     print(f"  - 成功預估個股數量：{processed_count} 檔")
+    print(f"  - 遭風險審查者攔截數量：{vetoed_count} 檔")
     print(f"  - 總計耗時：{elapsed:.2f} 秒")
     
     # 輸出 Markdown 預覽
     print("\n---------------------------------------------------------")
-    print(" 🏆 全市場個股獨立模型 - 波段最佳 30 潛力股排行榜")
+    print(" 🏆 全市場個股獨立模型 - 雙模型聯防波段最佳 30 潛力股排行榜")
     print("---------------------------------------------------------")
-    print(f"| 排名 | 代號 | 股名 | 最新股價 | 預估20D報酬率 | 外資買超(張) | 投信買超(張) | 基準日期 |")
-    print(f"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
+    print(f"| 排名 | 代號 | 股名 | 最新股價 | 預估20D報酬率 | 審查風險 | 外資買超(張) | 投信買超(張) | 基準日期 |")
+    print(f"| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |")
     
     report_lines = []
     for rank, item in enumerate(top_30, 1):
-        line = f"| {rank:02d} | {item['code']} | {item['name']} | {item['price']:.2f} | {item['pred_return_pct']:+.2f}% | {item['foreign_net']:+.1f} | {item['trust_net']:+.1f} | {item['date']} |"
+        line = f"| {rank:02d} | {item['code']} | {item['name']} | {item['price']:.2f} | {item['pred_return_pct']:+.2f}% | {item['risk_prob']:.1f}% | {item['foreign_net']:+.1f} | {item['trust_net']:+.1f} | {item['date']} |"
         print(line)
         
         # Format for Telegram
-        telegram_line = f"Rank {rank:02d}: `{item['code']}` **{item['name']}** | 股價: `{item['price']:.1f}` | 預估變動: `{item['pred_return_pct']:+.2f}%` | 外資: `{item['foreign_net']:+.1f}張`"
+        telegram_line = f"Rank {rank:02d}: `{item['code']}` **{item['name']}** | 預估: `{item['pred_return_pct']:+.2f}%` | 風險: `{item['risk_prob']:.1f}%`"
         report_lines.append(telegram_line)
         
     # Send Telegram message
-    tel_msg = f"""🌅 **「黃金體驗-鎮魂曲」：全市場個股專屬模型波段最佳 30 潛力股排行榜** 🌅
+    tel_msg = f"""🌅 **「黃金體驗-鎮魂曲」：雙模型聯防最佳 30 潛力股排行榜** 🌅
 
-🎯 整合 14 年日線歷史、最新三大法人籌碼比率與絕對均線特徵，透過全市場在線商品**獨立自適應模型**運算得出最新波段（未來 20 交易日）最佳 30 檔潛力商品：
+🎯 整合 14 年歷史日線、三大法人籌碼與財報特徵，並通過**「提案者 (XGBRegressor)」**與**「審查者 (XGBClassifier 停損風險審查)」**雙重獨立模型砥礪篩選，得出未來 20 交易日最優 30 檔商品：
 
 """
     tel_msg += "\n".join(report_lines)

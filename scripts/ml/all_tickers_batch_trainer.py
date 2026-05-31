@@ -12,10 +12,11 @@ import pandas as pd
 # Add current script directory to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from rolling_ml_orchestrator import (
+from rolling_ml_orchestrator import (  # type: ignore
     prepare_daily_features,
     query_ticker_daily_db,
     train_daily_ticker_model,
+    train_daily_auditor_model,
     run_rolling_training_and_feedback,
     normalize_code,
     MODEL_DIR,
@@ -47,10 +48,11 @@ def load_all_active_tickers():
         return []
     try:
         conn = duckdb.connect(DUCK_PATH)
-        latest_date_str = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()[0]
-        if not latest_date_str:
+        row = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()
+        if not row or not row[0]:
             conn.close()
             return []
+        latest_date_str = row[0]
         latest_dt = pd.to_datetime(latest_date_str)
         rows = conn.execute("""
             SELECT code, MAX(date) as max_date 
@@ -211,6 +213,13 @@ def main():
                 fail_count += 1
                 continue
             print(f"  ✓ [{code}] 個股 14年日線 XGBoost 模型訓練成功！")
+            
+            # 2b. 訓練風險審查者模型 (Auditor)
+            auditor_model = train_daily_auditor_model(code, processed_daily)
+            if auditor_model is None:
+                print(f"  ⚠️ [{code}] 訓練風險審查者模型失敗或樣本不足，跳過審查者校準。")
+            else:
+                print(f"  ✓ [{code}] 個股風險審查者 XGBoost 模型訓練成功！")
             
             # 3. 高頻 150-90日預訓練 & 89日-1日自適應滾動偏差更新
             success = run_rolling_training_and_feedback(code, daily_df, daily_model)

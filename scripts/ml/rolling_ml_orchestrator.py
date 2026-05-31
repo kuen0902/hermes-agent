@@ -315,6 +315,38 @@ def train_daily_ticker_model(code, df_processed):
     joblib.dump(model, path)
     return model
 
+def train_daily_auditor_model(code, df_processed):
+    """Trains a stock-specific daily auditor model (XGBClassifier) to predict risk of false breakouts."""
+    if 'Target_Audit_20' not in df_processed.columns:
+        return None
+        
+    df_clean = df_processed.dropna(subset=DAILY_FEATURES + ['Target_Audit_20'])
+    df_clean = df_clean.replace([np.inf, -np.inf], np.nan).dropna(subset=DAILY_FEATURES)
+    if len(df_clean) < 40:
+        return None
+        
+    y_vals = df_clean['Target_Audit_20'].unique()
+    if len(y_vals) < 2:
+        return None
+        
+    X = df_clean[DAILY_FEATURES]
+    y = df_clean['Target_Audit_20']
+    
+    model = xgb.XGBClassifier(
+        n_estimators=100,
+        max_depth=4,
+        learning_rate=0.08,
+        subsample=0.85,
+        colsample_bytree=0.85,
+        random_state=42,
+        eval_metric='logloss'
+    )
+    model.fit(X, y)
+    
+    path = os.path.join(MODEL_DIR, f"auditor_model_{code}.pkl")
+    joblib.dump(model, path)
+    return model
+
 def fetch_5m_kbars_duckdb(code):
     """Retrieves 5m kbars from DuckDB kbars_5m table."""
     if not os.path.exists(DUCK_PATH):
@@ -333,11 +365,13 @@ def fetch_5m_kbars_duckdb(code):
         print(f"⚠️ Error querying 5m K-bars for {code}: {e}")
         return pd.DataFrame()
 
-def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache):
+def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache=None):
     """
     1. Trains high-frequency intraday models on days 150d-90d.
     2. Simulates rolling daily predictions and adaptive bias feedback on days 89 to 1.
     """
+    if daily_features_cache is None:
+        daily_features_cache = load_all_daily_features_cache([code])
     # Grab 5m kbars
     kb_df = fetch_5m_kbars_duckdb(code)
     if kb_df.empty or len(kb_df) < 500:
@@ -693,6 +727,13 @@ def main():
             continue
         print(f"  ✓ [{code}] 個股 14年日線 XGBoost 模型訓練成功！")
         
+        # 2b. 訓練風險審查者模型 (Auditor)
+        auditor_model = train_daily_auditor_model(code, processed_daily)
+        if auditor_model is None:
+            print(f"  ⚠️ [{code}] 訓練風險審查者模型失敗或樣本不足，跳過審查者校準。")
+        else:
+            print(f"  ✓ [{code}] 個股風險審查者 XGBoost 模型訓練成功！")
+            
         # 3. 高頻 150-90日預訓練 & 89日-1日自適應滾動偏差更新
         success = run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache)
         if success:

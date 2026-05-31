@@ -120,4 +120,10 @@ def prepare_daily_features(df):
     df['Trust_Buy_Days_5'] = (df['Trust_Net'] > 0).rolling(5).sum()
     
     df['Target_Ret_20'] = df['Close'].shift(-20) / df['Close'] - 1.0
+    
+    # Auditor target: 1.0 if future min low in next 20 days is < -5% of current Close, else 0.0
+    # shift(-20).rolling(20).min() represents t+1 to t+20 window min low
+    future_min_low = df['Low'].shift(-20).rolling(window=20).min()
+    df['Target_Audit_20'] = np.where(future_min_low.isna(), np.nan, (future_min_low / df['Close'] - 1.0 < -0.05).astype(float))
+    
     return df
