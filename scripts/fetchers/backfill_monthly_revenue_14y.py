@@ -28,7 +28,7 @@ CORE_SYMBOLS = [
 def load_target_codes():
     target_codes = set()
     for s in CORE_SYMBOLS:
-        target_codes.add(s.replace(".TW", "").replace(".TWO", "").strip())
+        target_codes.add(s.replace(".TWO", "").replace(".TW", "").strip())
     
     # 1. 讀取 SQLite 真實持股商品
     if os.path.exists(DB_PATH):
@@ -37,7 +37,7 @@ def load_target_codes():
             cursor = conn.cursor()
             cursor.execute("SELECT code FROM current_holdings")
             for row in cursor.fetchall():
-                code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+                code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
                 target_codes.add(code)
             conn.close()
         except Exception as e:
@@ -52,7 +52,7 @@ def load_target_codes():
                 william_codes = central_data.get("william_codes", [])
                 
                 def norm_c(c_str):
-                    return str(c_str).replace(".TW", "").replace(".TWO", "").strip()
+                    return str(c_str).replace(".TWO", "").replace(".TW", "").strip()
                 
                 if isinstance(group_codes, dict):
                     for c in group_codes.keys(): target_codes.add(norm_c(c))

@@ -7,7 +7,9 @@ import duckdb
 import pandas as pd
 import yfinance as yf
 import requests
-from datetime import datetime
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+from datetime import datetime, timedelta
 
 DATA_DIR = os.path.expanduser("~/.hermes/data")
 DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
@@ -52,9 +54,24 @@ def load_stock_suffixes(active_codes):
             print(f"⚠️ 批次讀取 DuckDB 股號後綴失敗: {e}")
     return suffixes
 
+def merge_gap_dates_to_ranges(dates):
+    if not dates: return []
+    dates = sorted([datetime.strptime(d, "%Y-%m-%d") for d in dates])
+    ranges = []
+    if not dates: return ranges
+    start = dates[0]
+    prev = dates[0]
+    for d in dates[1:]:
+        if (d - prev).days > 1:
+            ranges.append((start.strftime("%Y-%m-%d"), prev.strftime("%Y-%m-%d")))
+            start = d
+        prev = d
+    ranges.append((start.strftime("%Y-%m-%d"), prev.strftime("%Y-%m-%d")))
+    return ranges
+
 def backfill_gaps():
     print("=========================================================================")
-    print(" 🚀 啟動 5m 高頻資料缺漏與不足交易日之自動補全回補程序 (03:00 AM)")
+    print(" 🚀 啟動 150 天全市場高頻資料「智慧日期段增量補漏程序」 (03:00 AM)")
     print("=========================================================================")
     
     if not os.path.exists(AUDIT_JSON):
@@ -72,192 +89,232 @@ def backfill_gaps():
         print("ℹ️ 缺漏清單為空，無須回補。")
         return
         
-    print(f"發現共有 {len(gap_registry)} 檔個股存在高頻資料缺漏，開始進行補全...")
+    active_codes = list(gap_registry.keys())
+    print(f"發現共有 {len(active_codes)} 檔個股存在高頻資料缺漏，啟動精準補漏程序...")
     
     success_count = 0
     fixed_details = []
     
-    # 📌 批次一次性解析載入所有股票後綴快取，避免在迴圈內重複連接資料庫 (O(1) 效能優化)
-    active_codes = list(gap_registry.keys())
     stock_suffixes = load_stock_suffixes(active_codes)
     
-    for code, gaps in list(gap_registry.items()):
+    name_cache = {}
+    if os.path.exists(DB_PATH):
         try:
+            conn = duckdb.connect(DB_PATH, read_only=True)
+            name_rows = conn.execute("SELECT code, name FROM daily_stock_data").fetchall()
+            conn.close()
+            for c, n in name_rows:
+                if c and n:
+                    name_cache[str(c).strip()] = str(n).strip()
+        except Exception as e:
+            print(f"⚠️ 載入股名快取失敗: {e}")
+
+    chunk_size = 50
+    chunks = [active_codes[i:i + chunk_size] for i in range(0, len(active_codes), chunk_size)]
+    
+    total_chunks = len(chunks)
+    print(f"📦 全市場共分為 {total_chunks} 個分組進行精準分段下載與批次落庫。")
+    
+    for c_idx, chunk_codes in enumerate(chunks, 1):
+        print(f"\n[Group {c_idx}/{total_chunks}] 正在為 {len(chunk_codes)} 檔個股詳細排查與個別補漏...")
+        
+        chunk_sync_rows = []
+                
+        for code in chunk_codes:
             suffix = stock_suffixes.get(code, ".TW")
             ticker = f"{code}{suffix}"
             output_path = os.path.join(DATA_DIR, f"{code}_intraday_5m.csv")
             
-            total_gaps_days = len(gaps.get("missing", [])) + len(gaps.get("incomplete", []))
-            print(f"\n[補全] {ticker} ... 缺漏/不足天數: {total_gaps_days} 天")
+            gaps = gap_registry.get(code, {})
+            gap_dates = list(set(gaps.get("missing", []) + gaps.get("incomplete", [])))
             
-            # 1. 下載完整的 60 天 5m 數據 (覆蓋所有缺漏日)
-            df_yf_clean = None
-            finmind_success = False
-            try:
-                print(f"  ▸ 正在從 FinMind 下載 60 天 5m 歷史資料...")
-                sixty_days_ago = (datetime.now() - pd.Timedelta(days=62)).strftime("%Y-%m-%d")
-                url = "https://api.finmindtrade.com/api/v4/data"
-                params = {
-                    'dataset': 'TaiwanStockKBar',
-                    'data_id': code,
-                    'start_date': sixty_days_ago,
-                    'token': "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYm9va2lkIiwiZW1haWwiOiJib29raWQyMDAwQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.MaUs7zQVYm5qKtlpIRdZ-s-I6WXCfcdtIowZiR7mXM4"
-                }
-                r = requests.get(url, params=params, timeout=30, verify=False)
-                if r.status_code == 200:
-                    res_data = r.json()
-                    if res_data.get('status') == 200 or res_data.get('msg') == 'success':
-                        raw_data = res_data.get('data', [])
-                        if raw_data:
-                            df_raw = pd.DataFrame(raw_data)
-                            df_raw['timestamp'] = pd.to_datetime(df_raw['date'] + ' ' + df_raw['minute'])
-                            df_raw = df_raw.set_index('timestamp').sort_index()
-                            
-                            # 轉換為數值
-                            for col in ['open', 'high', 'low', 'close', 'volume', 'turnover', 'transaction']:
-                                if col in df_raw.columns:
-                                    df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce').fillna(0.0)
-                            
-                            # 重採樣成 5m
-                            resampled = df_raw.resample('5Min', closed='right', label='right').agg({
-                                'open': 'first',
-                                'high': 'max',
-                                'low': 'min',
-                                'close': 'last',
-                                'volume': 'sum',
-                                'turnover': 'sum',
-                                'transaction': 'sum'
-                            }).dropna()
-                            
-                            resampled = resampled[resampled['volume'] > 0.0].reset_index()
-                            resampled.rename(columns={
-                                'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume',
-                                'turnover': 'Amount', 'transaction': 'Transaction'
-                            }, inplace=True)
-                            
-                            # 轉為 ISO UTC 時區
-                            resampled['timestamp'] = pd.to_datetime(resampled['timestamp']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                            df_yf_clean = resampled[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
-                            finmind_success = True
-                            print(f"  ✓ [FinMind] 成功下載 60日全維度數據。")
-            except Exception as fm_err:
-                print(f"  ⚠️ 從 FinMind 下載 60d 失敗: {fm_err}")
+            if not gap_dates: continue
                 
-            # yfinance 備援降級方案
-            if not finmind_success:
-                try:
-                    print(f"  ▸ 正在從 yfinance 下載 60 天 5m 歷史資料...")
-                    df_yf = yf.download(ticker, period="60d", interval="5m", progress=False)
-                    if df_yf.empty:
-                        print(f"  ❌ 下載 {ticker} 失敗或無資料。")
-                        continue
-                        
-                    if isinstance(df_yf.columns, pd.MultiIndex):
-                        df_yf.columns = df_yf.columns.get_level_values(0)
-                        
-                    df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
-                    df_yf = df_yf.reset_index()
-                    df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
-                    
-                    # 轉換為 UTC ISO 格式
-                    df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                    df_yf['Amount'] = 0.0
-                    df_yf['Transaction'] = 0
-                    df_yf_clean = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
-                except Exception as yf_err:
-                    print(f"  ❌ 處理 {ticker} (yfinance) 發生異常: {yf_err}")
-                    continue
-
-            if df_yf_clean is None or df_yf_clean.empty:
-                print(f"  ❌ 無法下載 {ticker} 歷史價格，所有備援管道皆已失敗。")
-                continue
-
-            # 2. 合併本地已有的 CSV 資料以防遺失更久以前的快取
-            df_combined = None
-            if os.path.exists(output_path):
-                try:
-                    df_local = pd.read_csv(output_path)
-                    # 補全欄位以相容於新 Schema
-                    if 'Amount' not in df_local.columns and 'amount' in df_local.columns:
-                        df_local.rename(columns={'amount': 'Amount'}, inplace=True)
-                    if 'Transaction' not in df_local.columns and 'transaction' in df_local.columns:
-                        df_local.rename(columns={'transaction': 'Transaction'}, inplace=True)
-                        
-                    for col in ['Amount', 'Transaction']:
-                        if col not in df_local.columns:
-                            df_local[col] = 0.0 if col == 'Amount' else 0
-                            
-                    df_local['timestamp'] = pd.to_datetime(df_local['timestamp']).dt.tz_localize('UTC', ambiguous='NaT').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                    df_combined = pd.concat([df_local, df_yf_clean], ignore_index=True)
-                    df_combined = df_combined.drop_duplicates(subset=['timestamp'], keep='last') # type: ignore
-                    df_combined = df_combined.sort_values('timestamp').reset_index(drop=True)
-                except Exception as merge_err:
-                    print(f"  ⚠️ 合併本地資料失敗，採用最新下載資料: {merge_err}")
-                    df_combined = df_yf_clean
-            else:
-                df_combined = df_yf_clean
+            gap_ranges = merge_gap_dates_to_ranges(gap_dates)
+            df_all_fetched_gaps = []
+            total_range_days = 0
+            
+            for g_start, g_end in gap_ranges:
+                finmind_success = False
+                df_fetched_range = None
                 
-            # 3. 限制長度並寫回 CSV
-            if df_combined is not None:
-                df_combined = df_combined.tail(10000)
-                df_combined.to_csv(output_path, index=False)
-                print(f"  ✓ 成功儲存 5m 高頻資料至 CSV: {output_path} (共 {len(df_combined)} 筆)")
+                # 建立 FinMind API 的自動重試與自癒頻率控制機制
+                finmind_success = False
+                df_fetched_range = None
                 
-                # 4. 寫回 DuckDB kbars_5m 主庫
-                if os.path.exists(DB_PATH):
+                max_api_retries = 3
+                for api_retry in range(max_api_retries):
                     try:
-                        conn = duckdb.connect(DB_PATH)
-                        
-                        # 獲取名稱
-                        stock_name = code
-                        res_name = conn.execute("SELECT name FROM daily_stock_data WHERE code = ? LIMIT 1", (code,)).fetchone()
-                        if res_name and res_name[0]:
-                            stock_name = res_name[0]
+                        url = "https://api.finmindtrade.com/api/v4/data"
+                        params = {
+                            'dataset': 'TaiwanStockKBar',
+                            'data_id': code,
+                            'start_date': g_start,
+                            'end_date': g_end,
+                            'token': "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYm9va2lkIiwiZW1haWwiOiJib29raWQyMDAwQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.MaUs7zQVYm5qKtlpIRdZ-s-I6WXCfcdtIowZiR7mXM4"
+                        }
+                        r = requests.get(url, params=params, timeout=20, verify=False)
+                        if r.status_code == 200:
+                            res_data = r.json()
+                            status_code = res_data.get('status')
+                            msg = res_data.get('msg', '')
                             
-                        # 重構 df 寫入 DuckDB 格式
-                        df_db_sync = df_combined.copy()
-                        df_db_sync['timestamp'] = pd.to_datetime(df_db_sync['timestamp'])
-                        df_db_sync['code'] = code
-                        df_db_sync['ticker'] = ticker
-                        df_db_sync['name'] = stock_name
+                            # 檢查是否觸發 IP 頻率限制 (403 或 ip banned)
+                            if status_code == 403 or 'ip banned' in msg.lower():
+                                retry_after = int(res_data.get('retry_after', 60))
+                                print(f"  ⚠️ [FinMind API 限流] IP 被臨時鎖定。為保護帳號安全與 Token，自動睡眠 {retry_after + 5} 秒以等待解封 (重試 {api_retry + 1}/{max_api_retries})...")
+                                time.sleep(retry_after + 5)
+                                continue
+                                
+                            if status_code == 200 or msg == 'success':
+                                raw_data = res_data.get('data', [])
+                                if raw_data:
+                                    df_raw = pd.DataFrame(raw_data)
+                                    df_raw['timestamp'] = pd.to_datetime(df_raw['date'] + ' ' + df_raw['minute'])
+                                    df_raw = df_raw.set_index('timestamp').sort_index()
+                                    
+                                    for col in ['open', 'high', 'low', 'close', 'volume', 'turnover', 'transaction']:
+                                        if col in df_raw.columns:
+                                            df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce').fillna(0.0)
+                                            
+                                    resampled = df_raw.resample('5Min', closed='right', label='right').agg({
+                                        'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last',
+                                        'volume': 'sum', 'turnover': 'sum', 'transaction': 'sum'
+                                    }).dropna()
+                                    
+                                    resampled = resampled[resampled['volume'] > 0.0].reset_index()
+                                    resampled.rename(columns={
+                                        'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume',
+                                        'turnover': 'Amount', 'transaction': 'Transaction'
+                                    }, inplace=True)
+                                    
+                                    resampled['timestamp'] = pd.to_datetime(resampled['timestamp']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                                    df_fetched_range = resampled[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+                                    finmind_success = True
+                                break
+                            else:
+                                # 其他錯誤狀態直接退出
+                                break
+                    except Exception as e:
+                        print(f"  ⚠️ [FinMind API 請求異常] {e}，將嘗試重試...")
+                        time.sleep(2)
+                    
+                if not finmind_success:
+                    try:
+                        sixty_days_limit = (datetime.now() - timedelta(days=60)).strftime("%Y-%m-%d")
+                        if g_start >= sixty_days_limit:
+                            df_yf = yf.download(ticker, start=g_start, end=(pd.to_datetime(g_end) + timedelta(days=1)).strftime("%Y-%m-%d"), interval="5m", progress=False)
+                            if not df_yf.empty:
+                                if isinstance(df_yf.columns, pd.MultiIndex):
+                                    df_yf.columns = df_yf.columns.get_level_values(0)
+                                df_yf = df_yf[['Open', 'High', 'Low', 'Close', 'Volume']].dropna()
+                                df_yf = df_yf.reset_index()
+                                df_yf.rename(columns={'Datetime': 'timestamp'}, inplace=True)
+                                df_yf['timestamp'] = pd.to_datetime(df_yf['timestamp']).dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                                df_yf['Amount'] = 0.0
+                                df_yf['Transaction'] = 0
+                                df_fetched_range = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+                                finmind_success = True
+                    except Exception: pass
                         
-                        df_db_sync.rename(columns={
-                            'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume',
-                            'Amount': 'amount', 'Transaction': 'transaction'
-                        }, inplace=True)
-                        
-                        df_db_sync = df_db_sync[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume', 'amount', 'transaction']]
-                        
-                        conn.execute("INSERT OR REPLACE INTO kbars_5m SELECT * FROM df_db_sync")
-                        conn.commit()
-                        conn.close()
-                        print(f"  ✓ 成功同步寫入 DuckDB kbars_5m")
-                        success_count += 1
-                        fixed_details.append(f"• `{code}` ({stock_name}): 成功修復 `{total_gaps_days}` 天缺漏")
-                        
-                        # 從待回補清單中移除
-                        gap_registry.pop(code, None)
-                    except Exception as db_err:
-                        print(f"  ❌ 寫入 DuckDB 失敗: {db_err}")
+                if df_fetched_range is not None and not df_fetched_range.empty:
+                    df_all_fetched_gaps.append(df_fetched_range)
+                    d_start = datetime.strptime(g_start, "%Y-%m-%d")
+                    d_end = datetime.strptime(g_end, "%Y-%m-%d")
+                    total_range_days += (d_end - d_start).days + 1
+                    
+                time.sleep(0.05)
                 
-            time.sleep(1.0) # respect API rate limit
-        except Exception as e:
-            print(f"  ❌ 處理 {code} 發生異常: {e}")
+            if df_all_fetched_gaps:
+                try:
+                    df_all_fetched = pd.concat(df_all_fetched_gaps, ignore_index=True)
+                    if os.path.exists(output_path):
+                        df_local = pd.read_csv(output_path)
+                        for col in ['Amount', 'Transaction']:
+                            if col not in df_local.columns: df_local[col] = 0.0 if col == 'Amount' else 0
+                        parsed_ts = pd.to_datetime(df_local['timestamp'])
+                        if parsed_ts.dt.tz is None:
+                            parsed_ts = parsed_ts.dt.tz_localize('UTC', ambiguous='NaT')
+                        else:
+                            parsed_ts = parsed_ts.dt.tz_convert('UTC')
+                        df_local['timestamp'] = parsed_ts.dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                        df_combined = pd.concat([df_local, df_all_fetched], ignore_index=True)
+                    else:
+                        df_combined = df_all_fetched
+                        
+                    assert isinstance(df_combined, pd.DataFrame)
+                    df_combined = df_combined.drop_duplicates(subset=['timestamp'], keep='last')
+                    df_combined = df_combined.sort_values('timestamp').reset_index(drop=True)
+                    df_combined = df_combined.tail(10000)
+                    df_combined.to_csv(output_path, index=False)
+                    
+                    df_db_sync = df_combined.copy()
+                    parsed_ts_db = pd.to_datetime(df_db_sync['timestamp'])
+                    if parsed_ts_db.dt.tz is not None:
+                        parsed_ts_db = parsed_ts_db.dt.tz_convert('UTC').dt.tz_localize(None)
+                    else:
+                        parsed_ts_db = parsed_ts_db.dt.tz_localize(None)
+                    df_db_sync['timestamp'] = parsed_ts_db
+                    df_db_sync['code'] = code
+                    df_db_sync['ticker'] = ticker
+                    df_db_sync['name'] = name_cache.get(code, code)
+                    df_db_sync.rename(columns={
+                        'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume',
+                        'Amount': 'amount', 'Transaction': 'transaction'
+                    }, inplace=True)
+                    df_db_sync['volume'] = pd.to_numeric(df_db_sync['volume'], errors='coerce').fillna(0).astype('int64')
+                    df_db_sync['transaction'] = pd.to_numeric(df_db_sync['transaction'], errors='coerce').fillna(0).astype('int64')
+                    df_db_sync = df_db_sync[['timestamp', 'code', 'ticker', 'name', 'open', 'high', 'low', 'close', 'volume', 'amount', 'transaction']]
+                    chunk_sync_rows.append(df_db_sync)
+                    
+                    success_count += 1
+                    fixed_details.append(f"• `{code}` ({name_cache.get(code, code)}): 成功精準補漏 `{total_range_days}` 天")
+                    gap_registry.pop(code, None)
+                    print(f"  ✓ [{code}] 成功精準補漏 {total_range_days} 天缺失資料。")
+                except Exception as merge_err:
+                    print(f"  ⚠️ 合併與落庫個股 {ticker} 失敗: {merge_err}")
+                    
+        if chunk_sync_rows:
+            conn_db = None
+            try:
+                conn_db = duckdb.connect(DB_PATH)
+                df_chunk_all = pd.concat(chunk_sync_rows, ignore_index=True)
+                conn_db.execute("INSERT OR REPLACE INTO kbars_5m SELECT * FROM df_chunk_all")
+                conn_db.commit()
+                print(f"  ✓ 成功批次寫入 {len(chunk_sync_rows)} 檔個股的 150d 精準高頻補漏數據。")
+            except Exception as bulk_db_err:
+                print(f"  ❌ 批次寫入 DuckDB 失敗: {bulk_db_err}")
+            finally:
+                if conn_db:
+                    conn_db.close()
             
-    # 5. 更新快取清單以防重複處理
+        # 每個分組完成後，立即將剩餘未回補清單存入 JSON，確保中斷時能保留進度
+        try:
+            with open(AUDIT_JSON, 'w', encoding='utf-8') as f:
+                json.dump(gap_registry, f, indent=2, ensure_ascii=False)
+        except Exception as save_err:
+            print(f"  ⚠️ 儲存進度至 JSON 失敗: {save_err}")
+            
     with open(AUDIT_JSON, 'w', encoding='utf-8') as f:
         json.dump(gap_registry, f, indent=2, ensure_ascii=False)
         
-    print(f"\n✓ 5m 高頻補全回補程序完成！成功修復: {success_count} 檔個股")
+    print(f"\n✓ 5m 高頻智慧增量個別補漏程序完成！成功修復: {success_count} 檔個股")
     print("=========================================================================")
     
-    # 📌 6. 發送 Telegram 報告至「黃金體驗-鎮魂曲」 (GER Bot)
     if fixed_details:
-        detail_msg = "\n".join(fixed_details)
+        displayed_details = fixed_details[:30]
+        detail_msg = "\n".join(displayed_details)
+        if len(fixed_details) > 30:
+            detail_msg += f"\n• ...以及其他 {len(fixed_details) - 30} 檔個股的高頻自癒補全..."
+            
         ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：5m 高頻資料回補報告 🌅**
 缺漏的過去已全部被強制作為「無效」，現在只留下現實。
 
-### 📊 **高頻補全修復清單**
+### 📊 **全市場高頻並行補全修復摘要**
+*   **成功修復股數**：`{success_count}` 檔
+*   **高頻落庫模式**：`yfinance 多線程 Chunks 批次`
+
+**自癒清單摘要：**
 {detail_msg}
 
 **無駄！** 所有被標記的 5m 數據缺失與不足已全部重構補全。"""

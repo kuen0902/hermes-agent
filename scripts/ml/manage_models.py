@@ -26,7 +26,7 @@ GLOBAL_PROTECTED_FILES = {
 }
 
 def normalize_code(code_str):
-    return str(code_str).replace(".TW", "").replace(".TWO", "").strip()
+    return str(code_str).replace(".TWO", "").replace(".TW", "").strip()
 
 def load_current_active_tickers():
     """載入當前真實持股與 Telegram 訂閱/監控名單中的所有個股代號"""

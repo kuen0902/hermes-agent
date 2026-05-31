@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 import yfinance as yf
 from datetime import datetime, timedelta
 import json
@@ -105,8 +106,15 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
     # 1. Fill institutional columns if missing
     for col in ['Foreign_Net', 'Trust_Net', 'Dealer_Net']:
         if col not in df.columns:
-            df[col] = 0.0
+            df[col] = np.nan
             
+    # Force refetch institutional data for the last 5 days to ensure recent data is fully synced from portfolio.ddb
+    try:
+        recent_date = (pd.to_datetime(datetime.now()) - pd.Timedelta(days=5)).strftime('%Y-%m-%d')
+        df.loc[df['Date'].astype(str) >= recent_date, ['Foreign_Net', 'Trust_Net', 'Dealer_Net']] = np.nan
+    except Exception as refetch_err:
+        pass
+
     # If there are NaN values in institutional columns, try to fill them from institutional_data table in portfolio.ddb
     nan_mask = df['Foreign_Net'].isna() | df['Trust_Net'].isna() | df['Dealer_Net'].isna()
     if nan_mask.any() and os.path.exists(inst_ddb_path):
@@ -172,7 +180,11 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
             df_temp = df_temp.tail(15)
             
             potential_conn = duckdb.connect(potential_ddb_path)
-            potential_conn.execute("INSERT OR REPLACE INTO daily_stock_data SELECT * FROM df_temp")
+            potential_conn.execute("""
+                INSERT OR REPLACE INTO daily_stock_data (
+                    date, code, ticker, name, open, high, low, close, adj_close, volume, foreign_net, trust_net, dealer_net
+                ) SELECT * FROM df_temp
+            """)
             potential_conn.close()
         except Exception as e:
             print(f"Error syncing {ticker} to DuckDB daily_stock_data: {e}")
@@ -203,7 +215,13 @@ def sync_all(fast_mode=False, force=False):
         try:
             with open(os.path.expanduser("~/.hermes/data/central_stock_data.json"), 'r') as f:
                 c_data = json.load(f)
-                symbols_map = {k + (".TW" if "." not in k else ""): v for k, v in c_data.get("full_mapping", {}).items()}
+                symbols_map = {}
+                for k, v in c_data.get("full_mapping", {}).items():
+                    real_sym = c_data.get("data", {}).get(k, {}).get("symbol")
+                    if real_sym:
+                        symbols_map[real_sym] = v
+                    else:
+                        symbols_map[k + (".TW" if "." not in k else "")] = v
         except:
             print("Fast mode requested but central_stock_data.json missing. Falling back to full.")
             symbols_map = get_tw_stock_list()

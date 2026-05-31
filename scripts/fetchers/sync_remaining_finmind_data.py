@@ -31,7 +31,7 @@ CORE_SYMBOLS = [
 def load_target_codes():
     target_codes = set()
     for s in CORE_SYMBOLS:
-        target_codes.add(s.replace(".TW", "").replace(".TWO", "").strip())
+        target_codes.add(s.replace(".TWO", "").replace(".TW", "").strip())
     
     if os.path.exists(DB_PATH):
         try:
@@ -39,35 +39,40 @@ def load_target_codes():
             cursor = conn.cursor()
             cursor.execute("SELECT code FROM current_holdings")
             for row in cursor.fetchall():
-                code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+                code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
+                target_codes.add(code)
+            cursor.execute("SELECT code FROM watchlist")
+            for row in cursor.fetchall():
+                code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
                 target_codes.add(code)
             conn.close()
         except Exception as e:
-            print(f"⚠️ 無法讀取持股清單: {e}")
+            print(f"⚠️ 無法讀取持股與自選清單: {e}")
             
     if os.path.exists(CENTRAL_JSON):
         try:
             with open(CENTRAL_JSON, 'r', encoding='utf-8') as f:
                 central_data = json.load(f)
-                group_codes = central_data.get("group_codes", [])
-                william_codes = central_data.get("william_codes", [])
-                
-                def norm_c(c_str):
-                    return str(c_str).replace(".TW", "").replace(".TWO", "").strip()
-                
-                if isinstance(group_codes, dict):
-                    for c in group_codes.keys(): target_codes.add(norm_c(c))
-                elif isinstance(group_codes, list):
-                    for c in group_codes: target_codes.add(norm_c(c))
-                    
-                if isinstance(william_codes, dict):
-                    for c in william_codes.keys(): target_codes.add(norm_c(c))
-                elif isinstance(william_codes, list):
-                    for c in william_codes: target_codes.add(norm_c(c))
+                full_map = central_data.get("full_mapping", {})
+                for c in full_map.keys():
+                    target_codes.add(str(c).replace(".TWO", "").replace(".TW", "").strip())
         except Exception as e:
-            print(f"⚠️ 無法讀取監控清單: {e}")
+            print(f"⚠️ 無法讀取中央監控清單: {e}")
             
     return sorted(list(target_codes))
+
+def load_all_active_codes():
+    db_path = DUCK_PATH
+    if not os.path.exists(db_path):
+        return []
+    try:
+        conn = duckdb.connect(db_path, read_only=True)
+        df = conn.execute("SELECT DISTINCT code FROM daily_stock_data").fetchdf()
+        conn.close()
+        return sorted(df['code'].tolist())
+    except Exception as e:
+        print(f"⚠️ 無法從 DuckDB 讀取全市場在線個股代碼: {e}")
+        return []
 
 def send_telegram(token, chat_id, text):
     url = f"https://api.telegram.org/bot{token}/sendMessage"
@@ -98,68 +103,78 @@ def main():
     
     start_time = time.time()
     target_codes = load_target_codes()
-    print(f"在線個股總數: {len(target_codes)} 檔")
+    print(f"核心監控個股總數: {len(target_codes)} 檔")
     
-    if not target_codes:
-        print("❌ 無核心個股需要同步，結束。")
+    all_active_codes = load_all_active_codes()
+    print(f"全市場在線個股總數: {len(all_active_codes)} 檔")
+    
+    if not all_active_codes:
+        print("❌ 無在線個股需要同步，結束。")
         return
         
     conn = duckdb.connect(DUCK_PATH)
     
-    # 1. 同步最近兩個月之月營收
+    # 1. 同步最近兩個月之月營收 (全市場 Bulk 批次下載，API 請求降至 1 次)
     success_rev = 0
     new_rev_records = 0
     # 查詢起始日：前一個月的第一天
     today = datetime.datetime.now()
     start_date_rev = (today - datetime.timedelta(days=60)).replace(day=1).strftime("%Y-%m-%d")
     
-    print(f"\n  [1/2] 正在同步最近月營收資料 (起始日: {start_date_rev})...")
+    print(f"\n  [1/2] 正在利用 Bulk 批次同步全市場最近月營收資料 (起始日: {start_date_rev})...")
     
-    for idx, code in enumerate(target_codes, 1):
-        url = "https://api.finmindtrade.com/api/v4/data"
-        params = {
-            'dataset': 'TaiwanStockMonthRevenue',
-            'data_id': code,
-            'start_date': start_date_rev,
-            'token': FINMIND_TOKEN
-        }
-        try:
-            r = requests.get(url, params=params, timeout=15, verify=False)
-            if r.status_code == 200:
-                data = r.json().get('data', [])
-                if data:
-                    cursor = conn.cursor()
-                    batch = []
-                    for row in data:
-                        date = str(row.get("date", ""))
-                        rev = int(row.get("revenue", 0))
-                        month = int(row.get("revenue_month", 0))
-                        year = int(row.get("revenue_year", 0))
-                        out_val = int(row.get("out", 0))
-                        in_val = int(row.get("in", 0))
-                        yoy = float(row.get("during_manifest_yoy", 0.0))
-                        mom = float(row.get("during_manifest_mom", 0.0))
-                        batch.append((date, code, rev, month, year, out_val, in_val, yoy, mom))
-                        
-                    if batch:
-                        cursor.executemany('''
-                            INSERT INTO monthly_revenue (date, code, revenue, revenue_month, revenue_year, out_revenue, in_revenue, yoy, mom)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                            ON CONFLICT(date, code) DO UPDATE SET
-                                revenue = excluded.revenue,
-                                revenue_month = excluded.revenue_month,
-                                revenue_year = excluded.revenue_year,
-                                out_revenue = excluded.out_revenue,
-                                in_revenue = excluded.in_revenue,
-                                yoy = excluded.yoy,
-                                mom = excluded.mom
-                        ''', batch)
-                        conn.commit()
-                        success_rev += 1
-                        new_rev_records += len(batch)
-            time.sleep(0.1)
-        except Exception as e:
-            print(f"    ⚠️ 同步 {code} 月營收失敗: {e}")
+    url = "https://api.finmindtrade.com/api/v4/data"
+    params = {
+        'dataset': 'TaiwanStockMonthRevenue',
+        'start_date': start_date_rev,
+        'token': FINMIND_TOKEN
+    }
+    try:
+        r = requests.get(url, params=params, timeout=30, verify=False)
+        if r.status_code == 200:
+            data = r.json().get('data', [])
+            if data:
+                cursor = conn.cursor()
+                batch = []
+                active_codes_set = set(all_active_codes)
+                
+                for row in data:
+                    code = str(row.get("stock_id", "")).strip()
+                    # 僅保留在線 1,980 檔的月營收資料
+                    if code not in active_codes_set:
+                        continue
+                    date = str(row.get("date", ""))
+                    rev = int(row.get("revenue", 0))
+                    month = int(row.get("revenue_month", 0))
+                    year = int(row.get("revenue_year", 0))
+                    out_val = int(row.get("out", 0))
+                    in_val = int(row.get("in", 0))
+                    yoy = float(row.get("during_manifest_yoy", 0.0))
+                    mom = float(row.get("during_manifest_mom", 0.0))
+                    batch.append((date, code, rev, month, year, out_val, in_val, yoy, mom))
+                    
+                if batch:
+                    updated_stocks = set(x[1] for x in batch)
+                    cursor.executemany('''
+                        INSERT INTO monthly_revenue (date, code, revenue, revenue_month, revenue_year, out_revenue, in_revenue, yoy, mom)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON CONFLICT(date, code) DO UPDATE SET
+                            revenue = excluded.revenue,
+                            revenue_month = excluded.revenue_month,
+                            revenue_year = excluded.revenue_year,
+                            out_revenue = excluded.out_revenue,
+                            in_revenue = excluded.in_revenue,
+                            yoy = excluded.yoy,
+                            mom = excluded.mom
+                    ''', batch)
+                    conn.commit()
+                    success_rev = len(updated_stocks)
+                    new_rev_records = len(batch)
+                    print(f"  ✓ [月營收同步成功] 共計更新 {success_rev} 檔在線個股，新增/更新 {new_rev_records} 筆月份紀錄。")
+        else:
+            print(f"  ❌ 月營收 Bulk 請求失敗，HTTP 狀態碼: {r.status_code}")
+    except Exception as e:
+        print(f"  ⚠️ 批次同步全市場月營收失敗: {e}")
             
     # 2. 同步最近兩個季度之財務季報 (全市場批次查詢)
     success_fin = 0
@@ -190,9 +205,10 @@ def main():
                 data = r.json().get('data', [])
                 if data:
                     stock_quarters = {}
+                    active_codes_set = set(all_active_codes)
                     for row in data:
                         stock_id = str(row.get("stock_id", "")).strip()
-                        if stock_id not in target_codes:
+                        if stock_id not in active_codes_set:
                             continue
                         t = str(row.get("type", ""))
                         try:
@@ -270,7 +286,7 @@ def main():
 偏離的意志已歸於「零」。這就是目前的絕對現實。
 
 ### 📊 **FinMind 剩餘資料每日同步摘要**
-*   **同步個股總數**：`{len(target_codes)}` 檔
+*   **同步在線個股**：`{len(all_active_codes)}` 檔 (核心監控: `{len(target_codes)}` 檔)
 *   **月營收更新成功**：`{success_rev}` 檔 (`{new_rev_records}` 筆月份紀錄)
 *   **財務季報更新成功**：`{success_fin}` 檔 (`{new_fin_records}` 筆季度紀錄)
 *   **數據同步總耗時**：`{elapsed:.2f}` 秒

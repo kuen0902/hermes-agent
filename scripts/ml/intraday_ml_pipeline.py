@@ -111,7 +111,7 @@ def save_predictions(preds):
 
 def normalize_code(code_str):
     """將代碼正規化，移除 .TW / .TWO 等後綴"""
-    return str(code_str).replace(".TW", "").replace(".TWO", "").strip()
+    return str(code_str).replace(".TWO", "").replace(".TW", "").strip()
 
 def load_current_holdings():
     """從 SQLite 載入當前真實持股代號與名稱"""

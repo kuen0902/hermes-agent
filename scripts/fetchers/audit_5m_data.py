@@ -11,18 +11,18 @@ DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 CENTRAL_JSON = os.path.join(DATA_DIR, "central_stock_data.json")
 
 def get_monitoring_codes():
-    if not os.path.exists(CENTRAL_JSON):
+    # 改為自 DuckDB 讀取全市場所有 active 在線個股，以支援全局 5m 同步
+    db_path = DB_PATH
+    if not os.path.exists(db_path):
         return []
     try:
-        with open(CENTRAL_JSON, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            personal = list(data.get('personal_data', {}).keys())
-            group = data.get('group_codes', [])
-            william = data.get('william_codes', [])
-            all_codes = sorted(list(set(personal + group + william)))
-            return [c for c in all_codes if not c.startswith('^')]
+        conn = duckdb.connect(db_path, read_only=True)
+        df = conn.execute("SELECT DISTINCT code FROM daily_stock_data").fetchdf()
+        conn.close()
+        codes = sorted(df['code'].tolist())
+        return [str(c) for c in codes if not str(c).startswith('^')]
     except Exception as e:
-        print(f"Error loading central json: {e}")
+        print(f"⚠️ 無法自 DuckDB 載入全市場個股代碼: {e}")
         return []
 
 def audit_5m_gaps():
@@ -39,12 +39,12 @@ def audit_5m_gaps():
         
     conn = duckdb.connect(DB_PATH)
     
-    # 獲取最近 60 天內的所有交易日
+    # 獲取最近 150 天內的所有交易日
     try:
         trading_days_df = conn.execute("""
             SELECT DISTINCT date 
             FROM daily_stock_data 
-            WHERE date >= CURRENT_DATE - INTERVAL 60 DAY
+            WHERE date >= CURRENT_DATE - INTERVAL 150 DAY
             ORDER BY date DESC
         """).fetchdf()
         trading_days = [pd.to_datetime(d).date() for d in trading_days_df['date'].values]
@@ -53,7 +53,7 @@ def audit_5m_gaps():
         conn.close()
         return
         
-    print(f"📅 最近 60 天內的交易日總數: {len(trading_days)} 天")
+    print(f"📅 最近 150 天內的交易日總數: {len(trading_days)} 天")
     
     report_data = []
     gap_registry = {}
@@ -64,7 +64,7 @@ def audit_5m_gaps():
             stock_days_df = conn.execute("""
                 SELECT DISTINCT date 
                 FROM daily_stock_data 
-                WHERE code = ? AND date >= CURRENT_DATE - INTERVAL 60 DAY
+                WHERE code = ? AND date >= CURRENT_DATE - INTERVAL 150 DAY
             """, (code,)).fetchdf()
             stock_days = set(pd.to_datetime(d).date() for d in stock_days_df['date'].values)
         except Exception as e:
@@ -76,7 +76,7 @@ def audit_5m_gaps():
             kbars_df = conn.execute("""
                 SELECT CAST(timestamp AS DATE) as date, count(*) as bar_count
                 FROM kbars_5m
-                WHERE code = ? AND timestamp >= CURRENT_DATE - INTERVAL 60 DAY
+                WHERE code = ? AND timestamp >= CURRENT_DATE - INTERVAL 150 DAY
                 GROUP BY date
             """, (code,)).fetchdf()
             
@@ -114,7 +114,7 @@ def audit_5m_gaps():
     
     # 輸出 Markdown 體檢報告
     print("\n" + "="*80)
-    print(" 📋 「在線個股」5m 高頻資料健康體檢報告 (最近 60 天)")
+    print(" 📋 「在線個股」5m 高頻資料健康體檢報告 (最近 150 天)")
     print("="*80)
     
     total_gaps = sum(r['missing_count'] + r['incomplete_count'] for r in report_data)
@@ -123,12 +123,19 @@ def audit_5m_gaps():
     print(f"📊 總結：共體檢 {len(codes)} 檔個股，其中 {affected_stocks} 檔個股存在資料缺漏，共計缺漏 {total_gaps} 個交易日。")
     print("-"*80)
     
-    print(f"{'股號':<6} | {'總交易日':<8} | {'完全缺漏(天)':<12} | {'資料不足(天)':<12} | {'體檢狀態'}")
+    print(f"{'股號':<8} | {'總交易日':<12} | {'完全缺漏(天)':<14} | {'資料不足(天)':<14} | {'體檢狀態'}")
     print("-"*80)
+    printed_count = 0
     for r in report_data:
-        status = "🔴 異常" if (r['missing_count'] + r['incomplete_count'] > 0) else "🟢 完美健康"
-        print(f"{r['code']:<8} | {r['total_trading_days']:<12} | {r['missing_count']:<14} | {r['incomplete_count']:<14} | {status}")
-        
+        has_gap = (r['missing_count'] + r['incomplete_count'] > 0)
+        if has_gap:
+            if printed_count < 50:
+                print(f"{r['code']:<8} | {r['total_trading_days']:<12} | {r['missing_count']:<14} | {r['incomplete_count']:<14} | 🔴 異常")
+                printed_count += 1
+            else:
+                pass
+    if affected_stocks > 50:
+        print(f"... 還有 {affected_stocks - 50} 檔異常個股未列出 ...")
     print("-"*80)
     
     # 若有缺漏，寫入待回補清單

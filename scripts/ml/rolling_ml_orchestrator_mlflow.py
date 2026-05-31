@@ -77,7 +77,7 @@ DAILY_FEATURES = [
 ]
 
 def normalize_code(code_str):
-    return str(code_str).replace(".TW", "").replace(".TWO", "").strip()
+    return str(code_str).replace(".TWO", "").replace(".TW", "").strip()
 
 def load_all_daily_features_cache(active_codes):
     cache = {}

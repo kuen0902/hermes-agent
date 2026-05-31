@@ -66,41 +66,33 @@ def load_target_codes():
     """從 SQLite 與監控 JSON 讀取當前持股與所有監控代碼，用於限縮 FinMind 外資持股比的 API 查詢"""
     target_codes = set()
     for s in CORE_SYMBOLS:
-        target_codes.add(s.replace(".TW", "").replace(".TWO", "").strip())
+        target_codes.add(s.replace(".TWO", "").replace(".TW", "").strip())
     
-    # 1. 讀取 SQLite 真實持股
+    # 1. 讀取 SQLite 真實持股與自選股
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT code FROM current_holdings")
         for row in cursor.fetchall():
-            code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+            code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
+            target_codes.add(code)
+        cursor.execute("SELECT code FROM watchlist")
+        for row in cursor.fetchall():
+            code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
             target_codes.add(code)
         conn.close()
     except Exception as e:
-        print(f"無法讀取當前持股代碼限制清單: {e}")
+        print(f"無法讀取當前持股與自選自選清單: {e}")
         
-    # 2. 讀取 central_stock_data.json 的監控清單 (group_codes & william_codes)
+    # 2. 讀取 central_stock_data.json 的監控清單 (全部對齊在線)
     central_data_path = os.path.join(DATA_DIR, "central_stock_data.json")
     if os.path.exists(central_data_path):
         try:
-            with open(central_data_path, 'r') as f:
+            with open(central_data_path, 'r', encoding='utf-8') as f:
                 central_data = json.load(f)
-                group_codes = central_data.get("group_codes", [])
-                william_codes = central_data.get("william_codes", [])
-                
-                def norm_c(c_str):
-                    return str(c_str).replace(".TW", "").replace(".TWO", "").strip()
-                
-                if isinstance(group_codes, dict):
-                    for c in group_codes.keys(): target_codes.add(norm_c(c))
-                elif isinstance(group_codes, list):
-                    for c in group_codes: target_codes.add(norm_c(c))
-                    
-                if isinstance(william_codes, dict):
-                    for c in william_codes.keys(): target_codes.add(norm_c(c))
-                elif isinstance(william_codes, list):
-                    for c in william_codes: target_codes.add(norm_c(c))
+                full_map = central_data.get("full_mapping", {})
+                for c in full_map.keys():
+                    target_codes.add(str(c).replace(".TWO", "").replace(".TW", "").strip())
         except Exception as e:
             print(f"無法讀取監控清單以擴展三大法人同步目標: {e}")
 

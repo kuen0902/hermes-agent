@@ -151,12 +151,12 @@ def load_portfolio_and_watchlist_codes():
         # 讀取持股
         cursor.execute("SELECT code FROM current_holdings")
         for row in cursor.fetchall():
-            code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+            code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
             core_codes.add(code)
         # 讀取自選名單
         cursor.execute("SELECT code FROM watchlist")
         for row in cursor.fetchall():
-            code = str(row[0]).replace(".TW", "").replace(".TWO", "").strip()
+            code = str(row[0]).replace(".TWO", "").replace(".TW", "").strip()
             core_codes.add(code)
         conn.close()
     except Exception as e:
