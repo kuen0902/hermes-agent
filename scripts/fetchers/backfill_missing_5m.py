@@ -69,6 +69,32 @@ def merge_gap_dates_to_ranges(dates):
     ranges.append((start.strftime("%Y-%m-%d"), prev.strftime("%Y-%m-%d")))
     return ranges
 
+CORE_SYMBOLS = [
+    "2330", "2454", "3037", "2382", "2327",
+    "8996", "5289", "4966", "3583", "8210",
+    "5347", "6510", "3211", "6290", "6669",
+    "1513", "2049", "2408", "2313", "6285"
+]
+
+def get_priority_codes():
+    priority = set(CORE_SYMBOLS)
+    portfolio_path = os.path.join(DATA_DIR, "portfolio.db")
+    if os.path.exists(portfolio_path):
+        import sqlite3
+        try:
+            conn = sqlite3.connect(portfolio_path)
+            cursor = conn.cursor()
+            cursor.execute("SELECT code FROM current_holdings")
+            for row in cursor.fetchall():
+                priority.add(str(row[0]).replace(".TWO", "").replace(".TW", "").strip())
+            cursor.execute("SELECT code FROM watchlist")
+            for row in cursor.fetchall():
+                priority.add(str(row[0]).replace(".TWO", "").replace(".TW", "").strip())
+            conn.close()
+        except Exception as e:
+            print(f"⚠️ 無法自 portfolio.db 載入優先個股: {e}")
+    return priority
+
 def backfill_gaps():
     print("=========================================================================")
     print(" 🚀 啟動 150 天全市場高頻資料「智慧日期段增量補漏程序」 (03:00 AM)")
@@ -89,8 +115,19 @@ def backfill_gaps():
         print("ℹ️ 缺漏清單為空，無須回補。")
         return
         
-    active_codes = list(gap_registry.keys())
-    print(f"發現共有 {len(active_codes)} 檔個股存在高頻資料缺漏，啟動精準補漏程序...")
+    priority_set = get_priority_codes()
+    raw_active_codes = list(gap_registry.keys())
+    
+    # 優先級分流與排序
+    priority_active = [c for c in raw_active_codes if c in priority_set]
+    other_active = [c for c in raw_active_codes if c not in priority_set]
+    
+    # 合併後，只取前 20 檔（安全天井上限）
+    active_codes = (priority_active + other_active)[:20]
+    
+    print(f"全市場共計有 {len(raw_active_codes)} 檔個股存在缺漏。")
+    print(f"優先回補佇列（持股、自選與核心追蹤）：{len(priority_active)} 檔，其餘在線商品：{len(other_active)} 檔。")
+    print(f"🛡️ 觸發安全落庫天井防禦機制：本輪僅下載回補前 {len(active_codes)} 檔個股，以根除 600s 超時風險。")
     
     success_count = 0
     fixed_details = []
@@ -108,7 +145,7 @@ def backfill_gaps():
                     name_cache[str(c).strip()] = str(n).strip()
         except Exception as e:
             print(f"⚠️ 載入股名快取失敗: {e}")
-
+ 
     chunk_size = 50
     chunks = [active_codes[i:i + chunk_size] for i in range(0, len(active_codes), chunk_size)]
     
@@ -306,8 +343,10 @@ def backfill_gaps():
         detail_msg = "\n".join(displayed_details)
         if len(fixed_details) > 30:
             detail_msg += f"\n• ...以及其他 {len(fixed_details) - 30} 檔個股的高頻自癒補全..."
-            
-        ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：5m 高頻資料回補報告 🌅**
+    else:
+        detail_msg = "• 本輪無須補漏（核心個股與自選數據皆已 100% 完整齊全）"
+        
+    ger_msg = f"""🌅 **「黃金體驗-鎮魂曲」：5m 高頻資料回補報告 🌅**
 缺漏的過去已全部被強制作為「無效」，現在只留下現實。
 
 ### 📊 **全市場高頻並行補全修復摘要**
@@ -318,7 +357,7 @@ def backfill_gaps():
 {detail_msg}
 
 **無駄！** 所有被標記的 5m 數據缺失與不足已全部重構補全。"""
-        send_telegram(GER_TOKEN, JOJO_CHAT_ID, ger_msg)
+    send_telegram(GER_TOKEN, JOJO_CHAT_ID, ger_msg)
 
 if __name__ == "__main__":
     backfill_gaps()

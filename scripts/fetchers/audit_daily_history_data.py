@@ -35,6 +35,50 @@ def get_previous_trading_day():
     prev = today - datetime.timedelta(days=offset)
     return prev.strftime('%Y-%m-%d')
 
+def get_csv_latest_date(csv_path):
+    """Fast binary seek tail reader to get the first column (Date) of the last non-empty line of a CSV."""
+    try:
+        with open(csv_path, 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            if size == 0:
+                return None
+            
+            # Read last 100 bytes (usually enough for a line)
+            seek_pos = max(0, size - 100)
+            f.seek(seek_pos)
+            tail = f.read(size - seek_pos)
+            
+            lines = tail.split(b'\n')
+            # Filter out empty lines at the very end
+            for line in reversed(lines):
+                trimmed = line.strip()
+                if trimmed:
+                    cols = trimmed.split(b',')
+                    if cols:
+                        # Ensure it's a date e.g. YYYY-MM-DD
+                        date_str = cols[0].decode('utf-8').strip()
+                        if '-' in date_str and len(date_str) == 10:
+                            return date_str
+    except Exception:
+        pass
+    
+    # Fallback to standard reading if seek fails or format is weird
+    try:
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+            for line in reversed(lines):
+                trimmed = line.strip()
+                if trimmed:
+                    cols = trimmed.split(',')
+                    if cols:
+                        date_str = cols[0].strip()
+                        if '-' in date_str and len(date_str) == 10:
+                            return date_str
+    except Exception:
+        pass
+    return None
+
 def audit_daily_history():
     print("=========================================================================")
     print(f" 🔍 啟動「14年日線歷史資料」健康排查與一致性稽核 [{datetime.datetime.now().strftime('%Y-%m-%d %H:%M')}]")
@@ -190,21 +234,17 @@ def audit_daily_history():
                 else:
                     # B. 檢查 CSV 檔案最新日期是否與資料庫同步
                     csv_path = os.path.join(CSV_DIR, csv_files[code])
-                    try:
-                        df_csv = pd.read_csv(csv_path)
-                        if not df_csv.empty and 'Date' in df_csv.columns:
-                            csv_latest = str(df_csv['Date'].iloc[-1]).strip()
-                            db_latest = str(row['max_date']).strip()
-                            if csv_latest != db_latest:
-                                csv_out_of_sync.append({
-                                    "code": code,
-                                    "ticker": ticker,
-                                    "name": name,
-                                    "csv_latest": csv_latest,
-                                    "db_latest": db_latest
-                                })
-                    except:
-                        pass
+                    csv_latest = get_csv_latest_date(csv_path)
+                    if csv_latest:
+                        db_latest = str(row['max_date']).strip()
+                        if csv_latest != db_latest:
+                            csv_out_of_sync.append({
+                                "code": code,
+                                "ticker": ticker,
+                                "name": name,
+                                "csv_latest": csv_latest,
+                                "db_latest": db_latest
+                            })
         except Exception as e:
             print(f"     ⚠️ 實體 CSV 檔案排查出錯: {e}")
             

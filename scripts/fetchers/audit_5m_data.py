@@ -55,55 +55,86 @@ def audit_5m_gaps():
         
     print(f"📅 最近 150 天內的交易日總數: {len(trading_days)} 天")
     
+    # 1. 取得所有在線個股及其總交易日數
+    try:
+        trading_days_summary_df = conn.execute("""
+            SELECT code, COUNT(DISTINCT date) as total_trading_days
+            FROM daily_stock_data
+            WHERE date >= CURRENT_DATE - INTERVAL 150 DAY
+              AND NOT STARTS_WITH(code, '^')
+            GROUP BY code
+        """).fetchdf()
+        stock_trading_days = {str(row['code']): int(row['total_trading_days']) for _, row in trading_days_summary_df.iterrows()}
+    except Exception as e:
+        print(f"❌ 獲取個股總交易日數失敗: {e}")
+        conn.close()
+        return
+
+    # 2. 執行高效批量 JOIN 查詢，一次性篩選出所有缺失與不足的 5m 交易日
+    try:
+        gaps_query = """
+        WITH stock_days AS (
+            SELECT DISTINCT code, date
+            FROM daily_stock_data
+            WHERE date >= CURRENT_DATE - INTERVAL 150 DAY
+              AND NOT STARTS_WITH(code, '^')
+        ),
+        kbar_counts AS (
+            SELECT code, CAST(timestamp AS DATE) as date, count(*) as bar_count
+            FROM kbars_5m
+            WHERE timestamp >= CURRENT_DATE - INTERVAL 150 DAY
+            GROUP BY code, date
+        )
+        SELECT 
+            s.code, 
+            s.date,
+            COALESCE(k.bar_count, 0) as bar_count
+        FROM stock_days s
+        LEFT JOIN kbar_counts k ON s.code = k.code AND s.date = k.date
+        WHERE k.bar_count IS NULL OR k.bar_count < 30
+        ORDER BY s.code, s.date DESC
+        """
+        gaps_df = conn.execute(gaps_query).fetchdf()
+    except Exception as e:
+        print(f"❌ 批量體檢高頻 Gap 失敗: {e}")
+        conn.close()
+        return
+
+    gaps_by_code = {}
+    for _, row in gaps_df.iterrows():
+        code = str(row['code'])
+        date_str = pd.to_datetime(row['date']).strftime('%Y-%m-%d')
+        bar_count = int(row['bar_count'])
+        
+        if code not in gaps_by_code:
+            gaps_by_code[code] = {"missing": [], "incomplete": []}
+            
+        if bar_count == 0:
+            gaps_by_code[code]["missing"].append(date_str)
+        else:
+            gaps_by_code[code]["incomplete"].append((date_str, bar_count))
+
+    # 3. 建立 gap_registry 與 report_data
     report_data = []
     gap_registry = {}
     
-    for idx, code in enumerate(codes, 1):
-        # 查詢該股在 daily_stock_data 中的實際交易日
-        try:
-            stock_days_df = conn.execute("""
-                SELECT DISTINCT date 
-                FROM daily_stock_data 
-                WHERE code = ? AND date >= CURRENT_DATE - INTERVAL 150 DAY
-            """, (code,)).fetchdf()
-            stock_days = set(pd.to_datetime(d).date() for d in stock_days_df['date'].values)
-        except Exception as e:
-            print(f"⚠️ 讀取 {code} 歷史交易日失敗: {e}")
-            stock_days = set()
-            
-        # 查詢該股在 kbars_5m 中已有的 5m 資料日期與每日期數
-        try:
-            kbars_df = conn.execute("""
-                SELECT CAST(timestamp AS DATE) as date, count(*) as bar_count
-                FROM kbars_5m
-                WHERE code = ? AND timestamp >= CURRENT_DATE - INTERVAL 150 DAY
-                GROUP BY date
-            """, (code,)).fetchdf()
-            
-            kbars_by_date = {pd.to_datetime(row['date']).date(): int(row['bar_count']) for _, row in kbars_df.iterrows()}
-        except Exception as e:
-            print(f"⚠️ 讀取 {code} 5m K線失敗: {e}")
-            kbars_by_date = {}
-            
-        missing_days = []
-        incomplete_days = [] # bars < 30 (台股一天應有 54 根 5m bar)
+    for code in codes:
+        code_str = str(code)
+        total_days = stock_trading_days.get(code_str, 0)
         
-        for d in sorted(list(stock_days)):
-            if d not in kbars_by_date:
-                missing_days.append(d.strftime('%Y-%m-%d'))
-            elif kbars_by_date[d] < 30:
-                incomplete_days.append((d.strftime('%Y-%m-%d'), kbars_by_date[d]))
-                
-        has_issue = len(missing_days) > 0 or len(incomplete_days) > 0
-        if has_issue:
-            gap_registry[code] = {
+        gaps = gaps_by_code.get(code_str, {"missing": [], "incomplete": []})
+        missing_days = sorted(gaps["missing"])
+        incomplete_days = sorted(gaps["incomplete"], key=lambda x: x[0])
+        
+        if missing_days or incomplete_days:
+            gap_registry[code_str] = {
                 "missing": missing_days,
                 "incomplete": [d for d, _ in incomplete_days]
             }
             
         report_data.append({
-            "code": code,
-            "total_trading_days": len(stock_days),
+            "code": code_str,
+            "total_trading_days": total_days,
             "missing_count": len(missing_days),
             "incomplete_count": len(incomplete_days),
             "missing_days": missing_days,
