@@ -21,9 +21,11 @@ def is_night_session_active():
         if hour >= 15:
             return True
             
-    # Session B: Early Morning (Tue-Sat 00:00 - 05:59)
+    # Session B: Early Morning (Tue-Sat 00:00 - 05:00)
     if 1 <= weekday <= 5: # Tue to Sat
-        if hour < 6:
+        if hour < 5:
+            return True
+        if hour == 5 and now.minute == 0:
             return True
 
     return False

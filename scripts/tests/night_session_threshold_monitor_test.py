@@ -87,14 +87,6 @@ def get_current_session_key():
         
     return session_date
 
-def get_current_tier(pct_change):
-    abs_pct = abs(pct_change)
-    crossed = 0.0
-    for t in THRESHOLDS:
-        if abs_pct >= t:
-            crossed = t
-    return crossed * (1.0 if pct_change >= 0 else -1.0)
-
 def fetch_yahoo_minute_data(sym):
     import requests
     import random
@@ -147,6 +139,46 @@ def fetch_yahoo_minute_data(sym):
             time.sleep(0.1)
     return None
 
+def get_current_tier(pct_change, last_tier=0.0):
+    abs_pct = abs(pct_change)
+    abs_last = abs(last_tier)
+    direction = 1.0 if pct_change >= 0 else -1.0
+    
+    # Hysteresis buffer
+    BUFFER = 0.3
+    
+    # If direction reversed, we start over from 0 (ignore last tier)
+    if last_tier != 0.0 and (pct_change * last_tier < 0):
+        abs_last = 0.0
+
+    if abs_last == 0.0:
+        # Standard threshold crossing from 0
+        crossed = 0.0
+        for t in THRESHOLDS:
+            if abs_pct >= t:
+                crossed = t
+        return crossed * direction
+    else:
+        # We are moving in the same direction from a non-zero tier.
+        # 1. Check if we scale UP to a higher tier
+        higher_thresholds = [t for t in THRESHOLDS if t > abs_last]
+        for t in higher_thresholds:
+            if abs_pct >= t:
+                return t * direction
+                
+        # 2. Check if we drop below the current tier.
+        # To stay in the current tier, the price must remain >= abs_last - BUFFER
+        if abs_pct >= (abs_last - BUFFER):
+            return abs_last * (1.0 if last_tier >= 0 else -1.0)
+            
+        # 3. If we dropped below, find the highest lower tier we still satisfy with buffer
+        lower_thresholds = [t for t in THRESHOLDS if t < abs_last]
+        crossed = 0.0
+        for t in sorted(lower_thresholds):
+            if abs_pct >= (t - BUFFER):
+                crossed = t
+        return crossed * (1.0 if last_tier >= 0 else -1.0)
+
 def main():
     if not check_gatekeeper():
         print("Night market is closed. Exiting.")
@@ -192,11 +224,23 @@ def main():
                 ref_source = "previous_close"
                 
             pct_change = ((current_price - ref_price) / ref_price) * 100
-            current_tier = get_current_tier(pct_change)
             
             last_tier = state["alerts"].get(symbol, 0.0)
             
+            current_tier = get_current_tier(pct_change, last_tier)
+            
             if current_tier != 0.0 and current_tier != last_tier:
+                # Enforce cool-down rate limit of 10 seconds for testing
+                last_alert_time_str = state["alerts"].get(f"{symbol}_last_time")
+                if last_alert_time_str:
+                    try:
+                        last_alert_time = datetime.fromisoformat(last_alert_time_str)
+                        if (now - last_alert_time).total_seconds() < 10:
+                            print(f"[{symbol}] Test Cool-down active. Skipping alert.")
+                            continue
+                    except Exception as e:
+                        print(f"[{symbol}] Error parsing last alert time: {e}")
+                
                 direction = "UP" if current_tier > 0 else "DOWN"
                 direction_str = "暴跌" if direction == "DOWN" else "狂飆"
                 
@@ -223,6 +267,7 @@ def main():
                     send_telegram(msg, cid)
                     
                 state["alerts"][symbol] = current_tier
+                state["alerts"][f"{symbol}_last_time"] = now.isoformat()
                 
         except Exception as e:
             print(f"Error checking {symbol}: {e}")
