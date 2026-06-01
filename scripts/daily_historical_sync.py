@@ -240,11 +240,17 @@ def sync_all(fast_mode=False, force=False):
         try:
             import duckdb
             conn = duckdb.connect(db_path)
-            # Query if standard benchmark stock '2330' has data for target date
-            res = conn.execute("SELECT count(*) FROM daily_stock_data WHERE date = ? AND code = '2330'", (prev_trading_day,)).fetchone()
+            # Query if standard benchmark stock '2330' has data for target date and it contains non-zero institutional net buys
+            res = conn.execute("""
+                SELECT count(*) 
+                FROM daily_stock_data 
+                WHERE date = ? 
+                  AND code = '2330' 
+                  AND (foreign_net != 0.0 OR trust_net != 0.0 OR dealer_net != 0.0)
+            """, (prev_trading_day,)).fetchone()
             conn.close()
             if res and res[0] > 0:
-                print(f"🎉 [已完成] 前一個開盤日 ({prev_trading_day}) 的 Data Sync 已經完成！本次執行略過下載。")
+                print(f"🎉 [已完成] 前一個開盤日 ({prev_trading_day}) 的 Data Sync 且籌碼資料完整！本次執行略過下載。")
                 print(f"--- Sync Complete ---")
                 return
         except Exception as e:

@@ -307,20 +307,28 @@ def main():
         iso_date = target_date.isoformat()
         date_str = target_date.strftime("%Y%m%d")
         
-        # 檢查 DuckDB 資料庫中是否已存在當日資料
+        # 檢查是否為已記錄之非交易日（無任何核心持股資料）
+        is_holiday = iso_date in db and isinstance(db[iso_date], dict) and len(db[iso_date]) == 0
+        
+        # 檢查 DuckDB 資料庫中是否已存在當日資料且完整（防範因 API 延遲或失敗導致的單一市場缺失）
         db_exists = False
         if conn:
             try:
                 cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM institutional_data WHERE date = ?", (iso_date,))
-                row = cursor.fetchone()
-                db_exists = row[0] > 0 if row is not None else False
+                cursor.execute("SELECT code FROM institutional_data WHERE date = ?", (iso_date,))
+                existing_codes = {row[0] for row in cursor.fetchall()}
+                
+                # 當日資料庫中必須同時存在核心上市與上櫃股票，才判定為完整
+                has_twse = any(c in existing_codes for c in twse_symbols)
+                has_tpex = any(c in existing_codes for c in tpex_symbols)
+                
+                db_exists = has_twse and has_tpex
             except Exception as e:
                 print(f" ⚠️ [DuckDB] 查詢失敗: {e} ")
                 db_exists = False
         
-        # 若資料已存在且無 --force 參數，則跳過
-        if db_exists and not args.force and iso_date in db:
+        # 若 (資料已完整且無 --force 參數且已在 JSON 記錄中) 或 (已判定為非交易日且無 --force)，則跳過
+        if (db_exists and not args.force and iso_date in db) or (is_holiday and not args.force):
             continue
             
         print(f"正在抓取 {iso_date} 的法人籌碼...", end='', flush=True)

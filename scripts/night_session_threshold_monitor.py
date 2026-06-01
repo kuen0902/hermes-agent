@@ -50,6 +50,13 @@ def fetch_yahoo_minute_data(sym):
             if r.status_code == 200:
                 data = r.json()
                 result = data["chart"]["result"][0]
+                meta = result.get("meta", {})
+                
+                # Try to get previousClose from meta
+                previous_close = meta.get("previousClose")
+                if previous_close is None:
+                    previous_close = meta.get("chartPreviousClose")
+                
                 timestamps = result.get("timestamp", [])
                 closes = result.get("indicators", {}).get("quote", [{}])[0].get("close", [])
                 opens = result.get("indicators", {}).get("quote", [{}])[0].get("open", [])
@@ -59,7 +66,13 @@ def fetch_yahoo_minute_data(sym):
                     if c is not None and o is not None:
                         records.append({"timestamp": t, "close": float(c), "open": float(o)})
                 if records:
-                    return records
+                    return {
+                        "records": records,
+                        "previous_close": float(previous_close) if previous_close is not None else None,
+                        "current_price": float(records[-1]["close"]),
+                        "last_timestamp": int(records[-1]["timestamp"]),
+                        "open_price": float(records[0]["open"])
+                    }
             elif r.status_code == 429:
                 pass
         except Exception as e:
@@ -69,6 +82,7 @@ def fetch_yahoo_minute_data(sym):
             time.sleep(base_delay * (2 ** attempt) + random.uniform(0.1, 0.5))
             
     return None
+
 
 # Configuration
 DATA_DIR = os.path.expanduser("~/.hermes/data")
@@ -146,70 +160,105 @@ def get_current_session_key():
         
     return session_date
 
-def get_tier(pct_change):
+def get_current_tier(pct_change):
     abs_pct = abs(pct_change)
-    crossed_tiers = [t for t in THRESHOLDS if abs_pct >= t]
-    if not crossed_tiers:
-        return None
-    return max(crossed_tiers)
+    crossed = 0.0
+    for t in THRESHOLDS:
+        if abs_pct >= t:
+            crossed = t
+    return crossed * (1.0 if pct_change >= 0 else -1.0)
 
 def main():
     if not check_gatekeeper():
         print("Night market is closed. Exiting.")
         return
 
-    session_key = get_current_session_key()
+    taipei_tz = pytz.timezone('Asia/Taipei')
+    now = datetime.now(taipei_tz)
+    
+    # Calculate current session start time in Taipei timezone
+    if now.hour < 15:
+        from datetime import timedelta
+        session_start = now.replace(hour=15, minute=0, second=0, microsecond=0) - timedelta(days=1)
+    else:
+        session_start = now.replace(hour=15, minute=0, second=0, microsecond=0)
+        
+    session_start_timestamp = session_start.timestamp()
+    session_key = session_start.strftime("%Y-%m-%d")
+
     state: Dict[str, Any] = load_state()
     
     # Reset state if it's a new session
     if state.get("session") != session_key:
         state = {"session": session_key, "alerts": {}}
 
-    alerts_triggered = False
-
     for symbol, name in SYMBOLS.items():
         try:
-            records = fetch_yahoo_minute_data(symbol)
-            if not records:
+            data = fetch_yahoo_minute_data(symbol)
+            if not data:
                 continue
                 
-            current_price = records[-1]["close"]
-            open_price = records[0]["open"]
+            last_timestamp = data["last_timestamp"]
             
-            pct_change = ((current_price - open_price) / open_price) * 100
-            tier = get_tier(pct_change)
-            
-            if tier is not None:
-                # Check if this tier has already been alerted for this symbol in this direction
-                direction = "UP" if pct_change > 0 else "DOWN"
-                alert_key = f"{symbol}_{tier}_{direction}"
+            # Skip if the latest trade was before the current session started (stale data)
+            if last_timestamp < session_start_timestamp:
+                print(f"[{symbol}] Stale data (last trade: {datetime.fromtimestamp(last_timestamp, taipei_tz)}), session start: {session_start}. Skipping.")
+                continue
                 
-                if alert_key not in state["alerts"]:
-                    # New threshold crossed!
-                    emoji = "🚨" if direction == "DOWN" else "🚀"
-                    direction_str = "暴跌" if direction == "DOWN" else "狂飆"
+            current_price = data["current_price"]
+            
+            # Use previousClose if available, otherwise fall back to first record's open
+            ref_price = data["previous_close"]
+            if ref_price is None or ref_price <= 0:
+                ref_price = data["open_price"]
+                ref_source = "open_price"
+            else:
+                ref_source = "previous_close"
+                
+            pct_change = ((current_price - ref_price) / ref_price) * 100
+            current_tier = get_current_tier(pct_change)
+            
+            # Load last tier from state alerts (default 0.0)
+            last_tier = state["alerts"].get(symbol, 0.0)
+            
+            # Only trigger if crossed a NEW tier (and not 0.0)
+            if current_tier != 0.0 and current_tier != last_tier:
+                direction = "UP" if current_tier > 0 else "DOWN"
+                direction_str = "暴跌" if direction == "DOWN" else "狂飆"
+                
+                # Check trend: escalation vs recovery
+                is_escalation = abs(current_tier) > abs(last_tier)
+                trend_str = "突破" if is_escalation else "自癒收斂至"
+                
+                # Severity emojis
+                if direction == "DOWN":
+                    emoji = "🚨" if is_escalation else "🟢"
+                else:
+                    emoji = "🚀" if is_escalation else "🔴"
+                
+                # Format tier display value
+                tier_val = abs(current_tier)
+                
+                msg = (
+                    f"{emoji} **夜盤緊急通報：{name} {direction_str}{trend_str} {tier_val}%！**\n\n"
+                    f"📊 **目前點數/價格**：`{current_price:,.2f}`\n"
+                    f"📈 **變動幅度**：`{current_price - ref_price:+.2f}` ({pct_change:+.2f}%) [基準: {ref_source}]\n"
+                    f"⚠️ **警報層級**：`Tier {THRESHOLDS.index(tier_val) + 1}`"
+                )
+                
+                print(msg)
+                
+                for cid in TARGET_CHATS:
+                    send_telegram(msg, cid)
                     
-                    msg = (
-                        f"{emoji} **夜盤緊急通報：{name} {direction_str}突破 {tier}%！**\n\n"
-                        f"📊 **目前點數/價格**：`{current_price:,.2f}`\n"
-                        f"📈 **開盤至今變動**：`{current_price - open_price:+.2f}` ({pct_change:+.2f}%)\n"
-                        f"⚠️ **警報層級**：`Tier {THRESHOLDS.index(tier) + 1}`"
-                    )
-                    
-                    print(msg)
-                    
-                    for cid in TARGET_CHATS:
-                        send_telegram(msg, cid)
-                        
-                    # Record the alert
-                    state["alerts"][alert_key] = datetime.now().isoformat()
-                    alerts_triggered = True
-                    
+                # Update the alert state with the new active tier
+                state["alerts"][symbol] = current_tier
+                
         except Exception as e:
             print(f"Error checking {symbol}: {e}")
 
-    if alerts_triggered:
-        save_state(state)
+    # Always save state to persist the session key and prevent state-reset loop
+    save_state(state)
 
 if __name__ == "__main__":
     main()
