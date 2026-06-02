@@ -54,8 +54,10 @@ def train_and_predict(inference_only=False):
     conn = duckdb.connect(db_path)
     
     try:
-        # Retrieve all unique tickers from daily_stock_data
         tickers_df = conn.execute("SELECT DISTINCT ticker, code, name FROM daily_stock_data").fetchdf()
+        # Clean up duplicate tickers that have both code-as-name and proper names
+        tickers_df['name_is_num'] = tickers_df['name'].apply(lambda x: 1 if str(x).strip().isdigit() else 0)
+        tickers_df = tickers_df.sort_values(by=['ticker', 'name_is_num']).drop_duplicates(subset=['ticker'], keep='first').drop(columns=['name_is_num']).reset_index(drop=True)
     except Exception as e:
         print(f"❌ Error querying DuckDB tickers: {e}")
         conn.close()

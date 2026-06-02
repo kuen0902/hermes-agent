@@ -109,9 +109,9 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
         if col not in df.columns:
             df[col] = np.nan
             
-    # Force refetch institutional data for the last 5 days to ensure recent data is fully synced from portfolio.ddb
+    # Force refetch institutional data for the last 30 days to ensure recent data is fully synced from portfolio.ddb
     try:
-        recent_date = (datetime.now() - timedelta(days=5)).strftime('%Y-%m-%d')
+        recent_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         df.loc[df['Date'].astype(str) >= recent_date, ['Foreign_Net', 'Trust_Net', 'Dealer_Net']] = np.nan
     except Exception as refetch_err:
         pass

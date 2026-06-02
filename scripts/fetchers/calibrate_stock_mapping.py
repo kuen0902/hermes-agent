@@ -320,8 +320,109 @@ def calibrate_and_log():
         with open(YESTERDAY_MAP_PATH, "w", encoding="utf-8") as f:
             json.dump(today_map, f, ensure_ascii=False, indent=2)
         print("Updated stock_map_today.json and stock_map_yesterday.json successfully.")
+        
+        # Sync stock names in DuckDB potential_analysis.ddb
+        update_duckdb_stock_names(today_map)
+        
+        # Regenerate ML report and send to Telegram
+        regenerate_potential_report()
+        
     except Exception as e:
         print(f"Error saving mapping JSONs: {e}")
+
+def update_duckdb_stock_names(today_map):
+    """
+    Update historical name fields in DuckDB potential_analysis.ddb
+    to replace numeric codes/old names with proper names from today_map.
+    """
+    db_path = "/Users/bookid/.hermes/data/potential_analysis.ddb"
+    if not os.path.exists(db_path):
+        print(f"DuckDB database not found at {db_path}. Skipping DB names update.")
+        return
+        
+    try:
+        import duckdb
+        print(f"Connecting to DuckDB to update stock names from calibration map...")
+        conn = duckdb.connect(db_path)
+        
+        # Build maps of code -> set of current names in db to avoid redundant UPDATE queries
+        conn.execute("BEGIN TRANSACTION;")
+        
+        updated_daily_count = 0
+        updated_pred_count = 0
+        
+        daily_names = conn.execute("SELECT DISTINCT code, name FROM daily_stock_data").fetchall()
+        pred_names = conn.execute("SELECT DISTINCT code, name FROM predictions").fetchall()
+        
+        daily_db_map = {}
+        for code, name in daily_names:
+            daily_db_map.setdefault(code, set()).add(name)
+            
+        pred_db_map = {}
+        for code, name in pred_names:
+            pred_db_map.setdefault(code, set()).add(name)
+            
+        # Update daily_stock_data
+        for code, correct_name in today_map.items():
+            if code in daily_db_map:
+                existing_names = daily_db_map[code]
+                if len(existing_names) > 1 or correct_name not in existing_names or any(name.isdigit() for name in existing_names):
+                    conn.execute(
+                        "UPDATE daily_stock_data SET name = ? WHERE code = ? AND (name = ? OR regexp_matches(name, '^[0-9]+$'))",
+                        (correct_name, code, code)
+                    )
+                    updated_daily_count += 1
+                    
+        # Update predictions
+        for code, correct_name in today_map.items():
+            if code in pred_db_map:
+                existing_names = pred_db_map[code]
+                if len(existing_names) > 1 or correct_name not in existing_names or any(name.isdigit() for name in existing_names):
+                    conn.execute(
+                        "UPDATE predictions SET name = ? WHERE code = ? AND (name = ? OR regexp_matches(name, '^[0-9]+$'))",
+                        (correct_name, code, code)
+                    )
+                    updated_pred_count += 1
+                    
+        conn.execute("COMMIT;")
+        print(f"✓ DuckDB stock names update completed. Updated daily_stock_data for {updated_daily_count} codes, predictions for {updated_pred_count} codes.")
+        conn.close()
+    except Exception as e:
+        print(f"❌ Failed to update DuckDB stock names: {e}")
+
+def regenerate_potential_report():
+    """
+    Regenerate potential stocks report using the updated database names
+    and send the updated report/chart to Telegram.
+    """
+    import subprocess
+    print("--- Triggering ML Potential Stocks Report Regeneration ---")
+    
+    engine_script = "/Users/bookid/.hermes/scripts/ml/potential_stocks_engine.py"
+    report_script = "/Users/bookid/.hermes/scripts/ml/generate_potential_report.py"
+    venv_python = "/Users/bookid/.hermes/.venv/bin/python"
+    
+    if os.path.exists(engine_script) and os.path.exists(report_script):
+        try:
+            print("Running potential_stocks_engine.py...")
+            res_eng = subprocess.run([venv_python, engine_script, "--inference-only"], capture_output=True, text=True, check=True)
+            print("potential_stocks_engine.py output:")
+            print(res_eng.stdout)
+            
+            print("Running generate_potential_report.py...")
+            res_rep = subprocess.run([venv_python, report_script, "--send-telegram"], capture_output=True, text=True, check=True)
+            print("generate_potential_report.py output:")
+            print(res_rep.stdout)
+            
+            print("✓ Successfully regenerated and sent updated potential stocks report to Jojo!")
+        except Exception as e:
+            print(f"❌ Error regenerating potential stocks report: {e}")
+            if hasattr(e, 'stdout') and e.stdout:
+                print("Stdout:", e.stdout)
+            if hasattr(e, 'stderr') and e.stderr:
+                print("Stderr:", e.stderr)
+    else:
+        print("ML engine or report scripts not found. Skipping report regeneration.")
 
 if __name__ == "__main__":
     calibrate_and_log()

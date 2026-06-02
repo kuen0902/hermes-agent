@@ -25,7 +25,7 @@ def is_night_session_active():
     if 1 <= weekday <= 5: # Tue to Sat
         if hour < 5:
             return True
-        if hour == 5 and now.minute == 0:
+        if hour == 5 and now.minute <= 15:
             return True
 
     return False

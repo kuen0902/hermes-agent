@@ -1,5 +1,6 @@
 #!/Users/bookid/.hermes/.venv/bin/python
 import os
+os.environ['MPLCONFIGDIR'] = os.path.expanduser('~/.hermes/data/matplotlib_cache')
 import sys
 import sqlite3
 import duckdb
@@ -80,21 +81,40 @@ def send_telegram(token, chat_id, message):
         'text': message,
         'parse_mode': 'Markdown'
     }).encode('utf-8')
-    try:
-        req = urllib.request.Request(url, data=data)
-        urllib.request.urlopen(req, context=ctx, timeout=10)
-    except Exception as e:
-        print(f"Telegram failed: {e}")
+    import time
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, data=data)
+            urllib.request.urlopen(req, context=ctx, timeout=15)
+            return True
+        except Exception as e:
+            err_body = ""
+            if hasattr(e, "read"):
+                try:
+                    err_body = " | Response: " + e.read().decode('utf-8')
+                except:
+                    pass
+            print(f"Telegram text attempt {attempt+1} failed: {e}{err_body}")
+        time.sleep(2)
+    return False
 
 def send_telegram_photo(token, chat_id, caption, image_path):
     url = f"https://api.telegram.org/bot{token}/sendPhoto"
-    try:
-        with open(image_path, 'rb') as f:
-            files = {'photo': f}
-            data = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'}
-            requests.post(url, data=data, files=files, timeout=15)
-    except Exception as e:
-        print(f"Telegram Photo failed: {e}")
+    import time
+    for attempt in range(3):
+        try:
+            with open(image_path, 'rb') as f:
+                files = {'photo': f}
+                data = {'chat_id': chat_id, 'caption': caption, 'parse_mode': 'Markdown'}
+                r = requests.post(url, data=data, files=files, timeout=(10, 45))
+                if r.status_code == 200:
+                    return True
+                else:
+                    print(f"Telegram Photo attempt {attempt+1} failed with status {r.status_code}: {r.text}")
+        except Exception as e:
+            print(f"Telegram Photo attempt {attempt+1} failed: {e}")
+        time.sleep(2)
+    return False
 
 def load_predictions():
     if os.path.exists(PREDICTIONS_FILE):
@@ -821,11 +841,27 @@ def run_intraday_pipeline(silent=False, target_date=None):
         # 2. 記憶體 O(1) 獲取今日最新籌碼與營收特徵
         today_str = today.isoformat()
         d_feats = daily_features_cache.get((today_str, code_norm), None)
+        is_fallback = False
+        fallback_date = None
         if d_feats:
             f_buy = d_feats["foreign_buy"]
             t_buy = d_feats["trust_buy"]
             d_buy = d_feats["dealer_buy"]
             f_ratio = d_feats["foreign_ratio"]
+            
+            # 若今日籌碼皆為 0 (例如 TWSE 尚未公佈)，自動向後搜尋最新一筆非零籌碼數據作為降級備援
+            if f_buy == 0.0 and t_buy == 0.0 and d_buy == 0.0:
+                past_dates = sorted([k[0] for k in daily_features_cache.keys() if k[1] == code_norm and k[0] < today_str], reverse=True)
+                for p_date in past_dates:
+                    p_feats = daily_features_cache[(p_date, code_norm)]
+                    if p_feats["foreign_buy"] != 0.0 or p_feats["trust_buy"] != 0.0 or p_feats["dealer_buy"] != 0.0:
+                        f_buy = p_feats["foreign_buy"]
+                        t_buy = p_feats["trust_buy"]
+                        d_buy = p_feats["dealer_buy"]
+                        f_ratio = p_feats["foreign_ratio"]
+                        is_fallback = True
+                        fallback_date = p_date
+                        break
             
             t_5d = d_feats["t_5d"]
             t_20d = d_feats["t_20d"]
@@ -932,7 +968,9 @@ def run_intraday_pipeline(silent=False, target_date=None):
             "f_buy": f_buy,
             "t_buy": t_buy,
             "d_buy": d_buy,
-            "f_ratio": f_ratio
+            "f_ratio": f_ratio,
+            "is_fallback": is_fallback,
+            "fallback_date": fallback_date
         })
 
     if conn_pot:
@@ -1149,8 +1187,16 @@ def run_intraday_pipeline(silent=False, target_date=None):
                 confidence = prob_pct if prob >= 0.5 else (100.0 - prob_pct)
             
             # Y 軸標籤大進化：融合股名、方向與信心指數、今日收盤與收斂估值
+            fallback_suffix = ""
+            fallback_text = ""
+            if item.get("is_fallback"):
+                fb_date = item.get("fallback_date")
+                fb_md = fb_date[5:] if fb_date and len(fb_date) > 5 else "昨"
+                fallback_suffix = f"({fb_md})"
+                fallback_text = f" *(三大法人採用 {fb_date} 數據)*"
+
             price_now = item["price"]
-            p_y_labels.append(f"{name} ({code_norm}) | {direction_str}({confidence:.0f}%)\n現價:{price_now:.1f} → 估值:{calibrated_val:.1f}")
+            p_y_labels.append(f"{name}{fallback_suffix} ({code_norm}) | {direction_str}({confidence:.0f}%)\n現價:{price_now:.1f} → 估值:{calibrated_val:.1f}")
             
             p_f_buys.append(item.get("f_buy", 0))
             p_t_buys.append(item.get("t_buy", 0))
@@ -1162,7 +1208,7 @@ def run_intraday_pipeline(silent=False, target_date=None):
             
             # 美化條目，包含股價估值與誤差自適應修正歷程
             line_str = (
-                f"▸ **{clean_name}** (`{code_norm}`): 明日 {signal}\n"
+                f"▸ **{clean_name}** (`{code_norm}`): 明日 {signal}{fallback_text}\n"
                 f"  └ 方向機率: *{prob*100:.1f}%*\n"
                 f"  └ 今日收盤: `${price_now:.2f}`\n"
                 f"  └ 誤差校正: `{error_str}`\n"
@@ -1277,7 +1323,17 @@ def run_intraday_pipeline(silent=False, target_date=None):
             d_b = p_d_buys[idx]
             f_r = p_f_ratios[idx]
             
-            lbl_str = f"外:{f_b:+} 投:{t_b:+} 自:{d_b:+} ({f_r:.1f}%)"
+            # 找到對應個股的 fallback 標記
+            is_fb = False
+            for infer_item in codes_infer:
+                # 這裡的比對要支援 Y 軸標籤格式中的代號提取
+                lbl_clean = p_y_labels[idx].split('|')[0].strip()
+                if f"({infer_item['code_norm']})" in lbl_clean:
+                    is_fb = infer_item.get("is_fallback", False)
+                    break
+            fb_mark = " (昨)" if is_fb else ""
+            
+            lbl_str = f"外:{f_b:+} 投:{t_b:+} 自:{d_b:+} ({f_r:.1f}%){fb_mark}"
             offset = max_inst * 0.05
             if width >= 0:
                 ax3.text(width + offset, bar.get_y() + bar.get_height()/2, 
@@ -1311,10 +1367,24 @@ def run_intraday_pipeline(silent=False, target_date=None):
         # 發送 Telegram
         if p_report_lines and not silent:
             report_title = "Holdings ML 雙指標" if p_key == "personal" else "監控商品 ML 雙指標"
-            msg = f"🤖 **{report_title}（方向與估值）自適應誤差收斂預測報告 ({p_cfg['title']})**\n\n"
-            msg += "整合今日 5 分鐘高頻 K 線動能與最新的** SQLite 三大法人籌碼**特徵，重新校正預估明日收盤價：\n\n"
-            msg += "\n".join(p_report_lines)
-            send_telegram(p_cfg['token'], p_cfg['chat_id'], msg)
+            header = f"🤖 **{report_title}（方向與估值）自適應誤差收斂預測報告 ({p_cfg['title']})**\n\n"
+            header += "整合今日 5 分鐘高頻 K 線動能與最新的** SQLite 三大法人籌碼**特徵，重新校正預估明日收盤價：\n\n"
+            
+            # 分頁發送機制，徹底解決 Telegram 4096 字元長度限制產生的 Bad Request 400 錯誤
+            chunks = []
+            current_chunk = header
+            for line in p_report_lines:
+                if len(current_chunk) + len(line) > 3800:
+                    chunks.append(current_chunk)
+                    current_chunk = f"🤖 **{report_title} 續頁 ({p_cfg['title']})**\n\n" + line
+                else:
+                    current_chunk += line
+            if current_chunk:
+                chunks.append(current_chunk)
+                
+            for idx, chunk_content in enumerate(chunks):
+                suffix = f"\n*(第 {idx+1} 頁 / 共 {len(chunks)} 頁)*" if len(chunks) > 1 else ""
+                send_telegram(p_cfg['token'], p_cfg['chat_id'], chunk_content + suffix)
             print(f"已發送 {p_cfg['title']} Telegram 純文字報告。")
             
             if os.path.exists(image_path):

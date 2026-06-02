@@ -55,14 +55,22 @@ def run_script(path):
 def main():
     # 0. Gatekeeper: Ensure Taiwan Night Session is active
     try:
-        gatekeeper_path = "/Users/bookid/.hermes/scripts/night_market_gatekeeper.py"
-        result = subprocess.run([sys.executable, gatekeeper_path], capture_output=True)
-        if result.returncode != 0:
+        sys.path.append("/Users/bookid/.hermes/scripts")
+        from night_market_gatekeeper import is_night_session_active
+        if not is_night_session_active():
             print("Taiwan Night Session is not active (Holiday or out of hours). Skipping.")
             return
     except Exception as e:
-        print(f"Gatekeeper error: {e}. Defaulting to skip.")
-        return
+        print(f"Direct gatekeeper import failed: {e}. Falling back to subprocess check.")
+        try:
+            gatekeeper_path = "/Users/bookid/.hermes/scripts/night_market_gatekeeper.py"
+            result = subprocess.run([sys.executable, gatekeeper_path], capture_output=True)
+            if result.returncode != 0:
+                print("Taiwan Night Session is not active (Holiday or out of hours). Skipping.")
+                return
+        except Exception as sub_e:
+            print(f"Gatekeeper error: {sub_e}. Defaulting to skip.")
+            return
 
     # 1. Get ADRs/Lead Indicators
     adri_report = run_script("/Users/bookid/.hermes/scripts/tw_night_monitor_adri.py")

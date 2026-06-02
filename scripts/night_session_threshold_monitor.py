@@ -136,13 +136,17 @@ def save_state(state):
 
 def check_gatekeeper():
     try:
-        gatekeeper_path = "/Users/bookid/.hermes/scripts/night_market_gatekeeper.py"
-        result = subprocess.run([sys.executable, gatekeeper_path], capture_output=True)
-        if result.returncode != 0:
+        if "/Users/bookid/.hermes/scripts" not in sys.path:
+            sys.path.append("/Users/bookid/.hermes/scripts")
+        from night_market_gatekeeper import is_night_session_active
+        return is_night_session_active()
+    except Exception as e:
+        try:
+            gatekeeper_path = "/Users/bookid/.hermes/scripts/night_market_gatekeeper.py"
+            result = subprocess.run([sys.executable, gatekeeper_path], capture_output=True)
+            return result.returncode == 0
+        except:
             return False
-        return True
-    except:
-        return False
 
 def get_current_session_key():
     # Define session by date (if before 15:00, it belongs to previous day's session)
