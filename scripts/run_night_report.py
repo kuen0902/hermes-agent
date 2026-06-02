@@ -72,24 +72,34 @@ def main():
             print(f"Gatekeeper error: {sub_e}. Defaulting to skip.")
             return
 
-    # 1. Get ADRs/Lead Indicators
+    # 1. Get Taiwan Futures Update (NQ Futures)
+    futures_report = run_script("/Users/bookid/.hermes/scripts/tw_night_session_hourly.py")
+
+    # 2. Get ADRs/Lead Indicators (TSM, NVDA, SYNA, FITXP)
     adri_report = run_script("/Users/bookid/.hermes/scripts/tw_night_monitor_adri.py")
     
-    # 2. Get Taiwan Futures Update
-    futures_report = run_script("/Users/bookid/.hermes/scripts/tw_night_session_hourly.py")
-    
-    # Merge reports if at least one successful
+    # Merge reports into a single consolidated card with a single master header
+    content_parts = []
+    if futures_report:
+        content_parts.append(futures_report)
+    if adri_report:
+        content_parts.append(adri_report)
+        
     full_msg = ""
-    if adri_report and futures_report:
-        full_msg = adri_report + "\n\n" + futures_report
-    else:
-        full_msg = adri_report or futures_report
+    if content_parts:
+        taipei_tz = pytz.timezone('Asia/Taipei')
+        now = datetime.now(taipei_tz).strftime("%Y-%m-%d %H:%M")
+        
+        full_msg = (
+            f"🌌 **台股夜盤整點監測報告**\n"
+            f"⏰ 監測時間：`{now}` (台北時間)\n"
+            f"----------------------------\n"
+            + "\n\n".join(content_parts) + "\n"
+            f"----------------------------\n"
+            f"🛡️ 狀態：`Healthy`"
+        )
 
     if full_msg:
-        # Add final status if not present (only if everything is healthy)
-        if "健康檢查" not in full_msg:
-            full_msg += "\n✅ 狀態：Healthy"
-        
         print(f"DEBUG: Sending message:\n{full_msg}")
         # Send
         for cid in TARGET_CHATS:

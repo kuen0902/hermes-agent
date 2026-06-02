@@ -129,7 +129,8 @@ def get_market_data():
             age = time.time() - mtime
             if age < 60.0 and any(t in bridge for t in tickers):
                 is_cache_fresh = True
-                print(f"⚡ [TTL Cache Hit] 使用 {age:.1f}秒 前的本地快取價格，阻斷重複請求。")
+                import sys
+                print(f"⚡ [TTL Cache Hit] 使用 {age:.1f}秒 前的本地快取價格，阻斷重複請求。", file=sys.stderr)
         except:
             pass
             
@@ -247,9 +248,6 @@ def get_market_data():
 
 
 def format_report(results, health):
-    taipei_tz = pytz.timezone('Asia/Taipei')
-    now = datetime.now(taipei_tz).strftime("%Y-%m-%d %H:%M")
-    
     # Load Cache
     cache = {}
     if os.path.exists(CACHE_FILE):
@@ -263,23 +261,25 @@ def format_report(results, health):
     lines = []
     
     def get_emoji(val):
-        if val > 0: return "🔴" 
-        if val < 0: return "🟢" 
+        if val > 0.05: return "🔴" 
+        if val < -0.05: return "🟢" 
         return "⚪️"
 
-    lines.append(f"🌌 **台股夜盤監測 (階梯突破)**")
-    lines.append(f"⏰ 時間：`{now}`")
-    lines.append(f"💡 *條件：跨越 ±3%, ±5%, ±7%, ±9%*")
-    lines.append(f"----------------------------")
+    lines.append(f"📊 **夜盤聯動商品行情**：")
     
-    untriggered = []
-    
-    for sym, val in results.items():
+    preferred_order = ["FITXP", "TSM", "NVDA", "SYNA", "EWT"]
+    for sym in preferred_order:
+        if sym not in results:
+            continue
+        val = results[sym]
         pct = val['session_delta']
         current_tier = get_current_tier(pct)
         last_tier = cache.get(sym, 0)
         
-        # Only trigger if crossed a NEW tier (and not 0)
+        # Check if threshold crossed
+        crossed_alert = ""
+        emoji_prefix = get_emoji(pct)
+        
         if current_tier != 0 and current_tier != last_tier:
             delivery_data[sym] = {
                 "name": val['name'],
@@ -287,35 +287,34 @@ def format_report(results, health):
                 "pct": pct,
                 "tier": current_tier
             }
-            trend = "🚀" if abs(current_tier) > abs(last_tier) else "📉"
-            lines.append(f"{get_emoji(pct)}{trend} **{val['name']}** ({sym.split('.')[0]}): `${val['price']:.2f}` (`{pct:+.2f}%`) [突破 `{current_tier}%` 門檻]")
-        else:
-            untriggered.append(f"{sym.split('.')[0]}: {pct:+.1f}%")
+            emoji_prefix = "🚨" if pct < 0 else "🚀"
+            crossed_alert = f" ⚠️ **[突破 {current_tier}% 門檻！]**"
             
         cache[sym] = current_tier
+        
+        price_val = val['price']
+        if sym == "FITXP":
+            price_str = f"{int(price_val):,}"
+        else:
+            price_str = f"${price_val:,.2f}"
+            
+        lines.append(f"▸ {emoji_prefix} **{val['name']} ({sym})**：`{price_str}` (`{pct:+.2f}%`){crossed_alert}")
 
     # Save Cache
     with open(CACHE_FILE, 'w') as f:
         json.dump(cache, f)
 
-    if untriggered:
-        lines.append(f"   ▸ 未達推播門檻：`" + ", ".join(untriggered) + "`")
-
-    if not delivery_data:
-        return "\n".join(lines), False
-
     # Integration with delivery module
-    try:
-        from lib_market_delivery import deliver_market_report
-        deliver_market_report(delivery_data)
-    except Exception as e:
-        print(f"Delivery error: {e}")
+    if delivery_data:
+        try:
+            from lib_market_delivery import deliver_market_report
+            deliver_market_report(delivery_data)
+        except Exception as e:
+            print(f"Delivery error: {e}")
 
-    return "\n".join(lines), True
+    return "\n".join(lines), bool(delivery_data)
 
 if __name__ == "__main__":
     results, health = get_market_data()
     report, delivered = format_report(results, health)
-    if delivered and health != "Healthy":
-        report += f"\n----------------------------\n🛡️ 健康檢查：`{health}`"
     print(report)

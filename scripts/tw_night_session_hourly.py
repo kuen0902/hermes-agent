@@ -92,7 +92,8 @@ def get_night_session_status():
                     if "NQ" in b_data:
                         bridge_nq = float(b_data["NQ"])
                         is_cache_fresh = True
-                        print(f"⚡ [TTL Cache Hit] 使用 {age:.1f}秒 前的本地 NQ 快取價格，阻斷重複請求。")
+                        import sys
+                        print(f"⚡ [TTL Cache Hit] 使用 {age:.1f}秒 前的本地 NQ 快取價格，阻斷重複請求。", file=sys.stderr)
         except:
             pass
             
@@ -121,6 +122,11 @@ def get_night_session_status():
                 if val < -0.05: return "🟢"
                 return "⚪️"
                 
+            def get_color_emoji(val):
+                if val > 0.05: return "🔴"
+                if val < -0.05: return "🟢"
+                return "⚪️"
+                
             if open_price and prev_hour_price:
                 session_change = current_price - open_price
                 session_pct = (session_change / open_price) * 100
@@ -128,18 +134,10 @@ def get_night_session_status():
                 hour_pct = (hour_change / prev_hour_price) * 100
                 
                 msg = [
-                    f"🌌 **台股夜盤指標 (Nasdaq Futures)**",
-                    f"⏰ 檢測時間：`{report_time}`",
-                    f"----------------------------",
-                    f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
-                    f"",
-                    f"📊 **近期走勢 (Hourly)** [Cache]",
-                    f"{get_color_emoji(hour_change)} 漲跌：`{hour_change:+.1f}` ({hour_pct:+.2f}%)",
-                    f"",
-                    f"📈 **全日變動 (vs NY Open)** [Cache]",
-                    f"{get_color_emoji(session_change)} 漲跌：`{session_change:+.1f}` ({session_pct:+.2f}%)",
-                    f"----------------------------",
-                    f"📊 **狀態**：`PROXIED (Resilient Bridge)`"
+                    f"💰 **小那斯達克期貨 (NQ)**：",
+                    f"▸ **目前點數**：`{current_price:,.1f}`",
+                    f"▸ **近期走勢 (小時)**：{get_color_emoji(hour_change)} `{hour_change:+.1f}` (`{hour_pct:+.2f}%`) [Cache]",
+                    f"▸ **全日變動 (開盤)**：{get_color_emoji(session_change)} `{session_change:+.1f}` (`{session_pct:+.2f}%`) [Cache]"
                 ]
                 
                 cache["last_price"] = current_price
@@ -149,12 +147,8 @@ def get_night_session_status():
                 return "\n".join(msg)
             else:
                 msg = [
-                    f"🌌 **台股夜盤指標 (Nasdaq Futures)**",
-                    f"⏰ 檢測時間：`{report_time}`",
-                    f"----------------------------",
-                    f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
-                    f"📊 **狀態**：`PROXIED (Resilient Bridge)`",
-                    f"----------------------------"
+                    f"💰 **小那斯達克期貨 (NQ)**：",
+                    f"▸ **目前點數**：`{current_price:,.1f}`"
                 ]
                 return "\n".join(msg)
         return "❌ [Health Check ERROR]: 無法獲取 NQ=F 數據。"
@@ -178,17 +172,10 @@ def get_night_session_status():
         return "⚪️"
 
     msg = [
-        f"🌌 **台股夜盤指標 (Nasdaq Futures)**",
-        f"⏰ 檢測時間：`{report_time}`",
-        f"----------------------------",
-        f"💰 **目前點數 (NQ)**：`{current_price:,.1f}`",
-        f"",
-        f"📊 **近期走勢 (Hourly)**",
-        f"{get_color_emoji(hour_change)} 漲跌：`{hour_change:+.1f}` ({hour_pct:+.2f}%)",
-        f"",
-        f"📈 **全日變動 (vs NY Open)**",
-        f"{get_color_emoji(session_change)} 漲跌：`{session_change:+.1f}` ({session_pct:+.2f}%)",
-        f"----------------------------"
+        f"💰 **小那斯達克期貨 (NQ)**：",
+        f"▸ **目前點數**：`{current_price:,.1f}`",
+        f"▸ **近期走勢 (小時)**：{get_color_emoji(hour_change)} `{hour_change:+.1f}` (`{hour_pct:+.2f}%`)",
+        f"▸ **全日變動 (開盤)**：{get_color_emoji(session_change)} `{session_change:+.1f}` (`{session_pct:+.2f}%`)"
     ]
     
     cache["open_price"] = float(open_price)
