@@ -40,6 +40,32 @@ def get_stock_name_and_suffix(code):
     """Fetches stock Chinese name and market suffix (.TW or .TWO) dynamically."""
     print(f"🔍 正在獲取股號 {code} 的官方中文字稱及市場分類...")
     
+    # 0. 優先嘗試從本地資料庫或註冊表載入（避免 API 斷線或限流時降級回代號）
+    try:
+        if os.path.exists(POTENTIAL_DDB):
+            conn = duckdb.connect(POTENTIAL_DDB, read_only=True)
+            row = conn.execute("SELECT name, ticker FROM daily_stock_data WHERE code = ? AND name != ? LIMIT 1", (code, code)).fetchone()
+            conn.close()
+            if row and row[0] and row[1]:
+                name = row[0].strip()
+                suffix = ".TWO" if str(row[1]).endswith(".TWO") else ".TW"
+                print(f"✓ [DuckDB Cache] 找到商品: {name} (市場字尾: {suffix})")
+                return name, suffix
+    except Exception as e:
+        print(f"  ⚠️ 本地 DuckDB 股名查詢失敗: {e}")
+        
+    try:
+        if os.path.exists(REGISTRY_PATH):
+            with open(REGISTRY_PATH, 'r', encoding='utf-8') as f:
+                registry = json.load(f)
+            name = registry.get("official_names", {}).get(code)
+            if name and name != code:
+                # 試圖從已存的 suffixes 中猜測字尾，或者預設透過 yfinance 驗證
+                print(f"✓ [Registry Cache] 找到商品名稱: {name}")
+                # 依然執行後續檢索以確認 .TW / .TWO，但若後續失敗則以此 name 為主
+    except Exception:
+        name = None
+    
     # 1. Try TWSE API
     try:
         url = f"https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_{code}.tw|otc_{code}.tw&json=1"
@@ -47,12 +73,12 @@ def get_stock_name_and_suffix(code):
         data = r.json()
         if 'msgArray' in data and data['msgArray']:
             item = data['msgArray'][0]
-            name = item.get('n', '').strip()
+            fetched_name = item.get('n', '').strip()
             ex = item.get('ex', 'tse')
             suffix = ".TW" if ex == 'tse' else ".TWO"
-            if name:
-                print(f"✓ [TWSE API] 找到商品: {name} (市場字尾: {suffix})")
-                return name, suffix
+            if fetched_name:
+                print(f"✓ [TWSE API] 找到商品: {fetched_name} (市場字尾: {suffix})")
+                return fetched_name, suffix
     except Exception as e:
         print(f"  ⚠️ TWSE API 查詢失敗: {e}")
         
@@ -64,14 +90,21 @@ def get_stock_name_and_suffix(code):
             hist = t.history(period="1d")
             if not hist.empty:
                 info = t.info
-                name = info.get('shortName') or info.get('longName') or code
+                fetched_name = info.get('shortName') or info.get('longName') or code
                 # Remove common English terms from shortName if returned
-                name = name.replace("Co., Ltd.", "").strip()
-                print(f"✓ [yfinance] 找到商品: {name} (市場字尾: {suffix})")
-                return name, suffix
+                fetched_name = fetched_name.replace("Co., Ltd.", "").strip()
+                print(f"✓ [yfinance] 找到商品: {fetched_name} (市場字尾: {suffix})")
+                # 如果有從 registry 拿到的中文名稱，優先使用中文名稱而非英文
+                final_name = name if (name and name != code) else fetched_name
+                return final_name, suffix
         except Exception:
             continue
             
+    # 如果線上完全失敗，但有 registry 的中文名稱，依然可以使用它
+    if 'name' in locals() and name and name != code:
+        print(f"⚠️ 線上確認失敗，套用 Registry 的商品名稱: {name}，預設市場字尾 .TW")
+        return name, ".TW"
+        
     print(f"⚠️ 無法在線上確認分類，預設套用 tse / .TW 分類。")
     return code, ".TW"
 

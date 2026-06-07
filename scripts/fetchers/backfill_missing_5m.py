@@ -135,14 +135,37 @@ def backfill_gaps():
     stock_suffixes = load_stock_suffixes(active_codes)
     
     name_cache = {}
+    
+    # 1. 優先載入官方註冊表的股名 (Source of Truth)
+    registry_path = os.path.join(DATA_DIR, "master_stock_registry.json")
+    if os.path.exists(registry_path):
+        try:
+            with open(registry_path, 'r', encoding='utf-8') as f:
+                registry = json.load(f)
+            official_names = registry.get("official_names", {})
+            for c, n in official_names.items():
+                if c and n:
+                    c_str = str(c).strip()
+                    n_str = str(n).strip()
+                    if n_str != c_str:
+                        name_cache[c_str] = n_str
+        except Exception as e:
+            print(f"⚠️ 載入註冊表官方名稱失敗: {e}")
+
+    # 2. 備份從 DuckDB 載入股名快取，並防止 code-only 佔位符覆蓋正確名稱
     if os.path.exists(DB_PATH):
         try:
             conn = duckdb.connect(DB_PATH, read_only=True)
-            name_rows = conn.execute("SELECT code, name FROM daily_stock_data").fetchall()
+            name_rows = conn.execute("SELECT DISTINCT code, name FROM daily_stock_data").fetchall()
             conn.close()
             for c, n in name_rows:
                 if c and n:
-                    name_cache[str(c).strip()] = str(n).strip()
+                    c_str = str(c).strip()
+                    n_str = str(n).strip()
+                    if c_str not in name_cache:
+                        name_cache[c_str] = n_str
+                    elif n_str != c_str and name_cache[c_str] == c_str:
+                        name_cache[c_str] = n_str
         except Exception as e:
             print(f"⚠️ 載入股名快取失敗: {e}")
  

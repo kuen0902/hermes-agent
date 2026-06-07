@@ -293,6 +293,16 @@ def sync_5m_data():
                 df_temp = df.copy()
                 df_temp['code'] = code
                 df_temp['ticker'] = ticker
+                
+                reg_name = None
+                if os.path.exists(REGISTRY_PATH):
+                    try:
+                        with open(REGISTRY_PATH, 'r', encoding='utf-8') as f:
+                            registry = json.load(f)
+                        reg_name = registry.get("official_names", {}).get(code)
+                    except:
+                        pass
+                        
                 fixes = {
                     "3481": "群創", "2330": "台積電", "2317": "鴻海", "2454": "聯發科",
                     "2382": "廣達", "2409": "友達", "2408": "南亞科", "2327": "國巨",
@@ -301,7 +311,9 @@ def sync_5m_data():
                     "2368": "金像電", "2344": "華邦電", "1802": "台玻", "0050": "元大台灣50",
                     "00965": "元大航太防衛科技", "00981A": "主動統一台股增長", "0052": "富邦科技",
                 }
-                df_temp['name'] = fixes.get(code, code)
+                
+                final_name = reg_name if (reg_name and reg_name != code) else fixes.get(code, code)
+                df_temp['name'] = final_name
                 df_temp.rename(columns={
                     'Open': 'open', 'High': 'high', 'Low': 'low', 'Close': 'close', 'Volume': 'volume',
                     'Amount': 'amount', 'Transaction': 'transaction'
