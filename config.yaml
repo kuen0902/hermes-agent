@@ -414,6 +414,7 @@ stt:
 telegram:
     allowed_channels:
         - "6326497055"
+        - "-1003744330314"
     allowed_chats: ""
     auto_source_bashrc: true
     backend: local
