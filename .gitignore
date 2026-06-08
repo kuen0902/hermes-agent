@@ -40,3 +40,7 @@ scripts/hermes_sync
 scripts/hermes_monitor
 node_modules/
 lsp/node_modules/
+
+# Secrets and Databases
+.env
+*.db
