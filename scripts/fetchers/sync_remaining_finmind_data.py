@@ -18,7 +18,7 @@ DUCK_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 CENTRAL_JSON = os.path.join(DATA_DIR, "central_stock_data.json")
 
 FINMIND_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYm9va2lkIiwiZW1haWwiOiJib29raWQyMDAwQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.MaUs7zQVYm5qKtlpIRdZ-s-I6WXCfcdtIowZiR7mXM4"
-GER_TOKEN = "8513436203:AAHcvVxNgLEqQ_U_JH55mZaENCWfl4VTFJ4"
+GER_TOKEN = "8513436203:AAFgyNQja4cXVsyhFurVlKMOaKugyOJG1uM"
 JOJO_CHAT_ID = "6326497055"
 
 CORE_SYMBOLS = [

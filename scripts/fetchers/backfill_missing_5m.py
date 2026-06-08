@@ -15,7 +15,7 @@ DATA_DIR = os.path.expanduser("~/.hermes/data")
 DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 AUDIT_JSON = os.path.join(DATA_DIR, "missing_5m_audit.json")
 
-GER_TOKEN = "8513436203:AAHcvVxNgLEqQ_U_JH55mZaENCWfl4VTFJ4"
+GER_TOKEN = "8513436203:AAFgyNQja4cXVsyhFurVlKMOaKugyOJG1uM"
 JOJO_CHAT_ID = "6326497055"
 
 def send_telegram(token, chat_id, text):

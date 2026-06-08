@@ -12,8 +12,16 @@ import pandas as pd
 import duckdb
 from datetime import datetime
 
-# Paths
-DATA_DIR = os.path.expanduser("~/.hermes/data")
+import pwd
+
+def get_real_home():
+    try:
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except Exception:
+        return os.path.expanduser("~")
+
+REAL_HOME = get_real_home()
+DATA_DIR = os.path.join(REAL_HOME, ".hermes", "data")
 DB_PATH = os.path.join(DATA_DIR, "potential_analysis.ddb")
 RETAINED_MD = os.path.join(DATA_DIR, "active_retained_stocks.md")
 SUCCESS_REGISTRY_JSON = os.path.join(DATA_DIR, "backfill_success_registry.json")

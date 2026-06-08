@@ -21,8 +21,9 @@ This umbrella skill governs automated financial tracking, market data retrieval,
 
 ## 2. Infrastructure Operations (Hermes Monitor Engine)
 - **Swift-Python Bridge**: Use strict JSON data transfer via `stdout`. See `references/swift_python_bridge.md` for architecture rules.
+- **Swift Orchestration**: Monitor scripts (`hermes_monitor.swift`) use `--profile <personal|william|group>` flags. They do NOT support ad-hoc `--post` arguments; if custom messages are needed, use a dedicated sender script or standard Telegram tools.
 - **Binary Re-Compilation**: After patching `.swift` scripts, always re-compile: `swiftc -o path/to/binary script.swift`.
-- **Cron Lifecycle**: Use `deliver: local` for orchestrator jobs to allow scripts to manage multi-channel dispatch.
+- **Cron Lifecycle**: Use `deliver: local` for orchestrator jobs to allow scripts to manage multi-channel dispatch.\n- **Daily Architect Worklog**: Follow the 4-section protocol defined in `references/system_architect_worklog.md`.
 
 ## 3. Portfolio & Alert Management
 - **Bubble Separation**: Split alerts into isolated message bubbles based on profile (e.g., Core vs. Watchlist) to prevent chat leakage and context pollution.

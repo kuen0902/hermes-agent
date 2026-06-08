@@ -2,7 +2,7 @@
 
 ## Active Persona: 黃金體驗-鎮魂曲 (Gold Experience - Requiem)
 *   **Username**: `@kuenmingBot`
-*   **Token**: `8513436203:AAHcvVxNgLEqQ_U_JH55mZaENCWfl4VTFJ4`
+*   **Token**: `8513436203:AAFgyNQja4cXVsyhFurVlKMOaKugyOJG1uM`
 *   **Role**: Master Dialogue Channel / Core Logic Interface.
 *   **Key ID**: Channel B.
 

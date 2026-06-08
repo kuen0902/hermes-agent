@@ -5,7 +5,7 @@ import sys
 
 # --- Configuration ---
 # Star Platinum @taiwangupiaoBot (Group Monitor)
-STAR_PLATINUM_TOKEN = "8513436203:AAHcvVxNgLEqQ_U_JH55mZaENCWfl4VTFJ4"
+STAR_PLATINUM_TOKEN = "8513436203:AAFgyNQja4cXVsyhFurVlKMOaKugyOJG1uM"
 # William's Bot - WilliamClaw
 WILLIAM_CLAW_TOKEN = "8678817340:AAHLd6ObYqUUTfygY-fPf57Rw6SfOO2WEGQ"
 # GER @kuenmingBot (If you have the real token, please replace the *** here)

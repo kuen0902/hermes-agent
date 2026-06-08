@@ -6,11 +6,20 @@ import requests
 import datetime
 import time
 
-DATA_DIR = os.path.expanduser("~/.hermes/data")
-CALENDAR_JSON = os.path.join(DATA_DIR, "earnings_calendar.json")
-REPORTS_DIR = os.path.expanduser("~/Documents/Reports/2026_Q1")
+import pwd
 
-GER_TOKEN = "8513436203:AAHcvVxNgLEqQ_U_JH55mZaENCWfl4VTFJ4"
+def get_real_home():
+    try:
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except Exception:
+        return os.path.expanduser("~")
+
+REAL_HOME = get_real_home()
+DATA_DIR = os.path.join(REAL_HOME, ".hermes", "data")
+CALENDAR_JSON = os.path.join(DATA_DIR, "earnings_calendar.json")
+REPORTS_DIR = os.path.join(REAL_HOME, "Documents", "Reports", "2026_Q1")
+
+GER_TOKEN = "8513436203:AAFgyNQja4cXVsyhFurVlKMOaKugyOJG1uM"
 JOJO_CHAT_ID = "6326497055"
 
 def send_telegram(token, chat_id, text):
@@ -47,7 +56,7 @@ def reconcile_and_download():
         existing_items = os.listdir(REPORTS_DIR)
     except PermissionError:
         print(f"⚠️ 無法存取 {REPORTS_DIR} (環境權限限制)，自動降級使用本地安全快取路徑...")
-        REPORTS_DIR = os.path.expanduser("~/.hermes/data/Reports/2026_Q1")
+        REPORTS_DIR = os.path.join(REAL_HOME, ".hermes", "data", "Reports", "2026_Q1")
         os.makedirs(REPORTS_DIR, exist_ok=True)
         existing_items = os.listdir(REPORTS_DIR)
     

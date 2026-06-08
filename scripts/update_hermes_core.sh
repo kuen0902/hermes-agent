@@ -1,34 +1,57 @@
 #!/bin/bash
-# Hermes Agent Custom Update Script (Python 3.14 / venv_314 Compatible)
 set -e
 
-HERMES_DIR="$HOME/workspace/hermes-agent"
-VENV_DIR="$HERMES_DIR/venv_314"
-PYTHON_BIN="$VENV_DIR/bin/python"
+cd /Users/bookid/workspace/hermes-agent
 
-echo "======================================"
-echo "🔄 Updating Hermes Agent Core"
-echo "======================================"
+echo "=== 1. Resolving merge conflicts inside python files ==="
+/Users/bookid/workspace/hermes-agent/venv_314/bin/python -c '
+import re
 
-cd "$HERMES_DIR"
+for path in ["hermes_cli/kanban_decompose.py", "hermes_cli/kanban_specify.py"]:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+        if "<<<<<<< Updated upstream" in content:
+            # Replace conflict block
+            content = re.sub(
+                r"<<<<<<< Updated upstream\r?\n([ \t]*)with kb\.connect_closing\(\) as conn:\r?\n=======\r?\n[ \t]*with contextlib\.closing\(kb\.connect\(\)\) as conn:\r?\n>>>>>>> Stashed changes",
+                r"\1with kb.connect_closing() as conn:",
+                content
+            )
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(content)
+            print(f"  ✓ Resolved conflicts in {path}")
+        else:
+            print(f"  - No conflict markers found in {path}")
+    except Exception as e:
+        print(f"  \u2717 Error processing {path}: {e}")
 
-# 1. Pull latest code from upstream
-echo "1. Pulling latest code..."
-git pull
+# 2. Patch pyproject.toml to support Python 3.14
+try:
+    with open("pyproject.toml", "r", encoding="utf-8") as f:
+        pt = f.read()
+    if "requires-python = \">=3.11,<3.14\"" in pt:
+        pt = pt.replace("requires-python = \">=3.11,<3.14\"", "requires-python = \">=3.11,<3.15\"")
+        with open("pyproject.toml", "w", encoding="utf-8") as f:
+            f.write(pt)
+        print("  ✓ Patched pyproject.toml")
+    else:
+        print("  - pyproject.toml is already patched or up to date")
+except Exception as e:
+    print(f"  \u2717 Error patching pyproject.toml: {e}")
+'
 
-# 2. Re-install/sync dependencies into our custom venv_314
-echo "2. Syncing dependencies to venv_314..."
-if command -v uv &> /dev/null; then
-    uv pip install -e ".[all]" --python "$PYTHON_BIN"
-else
-    "$PYTHON_BIN" -m pip install -e ".[all]"
+echo "=== 2. Staging resolved files ==="
+/usr/bin/git add hermes_cli/kanban_decompose.py hermes_cli/kanban_specify.py
+
+echo "=== 3. Reinstalling Python dependencies ==="
+/Users/bookid/workspace/hermes-agent/venv_314/bin/pip install -e .[all]
+
+echo "=== 4. Rebuilding Web UI ==="
+if [ -d "web" ]; then
+  cd web
+  npm install
+  npm run build
 fi
 
-# 3. Ensure the global 'hermes' CLI points to the 3.14 environment
-echo "3. Re-linking 'hermes' command..."
-mkdir -p "$HOME/.local/bin"
-ln -sf "$VENV_DIR/bin/hermes" "$HOME/.local/bin/hermes"
-
-echo "======================================"
-echo "✅ Update complete! Hermes is running on Python 3.14.4"
-echo "======================================"
+echo "=== Update completed successfully ==="

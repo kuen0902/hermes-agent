@@ -25,7 +25,16 @@ In the Hermes environment, `no_agent=True` cron jobs write their execution logs 
 **Cause**: The script is not executable.
 **Fix**: `chmod +x path/to/script`.
 
-## Verification Command
+### 4. Database Integrity & Recovery
+**Error**: `Cron database corrupted and unrepairable: Invalid \uXXXX escape`
+**Cause**: The `jobs.json` file (usually at `~/.hermes/cron/jobs.json`) contains malformed Unicode escape sequences, often introduced when an LLM writes CJK characters or complex prompts.
+**Fix**:
+1. Locate the file: `~/.hermes/cron/jobs.json`.
+2. Inspect lines around the error column (printed in the error message).
+3. Repair invalid escapes (e.g., `\uXXXX` where XXXX is not 4 hex digits) or replace them with direct UTF-8 characters.
+4. Verify JSON validity: `python3 -m json.tool ~/.hermes/cron/jobs.json`.
+
+## 5. Verification Commands
 ```bash
 # List last 5 outputs for a specific job
 ls -lt ~/.hermes/cron/output/<job_id>/ | head -n 5

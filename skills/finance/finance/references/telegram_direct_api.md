@@ -35,7 +35,7 @@ def send_telegram(token, chat_id, message):
 For quick maintenance and verification, use `curl` directly via terminal.
 
 ### 0. Bot Registry
-- **GER Core**: `8513436203:AAHcvVxNgLEqQ_U_JH55mZaENCWfl4VTFJ4` (@kuenmingBot) - **Main communication channel.**
+- **GER Core**: `8513436203:AAFgyNQja4cXVsyhFurVlKMOaKugyOJG1uM` (@kuenmingBot) - **Main communication channel.**
 - **Monitor**: `8737129549:AAFtYsiaCacK9YaUP5Jd_RDw95ZpkW5ZRbU` (@taiwangupiaoBot) - **Stock/Group distribution.**
 
 ### 1. Send Message
