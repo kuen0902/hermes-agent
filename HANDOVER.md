@@ -4,11 +4,16 @@
 > 每次啟動對話時，請務必先閱讀此文件以取得最新的系統脈絡。
 
 ## 📅 最新更新日期
-2026-05-20 (Session: 路由精準化、Swift 執行優化與診斷重構)
-
-## ✅ 近期已完成事項 (Completed)
-
-1. **Persona 與推播路由精準定義 (Persona Routing)**
+2026-06-08 (Fixed Cron DB corruption and 8am Job 429)
+8|
+9|## ✅ 近期已完成事項 (Completed)
+10|
+11|1. **Cron 數據庫修復與 8am 任務復位**
+12|   - 修復了 `~/.hermes/cron/jobs.json` 中的 `\u9edge` 非法轉義字符，恢復 cron 工具調用能力。
+13|   - 將 8am 「Daily Architect Worklog」任務從受限的 `qwen3.6:35b` 切換回 `gemini-3-flash-preview` 以避免 HTTP 429 報錯。
+14|   - 盤點並補發了 2026-06-08 的架構師工作日誌。
+15|
+16|2. **Persona 與推播路由精準定義 (Persona Routing)**
    - 確立 Star Platinum (白金之星, 8737129549) 為所有股票通知 (包含個人、群組與 William 泡泡) 的唯一發送者。
    - 確立 GER (黃金體驗-鎮魂曲) 為指令與對話控制中心，不再負責日常報價推播。
    - 更新了 `MEMORY.md` 與 `USER.md` 確保後續 AI 理解此分流機制。

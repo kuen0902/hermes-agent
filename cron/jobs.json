@@ -107,15 +107,15 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 31
+        "completed": 32
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-06-08T06:00:00+08:00",
-      "last_run_at": "2026-06-07T06:00:14.874809+08:00",
+      "next_run_at": "2026-06-09T06:00:00+08:00",
+      "last_run_at": "2026-06-08T06:00:43.693961+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -278,15 +278,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 445
+        "completed": 455
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-06-07T15:00:00+08:00",
-      "last_run_at": "2026-06-07T05:00:58.376003+08:00",
+      "next_run_at": "2026-06-08T15:00:00+08:00",
+      "last_run_at": "2026-06-08T05:00:48.568716+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -303,11 +303,11 @@
     {
       "id": "d9346611f4c5",
       "name": "Daily Architect Worklog",
-      "prompt": "\u8acb\u751f\u6210\u4e00\u4efd\u300c\u7cfb\u7d71\u67b6\u69cb\u5e2b\u6bcf\u65e5\u5de5\u4f5c\u65e5\u8a8c\u300d\u3002\n\u5167\u5bb9\u8981\u6c42\uff1a\n1. **\u6628\u65e5\u56de\u9867**\uff1a\u5217\u51fa\u524d\u4e00\u5de5\u4f5c\u65e5\u5b8c\u6210\u7684\u4e3b\u8981\u4efb\u52d9\uff0c\u5fc5\u9808\u6a19\u8a3b\u8a73\u7d30\u6642\u9593\u9ede\u3002\n2. **\u4eca\u65e5\u91cd\u9ede**\uff1a\u5217\u51fa\u4eca\u5929\u9810\u8a08\u57f7\u884c\u7684\u81ea\u52d5\u5316\u76e3\u63a7\u8207\u7dad\u8b77\u4efb\u52d9\uff08\u5305\u542b\u591c\u76e4\u5c0f\u6642\u66f4\u65b0\u7b49\uff09\u3002\n3. **\u660e\u65e5\u5c55\u671b**\uff1a\u5217\u51fa\u660e\u5929\u5373\u5c07\u555f\u52d5\u7684\u91cd\u5927\u8a08\u756b\uff08\u5982\u9577\u7dda\u8cc7\u6599\u88dc\u5168\u8207\u5408\u4f75\uff09\u3002\n4. **\u7cfb\u7d71\u5065\u5eb7\u5ea6**\uff1a\u76ee\u524d\u6240\u6709\u81ea\u52d5\u5316\u8173\u672c\u3001\u6392\u7a0b\u8207\u8cc7\u6599\u5eab\u7684\u5065\u5eb7\u72c0\u614b\u6aa2\u67e5\u5831\u544a\u3002\n\n\u8acb\u4ee5\u5c08\u696d\u3001\u7cbe\u78ba\u7684\u7e41\u9ad4\u4e2d\u6587\u64b0\u5beb\uff0c\u5b57\u6578\u7cbe\u7149\uff0c\u76f4\u63a5\u4ea4\u4ed8\u6838\u5fc3\u8cc7\u8a0a\u3002",
+      "prompt": "請生成一份「系統架構師每日工作日誌」。\n內容要求：\n1. **昨日回顧**：列出前一工作日完成的主要任務，必須標註詳細時間點。\n2. **今日重點**：列出今天預計執行的自動化監控與維護任務（包含夜盤小時更新等）。\n3. **明日展望**：列出明天即將啟動的重大計畫（如長線資料補全與合併）。\n4. **系統健康度**：目前所有自動化腳本、排程與資料庫的健康狀態檢查報告。\n\n請以專業、精確的繁體中文撰寫，字數精煉，直接交付核心資訊。",
       "skills": [],
       "skill": null,
-      "model": null,
-      "provider": null,
+      "model": "qwen3.6:35b",
+      "provider": "ollama-launch",
       "base_url": null,
       "script": null,
       "context_from": null,
@@ -319,17 +319,17 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 33
+        "completed": 34
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-06-08T08:00:00+08:00",
-      "last_run_at": "2026-06-07T08:01:40.566565+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-09T08:00:00+08:00",
+      "last_run_at": "2026-06-08T08:10:02.213632+08:00",
+      "last_status": "error",
+      "last_error": "RuntimeError: HTTP 429: Error code: 429 - {'error': 'you (bookid2000) have reached your session usage limit, upgrade for higher limits: https://ollama.com/upgrade or add extra usage: https://ollama.com/settings (ref: bb1d57f1-9ce4-4cd6-958a-954355e178ec)'}",
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -475,7 +475,7 @@
     {
       "id": "3608997f1e16",
       "name": "Obsidian-EOD-Daily-Log-2330",
-      "prompt": "You are the System Architect. It is 23:30 (End of Day). \nGenerate a comprehensive technical audit and daily log for Obsidian.\n\n1. DATA COLLECTION:\n   - Use session_search to review today's high-level architectural decisions and user requests.\n   - Scan `~/.hermes/cron/output/` and specifically the logs of `taiex_orchestrator.py`, `stock_monitor.py`, and `run_night_report.py`.\n\n2. LOG CONTENT REQUIREMENTS:\n   - ## \ud83d\udce5 [Summary] What was done\n     - List technical implementations and configuration changes.\n   - ## \ud83d\udd0d [Analysis] What happened\n     - Factural report of system events (e.g., yfinance errors, data latency, successful downloads).\n     - Include errors encountered and their root causes.\n   - ## \ud83d\udee0\ufe0f [Improvement] How it was improved\n     - Specific solutions applied (e.g., pivoting to NQ=F, clearing caches, implementing cross-checkers).\n   - ## \ud83d\udcca [Communication Stats]\n     - List each chat group/target (e.g. 'Home', '\u9ad8\u6f6e\u4e0d\u65b7').\n     - Total count of messages sent to each today.\n     - Identify which automated scripts were the primary senders.\n\n3. STRUCTURE for Obsidian:\n   - YAML Frontmatter (tags: #daily-log #system-audit, date: YYYY-MM-DD).\n   - Use [[Wikilinks]] for linked system components.\n\n4. OUTPUT: Save as `~/Documents/Obsidian Vault/Daily Logs/YYYY-MM-DD.md` and report the path.",
+      "prompt": "You are the System Architect. It is 23:30 (End of Day). \nGenerate a comprehensive technical audit and daily log for Obsidian.\n\n1. DATA COLLECTION:\n   - Use session_search to review today's high-level architectural decisions and user requests.\n   - Scan `~/.hermes/cron/output/` and specifically the logs of `taiex_orchestrator.py`, `stock_monitor.py`, and `run_night_report.py`.\n\n2. LOG CONTENT REQUIREMENTS:\n   - ## 📥 [Summary] What was done\n     - List technical implementations and configuration changes.\n   - ## 🔍 [Analysis] What happened\n     - Factural report of system events (e.g., yfinance errors, data latency, successful downloads).\n     - Include errors encountered and their root causes.\n   - ## 🛠️ [Improvement] How it was improved\n     - Specific solutions applied (e.g., pivoting to NQ=F, clearing caches, implementing cross-checkers).\n   - ## 📊 [Communication Stats]\n     - List each chat group/target (e.g. 'Home', '高潮不斷').\n     - Total count of messages sent to each today.\n     - Identify which automated scripts were the primary senders.\n\n3. STRUCTURE for Obsidian:\n   - YAML Frontmatter (tags: #daily-log #system-audit, date: YYYY-MM-DD).\n   - Use [[Wikilinks]] for linked system components.\n\n4. OUTPUT: Save as `~/Documents/Obsidian Vault/Daily Logs/YYYY-MM-DD.md` and report the path.",
       "skills": [],
       "skill": null,
       "model": null,
@@ -491,15 +491,15 @@
       "schedule_display": "30 23 * * *",
       "repeat": {
         "times": null,
-        "completed": 29
+        "completed": 30
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-06T21:58:27.890264+08:00",
-      "next_run_at": "2026-06-07T23:30:00+08:00",
-      "last_run_at": "2026-06-06T23:33:58.620374+08:00",
+      "next_run_at": "2026-06-08T23:30:00+08:00",
+      "last_run_at": "2026-06-07T23:36:42.138303+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -537,17 +537,17 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 29
+        "completed": 30
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-06-08T05:00:00+08:00",
-      "last_run_at": "2026-06-07T05:04:07.349134+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-09T05:00:00+08:00",
+      "last_run_at": "2026-06-08T05:10:40.961790+08:00",
+      "last_status": "error",
+      "last_error": "Script timed out after 600s: /Users/bookid/.hermes/scripts/run_daily_ml.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -784,15 +784,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 22
+        "completed": 23
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-06-08T04:00:00+08:00",
-      "last_run_at": "2026-06-07T04:00:43.171977+08:00",
+      "next_run_at": "2026-06-09T04:00:00+08:00",
+      "last_run_at": "2026-06-08T04:00:44.365045+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -942,15 +942,15 @@
       "schedule_display": "0 17 * * *",
       "repeat": {
         "times": null,
-        "completed": 18
+        "completed": 19
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-21T21:14:00+08:00",
-      "next_run_at": "2026-06-07T17:00:00+08:00",
-      "last_run_at": "2026-06-06T17:01:16.203329+08:00",
+      "next_run_at": "2026-06-08T17:00:00+08:00",
+      "last_run_at": "2026-06-07T17:02:27.496945+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1068,17 +1068,17 @@
       "schedule_display": "0 1 * * *",
       "repeat": {
         "times": null,
-        "completed": 13
+        "completed": 14
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-24T07:41:14.009094+00:00",
-      "next_run_at": "2026-06-08T01:00:00+08:00",
-      "last_run_at": "2026-06-07T01:00:14.597564+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-09T01:00:00+08:00",
+      "last_run_at": "2026-06-08T01:00:40.221337+08:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 1\nstdout:\n=== [2026-06-08 01:00:39] Starting batch backfill for retained stocks ===\n=========================================================================\n  🦆 HERMES QUANT: 全市場在線保留個股 15 年歷史日線分批回補引擎 (v2.0)\n=========================================================================\n💡 系統優化：已內建分批執行模式，本次最多僅處理前 100 檔個股。\n💡 下載機制：5 種極致備援管道 + 智慧略過已完成個股\n❌ 找不到 DuckDB 資料庫: /Users/bookid/.hermes/profiles/star-platinum/home/.hermes/data/potential_analysis.ddb",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1152,15 +1152,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 10
+        "completed": 11
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-27T01:10:00.000000+08:00",
-      "next_run_at": "2026-06-08T03:00:00+08:00",
-      "last_run_at": "2026-06-07T03:08:37.417506+08:00",
+      "next_run_at": "2026-06-09T03:00:00+08:00",
+      "last_run_at": "2026-06-08T03:00:43.615582+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1217,5 +1217,5 @@
       "workdir": null
     }
   ],
-  "updated_at": "2026-06-07T09:02:58.940057+08:00"
+  "updated_at": "2026-06-08T08:20:19.780825+08:00"
 }
