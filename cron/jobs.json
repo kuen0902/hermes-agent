@@ -303,7 +303,7 @@
     {
       "id": "d9346611f4c5",
       "name": "Daily Architect Worklog",
-      "prompt": "請生成一份「系統架構師每日工作日誌」。\n內容要求：\n1. **昨日回顧**：列出前一工作日完成的主要任務，必須標註詳細時間點。\n2. **今日重點**：列出今天預計執行的自動化監控與維護任務（包含夜盤小時更新等）。\n3. **明日展望**：列出明天即將啟動的重大計畫（如長線資料補全與合併）。\n4. **系統健康度**：目前所有自動化腳本、排程與資料庫的健康狀態檢查報告。\n\n請以專業、精確的繁體中文撰寫，字數精煉，直接交付核心資訊。",
+      "prompt": "\u8acb\u751f\u6210\u4e00\u4efd\u300c\u7cfb\u7d71\u67b6\u69cb\u5e2b\u6bcf\u65e5\u5de5\u4f5c\u65e5\u8a8c\u300d\u3002\n\u5167\u5bb9\u8981\u6c42\uff1a\n1. **\u6628\u65e5\u56de\u9867**\uff1a\u5217\u51fa\u524d\u4e00\u5de5\u4f5c\u65e5\u5b8c\u6210\u7684\u4e3b\u8981\u4efb\u52d9\uff0c\u5fc5\u9808\u6a19\u8a3b\u8a73\u7d30\u6642\u9593\u9ede\u3002\n2. **\u4eca\u65e5\u91cd\u9ede**\uff1a\u5217\u51fa\u4eca\u5929\u9810\u8a08\u57f7\u884c\u7684\u81ea\u52d5\u5316\u76e3\u63a7\u8207\u7dad\u8b77\u4efb\u52d9\uff08\u5305\u542b\u591c\u76e4\u5c0f\u6642\u66f4\u65b0\u7b49\uff09\u3002\n3. **\u660e\u65e5\u5c55\u671b**\uff1a\u5217\u51fa\u660e\u5929\u5373\u5c07\u555f\u52d5\u7684\u91cd\u5927\u8a08\u756b\uff08\u5982\u9577\u7dda\u8cc7\u6599\u88dc\u5168\u8207\u5408\u4f75\uff09\u3002\n4. **\u7cfb\u7d71\u5065\u5eb7\u5ea6**\uff1a\u76ee\u524d\u6240\u6709\u81ea\u52d5\u5316\u8173\u672c\u3001\u6392\u7a0b\u8207\u8cc7\u6599\u5eab\u7684\u5065\u5eb7\u72c0\u614b\u6aa2\u67e5\u5831\u544a\u3002\n\n\u8acb\u4ee5\u5c08\u696d\u3001\u7cbe\u78ba\u7684\u7e41\u9ad4\u4e2d\u6587\u64b0\u5beb\uff0c\u5b57\u6578\u7cbe\u7149\uff0c\u76f4\u63a5\u4ea4\u4ed8\u6838\u5fc3\u8cc7\u8a0a\u3002",
       "skills": [],
       "skill": null,
       "model": "qwen3.6:35b",
@@ -387,95 +387,9 @@
       "workdir": null
     },
     {
-      "id": "b011e4cc6aa8",
-      "name": "Star Platinum Silent Mode (Start)",
-      "prompt": null,
-      "skills": [],
-      "skill": null,
-      "model": null,
-      "provider": null,
-      "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/gateway_stop.sh",
-      "no_agent": true,
-      "internal_action": "silent_on",
-      "context_from": null,
-      "schedule": {
-        "kind": "cron",
-        "expr": "30 8 * * 1-5",
-        "display": "30 8 * * 1-5"
-      },
-      "schedule_display": "30 8 * * 1-5",
-      "repeat": {
-        "times": null,
-        "completed": 23
-      },
-      "enabled": true,
-      "state": "scheduled",
-      "paused_at": null,
-      "paused_reason": null,
-      "created_at": "2026-05-05T23:20:43.390627+08:00",
-      "next_run_at": "2026-06-08T08:30:00+08:00",
-      "last_run_at": "2026-06-05T08:30:29.830318+08:00",
-      "last_status": "ok",
-      "last_error": null,
-      "last_delivery_error": null,
-      "deliver": "origin",
-      "origin": {
-        "platform": "telegram",
-        "chat_id": "6326497055",
-        "chat_name": "Jojo",
-        "thread_id": null
-      },
-      "enabled_toolsets": [],
-      "workdir": null
-    },
-    {
-      "id": "a3a8234343a7",
-      "name": "Star Platinum Silent Mode (End)",
-      "prompt": null,
-      "skills": [],
-      "skill": null,
-      "model": null,
-      "provider": null,
-      "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/gateway_run.sh",
-      "no_agent": true,
-      "internal_action": "silent_off",
-      "context_from": null,
-      "schedule": {
-        "kind": "cron",
-        "expr": "0 14 * * 1-5",
-        "display": "0 14 * * 1-5"
-      },
-      "schedule_display": "0 14 * * 1-5",
-      "repeat": {
-        "times": null,
-        "completed": 22
-      },
-      "enabled": true,
-      "state": "scheduled",
-      "paused_at": null,
-      "paused_reason": null,
-      "created_at": "2026-05-05T23:20:47.078400+08:00",
-      "next_run_at": "2026-06-08T14:00:00+08:00",
-      "last_run_at": "2026-06-05T14:00:58.840804+08:00",
-      "last_status": "ok",
-      "last_error": null,
-      "last_delivery_error": null,
-      "deliver": "origin",
-      "origin": {
-        "platform": "telegram",
-        "chat_id": "6326497055",
-        "chat_name": "Jojo",
-        "thread_id": null
-      },
-      "enabled_toolsets": [],
-      "workdir": null
-    },
-    {
       "id": "3608997f1e16",
       "name": "Obsidian-EOD-Daily-Log-2330",
-      "prompt": "You are the System Architect. It is 23:30 (End of Day). \nGenerate a comprehensive technical audit and daily log for Obsidian.\n\n1. DATA COLLECTION:\n   - Use session_search to review today's high-level architectural decisions and user requests.\n   - Scan `~/.hermes/cron/output/` and specifically the logs of `taiex_orchestrator.py`, `stock_monitor.py`, and `run_night_report.py`.\n\n2. LOG CONTENT REQUIREMENTS:\n   - ## 📥 [Summary] What was done\n     - List technical implementations and configuration changes.\n   - ## 🔍 [Analysis] What happened\n     - Factural report of system events (e.g., yfinance errors, data latency, successful downloads).\n     - Include errors encountered and their root causes.\n   - ## 🛠️ [Improvement] How it was improved\n     - Specific solutions applied (e.g., pivoting to NQ=F, clearing caches, implementing cross-checkers).\n   - ## 📊 [Communication Stats]\n     - List each chat group/target (e.g. 'Home', '高潮不斷').\n     - Total count of messages sent to each today.\n     - Identify which automated scripts were the primary senders.\n\n3. STRUCTURE for Obsidian:\n   - YAML Frontmatter (tags: #daily-log #system-audit, date: YYYY-MM-DD).\n   - Use [[Wikilinks]] for linked system components.\n\n4. OUTPUT: Save as `~/Documents/Obsidian Vault/Daily Logs/YYYY-MM-DD.md` and report the path.",
+      "prompt": "You are the System Architect. It is 23:30 (End of Day). \nGenerate a comprehensive technical audit and daily log for Obsidian.\n\n1. DATA COLLECTION:\n   - Use session_search to review today's high-level architectural decisions and user requests.\n   - Scan `~/.hermes/cron/output/` and specifically the logs of `taiex_orchestrator.py`, `stock_monitor.py`, and `run_night_report.py`.\n\n2. LOG CONTENT REQUIREMENTS:\n   - ## \ud83d\udce5 [Summary] What was done\n     - List technical implementations and configuration changes.\n   - ## \ud83d\udd0d [Analysis] What happened\n     - Factural report of system events (e.g., yfinance errors, data latency, successful downloads).\n     - Include errors encountered and their root causes.\n   - ## \ud83d\udee0\ufe0f [Improvement] How it was improved\n     - Specific solutions applied (e.g., pivoting to NQ=F, clearing caches, implementing cross-checkers).\n   - ## \ud83d\udcca [Communication Stats]\n     - List each chat group/target (e.g. 'Home', '\u9ad8\u6f6e\u4e0d\u65b7').\n     - Total count of messages sent to each today.\n     - Identify which automated scripts were the primary senders.\n\n3. STRUCTURE for Obsidian:\n   - YAML Frontmatter (tags: #daily-log #system-audit, date: YYYY-MM-DD).\n   - Use [[Wikilinks]] for linked system components.\n\n4. OUTPUT: Save as `~/Documents/Obsidian Vault/Daily Logs/YYYY-MM-DD.md` and report the path.",
       "skills": [],
       "skill": null,
       "model": null,
@@ -900,15 +814,15 @@
       "schedule_display": "40 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 20
+        "completed": 21
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-18T09:45:00+08:00",
-      "next_run_at": "2026-06-08T08:40:00+08:00",
-      "last_run_at": "2026-06-07T08:40:46.593060+08:00",
+      "next_run_at": "2026-06-09T08:40:00+08:00",
+      "last_run_at": "2026-06-08T08:40:36.240784+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1078,7 +992,7 @@
       "next_run_at": "2026-06-09T01:00:00+08:00",
       "last_run_at": "2026-06-08T01:00:40.221337+08:00",
       "last_status": "error",
-      "last_error": "Script exited with code 1\nstdout:\n=== [2026-06-08 01:00:39] Starting batch backfill for retained stocks ===\n=========================================================================\n  🦆 HERMES QUANT: 全市場在線保留個股 15 年歷史日線分批回補引擎 (v2.0)\n=========================================================================\n💡 系統優化：已內建分批執行模式，本次最多僅處理前 100 檔個股。\n💡 下載機制：5 種極致備援管道 + 智慧略過已完成個股\n❌ 找不到 DuckDB 資料庫: /Users/bookid/.hermes/profiles/star-platinum/home/.hermes/data/potential_analysis.ddb",
+      "last_error": "Script exited with code 1\nstdout:\n=== [2026-06-08 01:00:39] Starting batch backfill for retained stocks ===\n=========================================================================\n  \ud83e\udd86 HERMES QUANT: \u5168\u5e02\u5834\u5728\u7dda\u4fdd\u7559\u500b\u80a1 15 \u5e74\u6b77\u53f2\u65e5\u7dda\u5206\u6279\u56de\u88dc\u5f15\u64ce (v2.0)\n=========================================================================\n\ud83d\udca1 \u7cfb\u7d71\u512a\u5316\uff1a\u5df2\u5167\u5efa\u5206\u6279\u57f7\u884c\u6a21\u5f0f\uff0c\u672c\u6b21\u6700\u591a\u50c5\u8655\u7406\u524d 100 \u6a94\u500b\u80a1\u3002\n\ud83d\udca1 \u4e0b\u8f09\u6a5f\u5236\uff1a5 \u7a2e\u6975\u81f4\u5099\u63f4\u7ba1\u9053 + \u667a\u6167\u7565\u904e\u5df2\u5b8c\u6210\u500b\u80a1\n\u274c \u627e\u4e0d\u5230 DuckDB \u8cc7\u6599\u5eab: /Users/bookid/.hermes/profiles/star-platinum/home/.hermes/data/potential_analysis.ddb",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -1215,7 +1129,37 @@
       },
       "enabled_toolsets": [],
       "workdir": null
+    },
+    {
+      "id": "b011e4cc6aa8",
+      "name": "Star Platinum Silent Mode (Start)",
+      "script": "/Users/bookid/.hermes/scripts/gateway_stop.sh",
+      "no_agent": true,
+      "schedule": {
+        "kind": "cron",
+        "expr": "30 8 * * 1-5"
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "created_at": "2026-06-08T08:40:30.271248",
+      "deliver": "local",
+      "next_run_at": "2026-06-09T08:30:00+08:00"
+    },
+    {
+      "id": "c022f5dd7bb9",
+      "name": "Star Platinum Silent Mode (End)",
+      "script": "/Users/bookid/.hermes/scripts/gateway_run.sh",
+      "no_agent": true,
+      "schedule": {
+        "kind": "cron",
+        "expr": "0 14 * * 1-5"
+      },
+      "enabled": true,
+      "state": "scheduled",
+      "created_at": "2026-06-08T08:40:30.271253",
+      "deliver": "local",
+      "next_run_at": "2026-06-08T14:00:00+08:00"
     }
   ],
-  "updated_at": "2026-06-08T08:20:19.780825+08:00"
+  "updated_at": "2026-06-08T08:40:36.241787+08:00"
 }
