@@ -24,7 +24,6 @@ github-code-review:b771855b5c56b5e3a2546167a51667ba
 github-issues:429ec06cde7578e4ebba451d8106f008
 github-pr-workflow:48b6aceaae5333f6d3ed2d72f595331b
 github-repo-management:c5c05bc85dfcda2b7ac2f2006be9efe0
-godmode:27f853c53d2a2ef38118a583a9dfb6c4
 google-workspace:adba04d5ee3a00dab492e2c3009ce4e7
 heartmula:96a5927a5f221065260ddb2e0f1d77ec
 hermes-agent:286e1312a50b53f11b9714f506989e4f
@@ -44,7 +43,6 @@ maps:5c8bb0a45921760a9c8f598ebfe7631e
 nano-pdf:6c643bd0cfb0548ff0ddaf367d4da6d1
 node-inspect-debugger:55501511963a3a6410fc767b5ed3e21c
 notion:930f6c7d327dd86553f45e2da9d9901e
-obliteratus:d3333944ef536dbe9238766f2f626eae
 obsidian:be02894afa45a908623ad6f9b7594199
 ocr-and-documents:af5fba9fa8ef003951ff5fe5a0a04adf
 opencode:d2a166c7f2c74f6e47d548ed1290c458
@@ -60,6 +58,7 @@ requesting-code-review:9944f54e8ba5c294b47ee93f3e8f239d
 research-paper-writing:a4a5a13107ff94894a4abdb39a5c7a8d
 segment-anything-model:7f1317da421fb8eada27aeacdbb21d30
 serving-llms-vllm:92d66ae1f1112924634fcdcff2f86bc7
+simplify-code:400de5f892617a4f1e82c8b799142272
 sketch:f8833126112824f6a916c69630cfd042
 songsee:644dc0f267b6661a3df6c76ce80d7f1f
 songwriting-and-ai-music:52be403c894c7bd7d6fe70f7eeaf9460

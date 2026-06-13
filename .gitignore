@@ -44,3 +44,4 @@ lsp/node_modules/
 # Secrets and Databases
 .env
 *.db
+bin/
