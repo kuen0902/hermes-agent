@@ -1,9 +1,9 @@
 {
-  "last_report_path": "/Users/bookid/.hermes/logs/curator/20260605-211430",
-  "last_run_at": "2026-06-05T21:14:30.535881+00:00",
-  "last_run_duration_seconds": 257.117175,
-  "last_run_summary": "auto: no changes; llm: I have concluded the consolidation pass. Most of the active skill library was already structured into class-level umbrellas; the primary remaining session-specific project, `hermes-monitor-ops`, has been consolidated into a new **`finance`*…\narchived 1 skill(s):\n  • hermes-monitor-ops — pruned (stale)\nfull report: hermes curator status",
+  "last_report_path": "/Users/bookid/.hermes/logs/curator/20260612-211705",
+  "last_run_at": "2026-06-12T21:17:05.483878+00:00",
+  "last_run_duration_seconds": 206.379787,
+  "last_run_summary": "auto: no changes; llm: I have completed the consolidation pass for the Hermes skill library. My focus was on creating broad, class-level umbrellas and eliminating the fragmentation of narrow, session-specific skills.\n\n### Key Consolidations and Improvements:\n\n1. …",
   "last_run_summary_shown_at": "2026-05-22T20:08:26.549713+00:00",
   "paused": false,
-  "run_count": 5
+  "run_count": 6
 }
