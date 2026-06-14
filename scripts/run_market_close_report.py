@@ -26,9 +26,7 @@ try:
 except Exception as e:
     print(f"休市檢查失敗，預設繼續執行: {e}")
 
-# 2. Run native Swift central data sync to ensure latest prices
-print("Running native Swift central data sync...")
-subprocess.run(["/usr/bin/swift", "/Users/bookid/.hermes/scripts/hermes_sync.swift"], capture_output=True)
+# 2. Skip native Swift sync. Orchestrator provides central cache.
 
 # 3. Get portfolio and print report
 print("Generating Portfolio Report...")

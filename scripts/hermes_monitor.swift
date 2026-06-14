@@ -296,22 +296,24 @@ func run(profileName: String, captureOnly: Bool) async {
         var mlSuggestions: [String: String] = [:]
         
         if shouldRunML && !captureOnly {
-            print("Triggering ML Pipeline...")
-            let task = Process()
-            if #available(macOS 10.13, *) {
-                task.executableURL = URL(fileURLWithPath: "/Users/bookid/.hermes/.venv/bin/python")
-            } else {
-                task.launchPath = "/Users/bookid/.hermes/.venv/bin/python"
+            print("Triggering ML Pipeline via Daemon...")
+            if let url = URL(string: "http://127.0.0.1:28888/intraday_pipeline") {
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                let payload = ["silent": true]
+                if let jsonData = try? JSONSerialization.data(withJSONObject: payload, options: []) {
+                    request.httpBody = jsonData
+                }
+                
+                do {
+                    _ = try await URLSession.shared.data(for: request)
+                } catch {
+                    print("ML Daemon API failed: \(error)")
+                }
             }
-            task.arguments = ["/Users/bookid/.hermes/scripts/ml/intraday_ml_pipeline.py", "--silent"]
             
             do {
-                if #available(macOS 10.13, *) {
-                    try task.run()
-                } else {
-                    task.launch()
-                }
-                task.waitUntilExit()
                 
                 let predsPath = URL(fileURLWithPath: "/Users/bookid/.hermes/data/intraday_predictions.json")
                 if let predsData = try? Data(contentsOf: predsPath),

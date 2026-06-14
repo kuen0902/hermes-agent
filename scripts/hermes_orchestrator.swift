@@ -14,8 +14,8 @@ func runScript(name: String, args: [String] = []) {
     let process = Process()
     
     if name.hasSuffix(".swift") {
-        process.executableURL = URL(fileURLWithPath: scriptPath)
-        process.arguments = args
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/swift")
+        process.arguments = [scriptPath] + args
     } else if name.hasSuffix(".sh") {
         // Shell scripts: use bash
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -34,9 +34,19 @@ func runScript(name: String, args: [String] = []) {
     process.standardOutput = pipe
     process.standardError = pipe
     
+    let semaphore = DispatchSemaphore(value: 0)
+    process.terminationHandler = { _ in
+        semaphore.signal()
+    }
+    
     do {
         try process.run()
-        process.waitUntilExit()
+        
+        let timeoutResult = semaphore.wait(timeout: .now() + 600) // 10 minutes timeout
+        if timeoutResult == .timedOut {
+            print("Timeout reached for \(name). Terminating process.")
+            process.terminate()
+        }
         
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         if let output = String(data: data, encoding: .utf8) {
@@ -147,7 +157,30 @@ func main() {
     runScript(name: "hermes_monitor.swift", args: ["--profile", "group"])
     
     // 3. Intraday Risk Monitor (Stop-Loss/Take-Profit check)
-    runScript(name: "intraday_risk_monitor.py")
+    print("--- Triggering Intraday Risk Monitor via ML Daemon ---")
+    if let url = URL(string: "http://127.0.0.1:28888/risk_monitor") {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        
+        let semaphore = DispatchSemaphore(value: 0)
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let err = error {
+                print("Failed to call ML Daemon API: \(err.localizedDescription)")
+            } else if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                print("Risk Monitor API executed successfully.")
+            } else {
+                print("Risk Monitor API failed with response: \(String(describing: response))")
+            }
+            semaphore.signal()
+        }
+        task.resume()
+        
+        // Timeout 10 minutes
+        let timeoutResult = semaphore.wait(timeout: .now() + 600)
+        if timeoutResult == .timedOut {
+            print("Risk Monitor API timeout.")
+        }
+    }
 }
 
 // Execute

@@ -294,15 +294,24 @@ def calibrate_and_log():
     except Exception as e:
         print(f"Error saving calibration log: {e}")
         
-    # 6. Determine if we need to report (total error count increased)
-    if error_count > prev_error_count:
-        print("Alert! Error count increased. Sending Telegram alert.")
-        alert_msg = f"🚨 *Hermes 股號股名對照校準警報* 🚨\n\n"
-        alert_msg += f"系統偵測到股號股名對照誤差數有所增長！\n"
+    # 6. Determine if we need to report
+    print("Generating daily calibration report.")
+    
+    if error_count == 0:
+        alert_msg = f"✅ *Hermes 股號股名對照每日報告* ✅\n\n"
+        alert_msg += f"今日 Mapping 校準正常，無任何異常！\n"
+        alert_msg += f"• 目前在線總檔數: `{len(today_map)}` 檔\n"
+    else:
+        alert_msg = f"🚨 *Hermes 股號股名對照異常警報* 🚨\n\n"
+        if error_count > prev_error_count:
+            alert_msg += f"⚠️ **系統偵測到誤差數量增加！**\n"
+        else:
+            alert_msg += f"⚠️ **系統目前仍存在未解決的 Mapping 異常！**\n"
+            
         alert_msg += f"• 前一日誤差數: `{prev_error_count}`\n"
-        alert_msg += f"• 今日誤差數: `{error_count}` (增加 了 `{error_count - prev_error_count}`)\n"
+        alert_msg += f"• 今日誤差數: `{error_count}`\n"
         alert_msg += f"• 今日在線總檔數: `{len(today_map)}` 檔\n\n"
-        alert_msg += f"*最近偵測到的誤差變動：*\n"
+        alert_msg += f"*目前偵測到的異常名單：*\n"
         
         # Display top 10 errors to keep Telegram message concise
         for err in today_entry["errors"][:10]:
@@ -310,8 +319,9 @@ def calibrate_and_log():
         if len(today_entry["errors"]) > 10:
             alert_msg += f"• _...以及其他 {len(today_entry['errors']) - 10} 個錯誤_\n"
             
-        alert_msg += f"\n👉 請管理員立即確認是否為正常下市、更名，或網站格式異動！"
-        send_telegram_alert(alert_msg)
+        alert_msg += f"\n👉 請管理員確認是否為正常下市、更名，或網站格式異動！"
+        
+    send_telegram_alert(alert_msg)
         
     # 7. Update active mappings
     try:
