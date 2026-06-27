@@ -97,7 +97,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_earnings_downloader.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_earnings_downloader.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -223,7 +223,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "run_market_close_report_wrapper.sh",
+      "script": "runners/run_market_close_report_wrapper.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -268,7 +268,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_night_session_hourly.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_night_session_hourly.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -355,7 +355,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_hermes_orchestrator.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_hermes_orchestrator.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -443,7 +443,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_daily_ml.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_daily_ml.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -485,7 +485,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_portfolio_eod.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_portfolio_eod.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -653,7 +653,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_ml_retraining_weekly.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_ml_retraining_weekly.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -727,7 +727,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_state_prune.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_state_prune.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -806,7 +806,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_diagnostic_cron.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_diagnostic_cron.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -848,7 +848,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_calibrate_stock_mapping.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_calibrate_stock_mapping.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -890,7 +890,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_institutional_sync.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_institutional_sync.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -932,7 +932,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_daily_historical_sync_force.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_daily_historical_sync_force.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -974,7 +974,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_backfill_retained.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_backfill_retained.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -1016,7 +1016,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_institutional_sync.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_institutional_sync.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -1058,7 +1058,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_finmind_remaining_sync.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_finmind_remaining_sync.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -1100,7 +1100,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/Users/bookid/.hermes/scripts/run_all_online_5m_sync.sh",
+      "script": "/Users/bookid/.hermes/scripts/runners/run_all_online_5m_sync.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
