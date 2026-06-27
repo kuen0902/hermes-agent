@@ -68,25 +68,32 @@ def get_previous_trading_day():
     prev = today - timedelta(days=offset)
     return prev.strftime('%Y-%m-%d')
 
-def get_history_from_duckdb(ticker):
+def get_history_from_duckdb(ticker, potential_conn=None):
     """Attempts to fetch historical daily data for a ticker from DuckDB potential_analysis.ddb"""
     db_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
     if not os.path.exists(db_path):
         return None
     try:
-        import duckdb
-        conn = duckdb.connect(db_path)
+        if potential_conn is not None:
+            conn = potential_conn
+        else:
+            import duckdb
+            conn = duckdb.connect(db_path)
         
         # Try full_daily_prices table first (15-year history)
-        query = "SELECT date, open, high, low, close, adj_close, volume FROM full_daily_prices WHERE ticker = ? ORDER BY date"
-        df = conn.execute(query, (ticker,)).fetchdf()
-        
+        try:
+            query = "SELECT date, open, high, low, close, adj_close, volume FROM full_daily_prices WHERE ticker = ? ORDER BY date"
+            df = conn.execute(query, (ticker,)).fetchdf()
+        except duckdb.CatalogException:
+            df = pd.DataFrame()
+            
         # If empty, try daily_stock_data table (5-year history)
         if df.empty:
             query = "SELECT date, open, high, low, close, adj_close, volume FROM daily_stock_data WHERE ticker = ? ORDER BY date"
             df = conn.execute(query, (ticker,)).fetchdf()
             
-        conn.close()
+        if potential_conn is None:
+            conn.close()
         if not df.empty:
             df.columns = ['Date', 'Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume']
             df['Date'] = pd.to_datetime(df['Date'])  # type: ignore
@@ -96,7 +103,7 @@ def get_history_from_duckdb(ticker):
         print(f"Error fetching from DuckDB for {ticker}: {e}")
     return None
 
-def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
+def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map, inst_conn=None, potential_conn=None):
     """Fills missing institutional net buys in the DataFrame and writes/updates to DuckDB potential_analysis.ddb"""
     df = df.reset_index(drop=True)
     inst_ddb_path = os.path.expanduser("~/.hermes/data/portfolio.ddb")
@@ -120,12 +127,16 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
     nan_mask = df['Foreign_Net'].isna() | df['Trust_Net'].isna() | df['Dealer_Net'].isna()
     if nan_mask.any() and os.path.exists(inst_ddb_path):
         try:
-            import duckdb
-            inst_conn = duckdb.connect(inst_ddb_path)
-            inst_df = inst_conn.execute(
+            if inst_conn is not None:
+                conn_inst = inst_conn
+            else:
+                import duckdb
+                conn_inst = duckdb.connect(inst_ddb_path)
+            inst_df = conn_inst.execute(
                 "SELECT date, foreign_buy, trust_buy, dealer_buy FROM institutional_data WHERE code = ?", (code,)
             ).fetchdf()
-            inst_conn.close()
+            if inst_conn is None:
+                conn_inst.close()
             
             if not inst_df.empty:
                 inst_df['date'] = pd.to_datetime(inst_df['date']).dt.strftime('%Y-%m-%d')  # type: ignore
@@ -180,13 +191,18 @@ def fill_institutional_data_and_sync_to_duckdb(ticker, df, symbols_map):
             
             df_temp = df_temp.tail(15)
             
-            potential_conn = duckdb.connect(potential_ddb_path)
-            potential_conn.execute("""
+            if potential_conn is not None:
+                conn_pot = potential_conn
+            else:
+                import duckdb
+                conn_pot = duckdb.connect(potential_ddb_path)
+            conn_pot.execute("""
                 INSERT OR REPLACE INTO daily_stock_data (
                     date, code, ticker, name, open, high, low, close, adj_close, volume, foreign_net, trust_net, dealer_net
                 ) SELECT * FROM df_temp
             """)
-            potential_conn.close()
+            if potential_conn is None:
+                conn_pot.close()
         except Exception as e:
             print(f"Error syncing {ticker} to DuckDB daily_stock_data: {e}")
             
@@ -269,6 +285,16 @@ def sync_all(fast_mode=False, force=False):
         data_dir = fallback_dir
         existing_files = {f.split('_')[0]: f for f in os.listdir(data_dir) if f.endswith('.csv')}
     
+    import duckdb
+    main_inst_conn = None
+    main_potential_conn = None
+    inst_ddb_path = os.path.expanduser("~/.hermes/data/portfolio.ddb")
+    potential_ddb_path = os.path.expanduser("~/.hermes/data/potential_analysis.ddb")
+    if os.path.exists(inst_ddb_path):
+        main_inst_conn = duckdb.connect(inst_ddb_path)
+    if os.path.exists(potential_ddb_path):
+        main_potential_conn = duckdb.connect(potential_ddb_path)
+
     # 3. Process to update
     to_update_raw = [s for s in all_symbols if s in existing_files]
     
@@ -303,45 +329,47 @@ def sync_all(fast_mode=False, force=False):
         to_update = to_update_raw
         print(f"Fast Sync: Updating {len(to_update)} core monitoring stocks...")
     
+    import requests
+    yf_session = requests.Session()
+    yf_adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10)
+    yf_session.mount('https://', yf_adapter)
+    
     # We download last 7 days to cover weekends/holidays/late settlements
     end_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-    start_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
+    start_date = (datetime.now() - timedelta(days=40)).strftime('%Y-%m-%d')
     
-    chunk_size = 100
-    for i in range(0, len(to_update), chunk_size):
-        chunk = to_update[i:i+chunk_size]
+    # Process tickers one by one to avoid yfinance MultiIndex misalignment bugs
+    for i, ticker in enumerate(to_update):
         try:
-            # Disable threads to prevent SQLite lock errors
-            data = yf.download(chunk, start=start_date, end=end_date, group_by='ticker', threads=False, progress=False)
-            if data is None or data.empty:
-                print(f"Batch {i//chunk_size + 1} returned no data.")
+            new_data = yf.download(ticker, start=start_date, end=end_date, progress=False, session=yf_session)
+            if new_data is None or new_data.empty:
                 continue
+            
+            if isinstance(new_data.columns, pd.MultiIndex):
+                new_data.columns = [c[0] for c in new_data.columns]
                 
-            for ticker in chunk:
-                try:
-                    new_data = data[ticker].dropna() if len(chunk) > 1 else data.dropna()
-                    if new_data.empty: continue
+            new_data = new_data.dropna()
+            if new_data.empty: continue
                     
-                    file_path = os.path.join(data_dir, existing_files[ticker])
-                    old_df = pd.read_csv(file_path)
-                    
-                    # Merge and deduplicate
-                    combined: pd.DataFrame = pd.concat([old_df, new_data.reset_index()], ignore_index=True)  # type: ignore
-                    # Normalize Date string to avoid dups from different formats
-                    combined['Date'] = pd.to_datetime(combined['Date']).dt.strftime('%Y-%m-%d')  # type: ignore
-                    combined = combined.drop_duplicates(subset=['Date']).sort_values('Date').reset_index(drop=True)
-                    
-                    # Fill institutional flows and update DuckDB
-                    combined = fill_institutional_data_and_sync_to_duckdb(ticker, combined, symbols_map)
-                    
-                    # Save
-                    combined.to_csv(file_path, index=False)
-                except Exception as e:
-                    print(f"Failed to sync details for {ticker}: {e}")
-                    continue
-            print(f"Synced {min(i+chunk_size, len(to_update))}/{len(to_update)} existing stocks.")
+            file_path = os.path.join(data_dir, existing_files[ticker])
+            old_df = pd.read_csv(file_path)
+            
+            # Merge and deduplicate
+            combined: pd.DataFrame = pd.concat([old_df, new_data.reset_index()], ignore_index=True)  # type: ignore
+            # Normalize Date string to avoid dups from different formats
+            combined['Date'] = pd.to_datetime(combined['Date']).dt.strftime('%Y-%m-%d')  # type: ignore
+            combined = combined.drop_duplicates(subset=['Date']).sort_values('Date').reset_index(drop=True)
+            
+            # Fill institutional flows and update DuckDB
+            combined = fill_institutional_data_and_sync_to_duckdb(ticker, combined, symbols_map, inst_conn=main_inst_conn, potential_conn=main_potential_conn)
+            
+            # Save
+            combined.to_csv(file_path, index=False)
         except Exception as e:
-            print(f"Error in batch update: {e}")
+            print(f"Failed to sync details for {ticker}: {e}")
+            continue
+        if (i + 1) % 50 == 0:
+            print(f"Synced {i+1}/{len(to_update)} existing stocks.")
  
     # 4. Handle new listings
     new_tickers = [s for s in all_symbols if s not in existing_files]
@@ -350,7 +378,7 @@ def sync_all(fast_mode=False, force=False):
         for ticker in new_tickers:
             try:
                 # 1. Try DuckDB cache first
-                t_data = get_history_from_duckdb(ticker)
+                t_data = get_history_from_duckdb(ticker, potential_conn=main_potential_conn)
                 if t_data is not None and not t_data.empty:
                     name = symbols_map.get(ticker, "Unknown").replace("/", "_")
                     file_path = os.path.join(data_dir, f"{ticker}_{name}.csv")
@@ -360,7 +388,7 @@ def sync_all(fast_mode=False, force=False):
                 
                 # 2. Fallback to yfinance
                 print(f"Ticker {ticker} not found in DuckDB. Downloading from yfinance...")
-                t_data = yf.download(ticker, period="max", interval="1d", progress=False)
+                t_data = yf.download(ticker, period="max", interval="1d", progress=False, session=yf_session)
                 if t_data is not None and not t_data.empty:
                     t_data = t_data.dropna()
                     if 'Adj Close' not in t_data.columns and 'adj_close' in t_data.columns:
@@ -374,6 +402,10 @@ def sync_all(fast_mode=False, force=False):
                 continue
  
     print(f"--- Sync Complete ---")
+    if main_inst_conn:
+        main_inst_conn.close()
+    if main_potential_conn:
+        main_potential_conn.close()
 
 if __name__ == "__main__":
     import sys

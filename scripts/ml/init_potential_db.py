@@ -91,6 +91,8 @@ def init_tables(conn):
             foreign_net_20d DOUBLE,
             trust_net_20d DOUBLE,
             rank INT,
+            risk_penalty DOUBLE,
+            raw_ml_pred DOUBLE,
             PRIMARY KEY (date, code)
         )
     """)

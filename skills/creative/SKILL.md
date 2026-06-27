@@ -12,18 +12,29 @@ metadata:
 
 # Creative Generation & Design
 
-This umbrella skill consolidates methods for visual communication and generative art, ranging from code-driven animations to low-fidelity mockups.
+This umbrella skill consolidates methods for visual communication, generative art, and multimedia analytics, ranging from code-driven animations to video stream processing.
 
-## 1. Generative Art & Animation
-- **Mathematical Visualization (Manim)**: Create algorithmic videos using Manim CE.
+## 1. Visual Art & Graphics
+- **Parametric Workflows (ComfyUI)**: Advanced node-based automation for generative art. Use `references/comfyui_workflow.md` for specs.
+- **Structured Illustration (Baoyu)**: Automated infographics, comics, and article illustrations.
+- **Pixel Art**: retro-style assets and UI generation.
+- **Design Systems**: Validating and exporting DESIGN.md token files.
+
+## 2. Generative Art & Animation
+- **Mathematical Visualization (Manim)**: algorithmic educational videos.
 - **Web-based Visuals (p5.js)**: 2D/3D sketches and GLSL shaders.
 - **Real-time Orchestration**: Managing TouchDesigner nodes via MCP.
 
-## 2. Visual Design & Architecture
-- **Infrastrucuture Diagrams**: SVG architecture diagrams (dark-themed HTML).
-- **Hand-drawn Mockups**: Using Excalidraw JSON for flowcharts.
-- **Design Systems**: Validating and exporting DESIGN.md token files.
+## 3. Audio & Music Generation
+- **AI Songwriting**: HeartMuLa for lyrics-to-song generation.
+- **Production Analytics**: Feature extraction (MFCC) and audio processing.
+- **Streaming Control**: Managing playback and playlists via Spotify API.
 
-## 3. Low-Fidelity & Rapid Prototyping
+## 4. Video Analytics & Transformations
+- **Stream Analysis**: Extracting transcripts and metadata from YouTube/MP4.
+- **Content Adaptation**: Transforming video transcripts into blogs or threads.
+- **GIFs**: Search and download workflows for dynamic messaging.
+
+## 5. Low-Fidelity & Rapid Prototyping
 - **ASCII Art**: Image-to-ascii conversion (pyfiglet, cowsay).
-- **Prototyping**: Generating throwaway HTML variants and using "Pretext" for text layout.
+- **Prototyping**: Generating throwaway HTML variants.

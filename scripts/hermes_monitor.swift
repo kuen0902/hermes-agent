@@ -200,10 +200,10 @@ func run(profileName: String, captureOnly: Bool) async {
         if !captureOnly {
             if await sendTelegram(token: cfg.token, chatId: cfg.chatId, message: reportContent) {
                 let newOpenState = ["date": todayStr]
-                if let newData = try? JSONSerialization.data(withJSONObject: newOpenState, options: []),
-                   let newCacheData = try? JSONSerialization.data(withJSONObject: currentCache, options: []) {
+                if let newData = try? JSONSerialization.data(withJSONObject: newOpenState, options: []) {
                     try? newData.write(to: cfg.openFile)
-                    try? newCacheData.write(to: cfg.cacheFile)
+                    // We intentionally do NOT overwrite cfg.cacheFile here because it breaks the intraday date/data format.
+                    // Intraday loop will initialize and save its own baseline on its first run.
                 }
             }
         } else {
@@ -361,6 +361,13 @@ func run(profileName: String, captureOnly: Bool) async {
     } else {
         if captureOnly {
             print("[SILENT]")
+        }
+        
+        // BUG FIX: We MUST save the cache even if reportItems is empty! 
+        // Otherwise, the baseline tracking is never persisted to disk after initialization.
+        lastCache["data"] = currentData
+        if let newCacheData = try? JSONSerialization.data(withJSONObject: lastCache, options: []) {
+            try? newCacheData.write(to: cfg.cacheFile)
         }
     }
 }

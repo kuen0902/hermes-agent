@@ -6,6 +6,7 @@ import json
 import time
 import sqlite3
 import duckdb
+import concurrent.futures
 # 📌 內建指數型退避防鎖管理器 (DuckDB Resilient Lock Manager)
 original_duckdb_connect = duckdb.connect
 def resilient_duckdb_connect(*args, **kwargs):
@@ -189,42 +190,34 @@ def load_all_daily_features_cache(active_codes):
     return cache
 
 def load_target_tickers():
-    """Loads target tickers from current holdings and monitored lists."""
-    holdings = {}
-    if os.path.exists(PORTFOLIO_DB):
-        try:
-            conn = sqlite3.connect(PORTFOLIO_DB)
-            cursor = conn.cursor()
-            cursor.execute("SELECT code, name FROM current_holdings")
-            for row in cursor.fetchall():
-                holdings[normalize_code(row[0])] = row[1]
-            conn.close()
-        except Exception as e:
-            print(f"⚠️ Error loading SQLite holdings: {e}")
-
-    group_codes = []
-    william_codes = []
-    central_path = os.path.join(DATA_DIR, "central_stock_data.json")
-    if os.path.exists(central_path):
-        try:
-            with open(central_path, 'r', encoding='utf-8') as f:
-                c_data = json.load(f)
-                group_codes = c_data.get("group_codes", [])
-                william_codes = c_data.get("william_codes", [])
-        except Exception as e:
-            print(f"⚠️ Error loading central json: {e}")
-
-    targets = set(holdings.keys())
-    targets.update(normalize_code(c) for c in group_codes)
-    targets.update(normalize_code(c) for c in william_codes)
-    return sorted(list(targets))
+    """Loads target tickers from DuckDB (all active market stocks)."""
+    db_path = os.path.join(DATA_DIR, "potential_analysis.ddb")
+    if not os.path.exists(DUCK_PATH):
+        print(f"⚠️ [DuckDB] Database not found at {DUCK_PATH}")
+        return []
+        
+    try:
+        conn = duckdb.connect(DUCK_PATH, read_only=True)
+        df_dates = conn.execute("""
+            SELECT code 
+            FROM daily_stock_data 
+            GROUP BY code
+            HAVING MAX(date) >= (SELECT MAX(date) - INTERVAL 7 DAY FROM daily_stock_data)
+        """).fetchdf()
+        
+        active_codes = [normalize_code(str(c)) for c in df_dates['code'].tolist()]
+        conn.close()
+        return sorted(list(set(active_codes)))
+    except Exception as e:
+        print(f"⚠️ Error querying active tickers from DuckDB: {e}")
+        return []
 
 def check_stock_active(code, global_latest_date):
     """Filters out delisted/inactive stocks (must have traded within past 7 days of global latest)."""
     if not os.path.exists(DUCK_PATH):
         return False
     try:
-        conn = duckdb.connect(DUCK_PATH)
+        conn = duckdb.connect(DUCK_PATH, read_only=True)
         row = conn.execute("SELECT MAX(date) FROM daily_stock_data WHERE code = ?", (code,)).fetchone()
         conn.close()
         if row is not None and row[0] is not None:
@@ -240,7 +233,7 @@ def get_global_latest_trading_day():
     if not os.path.exists(DUCK_PATH):
         return datetime.now()
     try:
-        conn = duckdb.connect(DUCK_PATH)
+        conn = duckdb.connect(DUCK_PATH, read_only=True)
         row = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()
         conn.close()
         if row is not None and row[0] is not None:
@@ -261,7 +254,7 @@ def prepare_daily_features(df):
 
 def query_ticker_daily_db(code):
     """Retrieves all daily records for a stock from DuckDB."""
-    conn = duckdb.connect(DUCK_PATH)
+    conn = duckdb.connect(DUCK_PATH, read_only=True)
     try:
         df = conn.execute("""
             SELECT 
@@ -294,7 +287,7 @@ def query_ticker_daily_db(code):
 def train_daily_ticker_model(code, df_processed):
     """Trains a stock-specific daily 14-year model."""
     df_clean = df_processed.dropna(subset=DAILY_FEATURES + ['Target_Ret_20'])
-    df_clean = df_clean.replace([np.inf, -np.inf], np.nan).dropna(subset=DAILY_FEATURES)
+    df_clean = df_clean.replace([np.inf, -np.inf], np.nan).dropna(subset=DAILY_FEATURES + ['Target_Ret_20'])
     if len(df_clean) < 40:
         return None
         
@@ -321,7 +314,7 @@ def train_daily_auditor_model(code, df_processed):
         return None
         
     df_clean = df_processed.dropna(subset=DAILY_FEATURES + ['Target_Audit_20'])
-    df_clean = df_clean.replace([np.inf, -np.inf], np.nan).dropna(subset=DAILY_FEATURES)
+    df_clean = df_clean.replace([np.inf, -np.inf], np.nan).dropna(subset=DAILY_FEATURES + ['Target_Audit_20'])
     if len(df_clean) < 40:
         return None
         
@@ -352,7 +345,7 @@ def fetch_5m_kbars_duckdb(code):
     if not os.path.exists(DUCK_PATH):
         return pd.DataFrame()
     try:
-        conn = duckdb.connect(DUCK_PATH)
+        conn = duckdb.connect(DUCK_PATH, read_only=True)
         df = conn.execute("""
             SELECT timestamp, open, high, low, close, volume 
             FROM kbars_5m 
@@ -402,7 +395,7 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
     # Align TAIEX 5-min returns
     taiex_features_by_date = {}
     try:
-        conn = duckdb.connect(DUCK_PATH)
+        conn = duckdb.connect(DUCK_PATH, read_only=True)
         # Fallback to general TAIEX returns if available, otherwise default to 0.0
         taiex_db = conn.execute("""
             SELECT timestamp, close 
@@ -425,125 +418,50 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
     except Exception:
         pass
         
-    # Pre-training window: 150d down to 90d (e.g. index 0 to middle of dates list)
-    pretrain_cutoff_idx = min(int(len(dates) * 0.4) + 20, len(dates) - 30)
+    # 📌 Enforce strict absolute splits (150-day window)
+    dates = dates[-150:]
+    
+    if len(dates) < 30:
+        print(f"⚠️ [{code}] Only {len(dates)} days available, not enough.")
+        return False
+        
+    # FinMind provides max 60 days of 5m data.
+    # Pre-training window: First 15 days (if we have 60 days total).
+    # Rolling window: The last 45 days.
+    pretrain_cutoff_idx = max(5, len(dates) - 45)
     pretrain_dates = dates[:pretrain_cutoff_idx]
     rolling_dates = dates[pretrain_cutoff_idx:]
     
-    print(f"  - Pre-training days: {len(pretrain_dates)}, Rolling test & calibration days: {len(rolling_dates)}")
-    
-    def extract_features_for_day(today, prev_pred_prob, error_val=0.0):
+    def extract_features_for_all_ticks_in_day(today, prev_pred_prob, error_val=0.0):
         # 1. Today TAIEX features
         taiex_feats = taiex_features_by_date.get(today, [0.0]*5)
         
         day_data = grouped[grouped['date'] == today].sort_values('5m_bin')
         if len(day_data) < 5:
-            return None, None
+            return []
             
         prices = day_data['Close'].values
         vols = day_data['Volume'].values
-        
-        returns = np.diff(prices) / prices[:-1]
-        vol_changes = np.diff(vols) / (vols[:-1] + 1e-9)
-        if len(returns) < 5:
-            return None, None
-            
-        # 10 Dimensions: high frequency OHLCV returns & volume changes
-        feats = list(returns[-5:]) + list(vol_changes[-5:])
-        
-        # Technical (3 Dimensions)
-        close_series = pd.Series(prices)
-        rsi_val = 50.0
-        if len(close_series) > 14:
-            rsi_series = ta.rsi(close_series, length=14)  # type: ignore
-            if rsi_series is not None and not rsi_series.empty:
-                rsi_val = rsi_series.iloc[-1]
-                if pd.isna(rsi_val): rsi_val = 50.0
-                
-        macd_line, macd_hist = 0.0, 0.0
-        if len(close_series) > 26:
-            macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)  # type: ignore
-            if macd_df is not None and not macd_df.empty:
-                macd_line = macd_df.iloc[-1, 0]
-                macd_hist = macd_df.iloc[-1, 1]
-                if pd.isna(macd_line): macd_line = 0.0
-                if pd.isna(macd_hist): macd_hist = 0.0
-                
-        feats.extend([rsi_val, macd_line, macd_hist])
-        
-        # TAIEX market index returns (5 Dimensions)
-        feats.extend(taiex_feats)
         
         # Institutional (8 Dimensions) - Retrieve from O(1) memory cache!
         today_str = today.strftime("%Y-%m-%d") if hasattr(today, 'strftime') else str(today)
         d_feats = daily_features_cache.get((today_str, code), None)
         if d_feats:
-            f_buy = d_feats["foreign_buy"]
-            t_buy = d_feats["trust_buy"]
-            d_buy = d_feats["dealer_buy"]
-            f_ratio = d_feats["foreign_ratio"]
-            
-            t_5d = d_feats["t_5d"]
-            t_20d = d_feats["t_20d"]
-            d_5d = d_feats["d_5d"]
-            d_20d = d_feats["d_20d"]
-            
+            f_buy, t_buy, d_buy, f_ratio = d_feats["foreign_buy"], d_feats["trust_buy"], d_feats["dealer_buy"], d_feats["foreign_ratio"]
+            t_5d, t_20d, d_5d, d_20d = d_feats["t_5d"], d_feats["t_20d"], d_feats["d_5d"], d_feats["d_20d"]
             chip_concentration = d_feats["chip_concentration"]
             large_holder_5d_diff = d_feats["large_holder_5d_diff"]
             margin_balance = d_feats["margin_balance"]
             short_margin_ratio = d_feats["short_margin_ratio"]
             major_net = d_feats["major_net"]
             major_net_5d_sum = d_feats["major_net_5d_sum"]
-            
-            revenue_yoy = d_feats["revenue_yoy"]
-            revenue_mom = d_feats["revenue_mom"]
+            revenue_yoy, revenue_mom = d_feats["revenue_yoy"], d_feats["revenue_mom"]
         else:
-            f_buy = t_buy = d_buy = f_ratio = 0.0
-            t_5d = t_20d = d_5d = d_20d = 0.0
-            chip_concentration = 30.0
-            large_holder_5d_diff = 0.0
-            margin_balance = 0.0
-            short_margin_ratio = 0.0
-            major_net = 0.0
-            major_net_5d_sum = 0.0
-            revenue_yoy = 0.0
-            revenue_mom = 0.0
+            f_buy = t_buy = d_buy = f_ratio = t_5d = t_20d = d_5d = d_20d = 0.0
+            chip_concentration, large_holder_5d_diff, margin_balance, short_margin_ratio = 30.0, 0.0, 0.0, 0.0
+            major_net, major_net_5d_sum = 0.0, 0.0
+            revenue_yoy, revenue_mom = 0.0, 0.0
             
-        feats.extend([f_buy, t_buy, d_buy, f_ratio])
-        feats.extend([t_5d, t_20d, d_5d, d_20d])
-        
-        # Daily MA features (13 Dimensions)
-        hist_before_today = daily_history[daily_history.index < today_str]
-        hist_closes = list(hist_before_today.tail(239).values)
-        closes_240d = hist_closes + [prices[-1]]
-        n_days = len(closes_240d)
-        
-        ma5 = sum(closes_240d[-min(5, n_days):]) / min(5, n_days)
-        ma10 = sum(closes_240d[-min(10, n_days):]) / min(10, n_days)
-        ma20 = sum(closes_240d[-min(20, n_days):]) / min(20, n_days)
-        ma60 = sum(closes_240d[-min(60, n_days):]) / min(60, n_days)
-        ma120 = sum(closes_240d[-min(120, n_days):]) / min(120, n_days)
-        ma240 = sum(closes_240d) / n_days
-        
-        bias5 = (prices[-1] - ma5) / ma5 if ma5 else 0.0
-        bias10 = (prices[-1] - ma10) / ma10 if ma10 else 0.0
-        bias20 = (prices[-1] - ma20) / ma20 if ma20 else 0.0
-        bias60 = (prices[-1] - ma60) / ma60 if ma60 else 0.0
-        bias120 = (prices[-1] - ma120) / ma120 if ma120 else 0.0
-        bias240 = (prices[-1] - ma240) / ma240 if ma240 else 0.0
-        
-        spread_5_20 = (ma5 - ma20) / ma20 if ma20 else 0.0
-        spread_20_60 = (ma20 - ma60) / ma60 if ma60 else 0.0
-        spread_60_240 = (ma60 - ma240) / ma240 if ma240 else 0.0
-        
-        feats.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
-        feats.extend([prices[-1], ma5, ma20, ma60])
-        
-        # Advanced chips and fundamentals (8 Dimensions)
-        feats.extend([chip_concentration, large_holder_5d_diff, margin_balance, short_margin_ratio, major_net, major_net_5d_sum])
-        feats.extend([revenue_yoy, revenue_mom])
-        
-        # Step 9: Inject Daily 14y Model predicted 20-day return rate (1 Dimension)
         daily_pred_ret = 0.0
         if processed_daily_features is not None:
             df_day = processed_daily_features[processed_daily_features['Date'] == today_str]
@@ -553,12 +471,74 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
                     daily_pred_ret = float(daily_model.predict(df_clean)[0])
                 except Exception:
                     pass
-        feats.append(daily_pred_ret)
+
+        tick_samples = []
+        hist_before_today = daily_history[daily_history.index < today_str]
+        hist_closes = list(hist_before_today.tail(239).values)
         
-        # Step 10: Feedback control error (1 Dimension)
-        feats.append(error_val)
-        
-        return feats, prices[-1]
+        for i in range(6, len(prices) + 1):
+            tick_prices = prices[:i]
+            tick_vols = vols[:i]
+            current_close = tick_prices[-1]
+            
+            returns = np.diff(tick_prices) / tick_prices[:-1]
+            vol_changes = np.diff(tick_vols) / (tick_vols[:-1] + 1e-9)
+            
+            feats = list(returns[-5:]) + list(vol_changes[-5:])
+            
+            close_series = pd.Series(tick_prices)
+            rsi_val = 50.0
+            if len(close_series) > 14:
+                rsi_series = ta.rsi(close_series, length=14)
+                if rsi_series is not None and not rsi_series.empty:
+                    rsi_val = rsi_series.iloc[-1]
+                    if pd.isna(rsi_val): rsi_val = 50.0
+                    
+            macd_line, macd_hist = 0.0, 0.0
+            if len(close_series) > 26:
+                macd_df = ta.macd(close_series, fast=12, slow=26, signal=9)
+                if macd_df is not None and not macd_df.empty:
+                    macd_line = macd_df.iloc[-1, 0]
+                    macd_hist = macd_df.iloc[-1, 1]
+                    if pd.isna(macd_line): macd_line = 0.0
+                    if pd.isna(macd_hist): macd_hist = 0.0
+                    
+            feats.extend([rsi_val, macd_line, macd_hist])
+            feats.extend(taiex_feats)
+            feats.extend([f_buy, t_buy, d_buy, f_ratio])
+            feats.extend([t_5d, t_20d, d_5d, d_20d])
+            
+            closes_240d = hist_closes + [current_close]
+            n_days = len(closes_240d)
+            
+            ma5 = sum(closes_240d[-min(5, n_days):]) / min(5, n_days)
+            ma10 = sum(closes_240d[-min(10, n_days):]) / min(10, n_days)
+            ma20 = sum(closes_240d[-min(20, n_days):]) / min(20, n_days)
+            ma60 = sum(closes_240d[-min(60, n_days):]) / min(60, n_days)
+            ma120 = sum(closes_240d[-min(120, n_days):]) / min(120, n_days)
+            ma240 = sum(closes_240d) / n_days
+            
+            bias5 = (current_close - ma5) / ma5 if ma5 else 0.0
+            bias10 = (current_close - ma10) / ma10 if ma10 else 0.0
+            bias20 = (current_close - ma20) / ma20 if ma20 else 0.0
+            bias60 = (current_close - ma60) / ma60 if ma60 else 0.0
+            bias120 = (current_close - ma120) / ma120 if ma120 else 0.0
+            bias240 = (current_close - ma240) / ma240 if ma240 else 0.0
+            
+            spread_5_20 = (ma5 - ma20) / ma20 if ma20 else 0.0
+            spread_20_60 = (ma20 - ma60) / ma60 if ma60 else 0.0
+            spread_60_240 = (ma60 - ma240) / ma240 if ma240 else 0.0
+            
+            feats.extend([bias5, bias10, bias20, bias60, bias120, bias240, spread_5_20, spread_20_60, spread_60_240])
+            feats.extend([current_close, ma5, ma20, ma60])
+            feats.extend([chip_concentration, large_holder_5d_diff, margin_balance, short_margin_ratio, major_net, major_net_5d_sum])
+            feats.extend([revenue_yoy, revenue_mom])
+            feats.append(daily_pred_ret)
+            feats.append(error_val)
+            
+            tick_samples.append((feats, current_close))
+            
+        return tick_samples
 
     # Pre-train Intraday Model
     pre_X = []
@@ -571,8 +551,8 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
         today = pretrain_dates[idx]
         tomorrow = pretrain_dates[idx+1]
         
-        feats, today_close = extract_features_for_day(today, prev_pred_prob, error_val=0.0)
-        if feats is None:
+        tick_samples = extract_features_for_all_ticks_in_day(today, prev_pred_prob, error_val=0.0)
+        if not tick_samples:
             continue
             
         tomorrow_data = grouped[grouped['date'] == tomorrow].sort_values('5m_bin')
@@ -580,24 +560,23 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
             continue
         tomorrow_close = tomorrow_data['Close'].values[-1]
         
-        label = 1 if tomorrow_close > today_close else 0
-        ret_val = (tomorrow_close - today_close) / today_close
-        
-        pre_X.append(feats)
-        pre_y_clf.append(label)
-        pre_y_reg.append(ret_val)
-        
-        prev_pred_prob = 0.55 if label == 1 else 0.45
-        
+        for feats, tick_close in tick_samples:
+            label = 1 if tomorrow_close > tick_close else 0
+            ret_val = (tomorrow_close - tick_close) / tick_close
+            
+            pre_X.append(feats)
+            pre_y_clf.append(label)
+            pre_y_reg.append(ret_val)
+            
     if len(pre_X) < 10:
         print(f"⚠️ [{code}] Insufficient pre-training features extracted.")
         return False
         
     # Fit initial intraday model
-    model_clf = RandomForestClassifier(n_estimators=60, max_depth=8, min_samples_leaf=3, random_state=42)
+    model_clf = RandomForestClassifier(n_estimators=60, max_depth=8, min_samples_leaf=3, random_state=42, n_jobs=-1)
     model_clf.fit(pre_X, pre_y_clf)
     
-    model_reg = RandomForestRegressor(n_estimators=60, max_depth=8, min_samples_leaf=3, random_state=42)
+    model_reg = RandomForestRegressor(n_estimators=60, max_depth=8, min_samples_leaf=3, random_state=42, n_jobs=-1)
     model_reg.fit(pre_X, pre_y_reg)
     
     # ----------------------------------------------------
@@ -626,37 +605,39 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
         error_val = actual_today_price - prev_calibrated_val
         bias_val = bias_val * (1.0 - alpha) + error_val * alpha
         
-        # Extract features for today with current feedback error_val
-        feats, today_close = extract_features_for_day(today, prev_pred_prob, error_val=error_val)
-        if feats is None or today_close is None:
+        tick_samples = extract_features_for_all_ticks_in_day(today, prev_pred_prob, error_val=error_val)
+        if not tick_samples:
             continue
             
-        # Predict tomorrow's price using the current RandomForest models
-        prob = float(model_clf.predict_proba([feats])[0][1])
-        pred_ret = float(model_reg.predict([feats])[0])
-        
-        raw_val = today_close * (1.0 + pred_ret)
-        prev_calibrated_val = raw_val + bias_val  # Save for next day correction
-        
         tomorrow_data = grouped[grouped['date'] == tomorrow].sort_values('5m_bin')
         if tomorrow_data.empty:
             continue
         tomorrow_close = tomorrow_data['Close'].values[-1]
         
-        label = 1 if tomorrow_close > today_close else 0
-        ret_val = (tomorrow_close - today_close) / today_close
+        # We only save calibration tracking based on the LAST tick of the day to mirror real-world end-of-day workflow
+        last_feats, last_tick_close = tick_samples[-1]
+        probas = model_clf.predict_proba([last_feats])[0]
+        if len(model_clf.classes_) == 1:
+            prob = 1.0 if model_clf.classes_[0] == 1 else 0.0
+        else:
+            prob = float(probas[1])
+        pred_ret = float(model_reg.predict([last_feats])[0])
+        raw_val = last_tick_close * (1.0 + pred_ret)
+        prev_calibrated_val = raw_val + bias_val  # Save for next day correction
         
-        # Append new rolling sample to retrain
-        rolling_X.append(feats)
-        rolling_y_clf.append(label)
-        rolling_y_reg.append(ret_val)
-        
-        prev_pred_prob = prob
-        
-        # Incremental rolling fit update (every 10 days to keep training latency fast)
+        for feats, tick_close in tick_samples:
+            label = 1 if tomorrow_close > tick_close else 0
+            ret_val = (tomorrow_close - tick_close) / tick_close
+            
+            rolling_X.append(feats)
+            rolling_y_clf.append(label)
+            rolling_y_reg.append(ret_val)
+            
+        # Incremental rolling fit update (every 10 days)
         if idx % 10 == 0:
             model_clf.fit(rolling_X, rolling_y_clf)
             model_reg.fit(rolling_X, rolling_y_reg)
+
             
     # Final Model Refitting to incorporate all optimized rolling history
     model_clf.fit(rolling_X, rolling_y_clf)
@@ -681,6 +662,38 @@ def run_rolling_training_and_feedback(code, daily_df, daily_model, daily_feature
         
     print(f"  ✓ [{code}] Models & Bias state successfully optimized and saved. Final Bias: {bias_val:+.4f} (Samples: {len(rolling_X)})")
     return True
+def process_single_ticker(args):
+    code, daily_features_cache, idx, total_count = args
+    print(f"\n[{idx}/{total_count}] 正在處理商品 {code} ...")
+    
+    # 1. 讀取並處理 14 年歷史日線
+    daily_df = query_ticker_daily_db(code)
+    if daily_df.empty or len(daily_df) < 80:
+        print(f"  ⚠️ [{code}] 資料庫歷史日線資料量不足 (僅 {len(daily_df)} 筆)，跳過訓練。")
+        return False
+        
+    processed_daily = prepare_daily_features(daily_df)
+    if processed_daily is None or processed_daily.empty:
+        print(f"  ⚠️ [{code}] 特徵工程產生無效結果，跳過。")
+        return False
+        
+    # 2. 訓練個股 14 年日線 XGBoost 模型
+    daily_model = train_daily_ticker_model(code, processed_daily)
+    if daily_model is None:
+        print(f"  ⚠️ [{code}] 訓練個股日線模型失敗。")
+        return False
+    print(f"  ✓ [{code}] 個股 14年日線 XGBoost 模型訓練成功！")
+    
+    # 2b. 訓練風險審查者模型 (Auditor)
+    auditor_model = train_daily_auditor_model(code, processed_daily)
+    if auditor_model is None:
+        print(f"  ⚠️ [{code}] 訓練風險審查者模型失敗或樣本不足，跳過審查者校準。")
+    else:
+        print(f"  ✓ [{code}] 個股風險審查者 XGBoost 模型訓練成功！")
+        
+    # 3. 高頻 150-90日預訓練 & 89日-1日自適應滾動偏差更新
+    success = run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache)
+    return success
 
 def main():
     print("=========================================================")
@@ -700,44 +713,27 @@ def main():
     
     # 📌 O(1) Optimization: Load all institutional/fundamental daily features once into cache!
     print("  ⏳ 正在為所有在線個股批次載入日線籌碼與基本面特徵至記憶體快取...")
-    daily_features_cache = load_all_daily_features_cache(active_tickers)
-    print(f"  ✓ 成功快取了 {len(daily_features_cache)} 個「日期-代號」組合的特徵。")
+    global_daily_features_cache = load_all_daily_features_cache(active_tickers)
+    print(f"  ✓ 成功快取了 {len(global_daily_features_cache)} 個「日期-代號」組合的特徵。")
     
     success_count = 0
     start_time = time.time()
     
+    # Prepare arguments for multiprocessing
+    total_tickers = len(active_tickers)
+    args_list = []
     for idx, code in enumerate(active_tickers, 1):
-        print(f"\n[{idx}/{len(active_tickers)}] 正在處理商品 {code} ...")
+        # Extract subset of cache specifically for this ticker to avoid large IPC serialization overhead
+        ticker_cache = {k: v for k, v in global_daily_features_cache.items() if k[0] == code}
+        args_list.append((code, ticker_cache, idx, total_tickers))
         
-        # 1. 讀取並處理 14 年歷史日線
-        daily_df = query_ticker_daily_db(code)
-        if daily_df.empty or len(daily_df) < 80:
-            print(f"  ⚠️ [{code}] 資料庫歷史日線資料量不足 (僅 {len(daily_df)} 筆)，跳過訓練。")
-            continue
-            
-        processed_daily = prepare_daily_features(daily_df)
-        if processed_daily is None or processed_daily.empty:
-            print(f"  ⚠️ [{code}] 特徵工程產生無效結果，跳過。")
-            continue
-            
-        # 2. 訓練個股 14 年日線 XGBoost 模型
-        daily_model = train_daily_ticker_model(code, processed_daily)
-        if daily_model is None:
-            print(f"  ⚠️ [{code}] 訓練個股日線模型失敗。")
-            continue
-        print(f"  ✓ [{code}] 個股 14年日線 XGBoost 模型訓練成功！")
+    print(f"\n🚀 [M5 Max 極限加速] 啟動 14 核心多線程平行運算引擎 (共 {total_tickers} 任務)...")
+    
+    # Use ThreadPoolExecutor to bypass Sandbox POSIX semaphore block
+    with concurrent.futures.ThreadPoolExecutor(max_workers=14) as executor:
+        results = list(executor.map(process_single_ticker, args_list))
         
-        # 2b. 訓練風險審查者模型 (Auditor)
-        auditor_model = train_daily_auditor_model(code, processed_daily)
-        if auditor_model is None:
-            print(f"  ⚠️ [{code}] 訓練風險審查者模型失敗或樣本不足，跳過審查者校準。")
-        else:
-            print(f"  ✓ [{code}] 個股風險審查者 XGBoost 模型訓練成功！")
-            
-        # 3. 高頻 150-90日預訓練 & 89日-1日自適應滾動偏差更新
-        success = run_rolling_training_and_feedback(code, daily_df, daily_model, daily_features_cache)
-        if success:
-            success_count += 1
+    success_count = sum(bool(r) for r in results)
             
     elapsed = time.time() - start_time
     print("\n=========================================================")

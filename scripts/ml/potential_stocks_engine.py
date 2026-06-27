@@ -19,43 +19,39 @@ MODEL_PATH = os.path.join(MODEL_DIR, "potential_stocks_xgb.pkl")
 META_PATH = os.path.join(MODEL_DIR, "potential_meta.json")
 OUTPUT_JSON_PATH = os.path.join(DATA_DIR, "top_50_potential_stocks.json")
 
+# 35-dimensional features used by individual daily models
+DAILY_FEATURES = [
+    'Close', 'SMA_5', 'SMA_20', 'SMA_60', 'EMA_12', 'EMA_26', 'RSI_14', 
+    'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9',
+    'ATR_14', 'Vol_Ratio', 'Ret_1', 'Ret_5', 'Ret_20',
+    'Foreign_Net_Ratio', 'Trust_Net_Ratio', 'Dealer_Net_Ratio',
+    'Foreign_Cum_5', 'Foreign_Cum_20', 'Foreign_Cum_60',
+    'Trust_Cum_5', 'Trust_Cum_20', 'Trust_Cum_60',
+    'Dual_Force_5', 'Dual_Force_20',
+    'Foreign_Buy_Days_5', 'Trust_Buy_Days_5',
+    'Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM',
+    'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin'
+]
+
 def prepare_features(df):
-    """Generates rich technical and institutional (chip flow) features using shared DRY features_utils."""
     import sys
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-    from features_utils import prepare_daily_features  # type: ignore
+    from features_utils import prepare_daily_features 
     return prepare_daily_features(df)
 
-def train_and_predict(inference_only=False):
-    print("--- ML Core: Potential Stocks Prediction Engine ---")
-    
-    # 1. 檢查是否存在現有模型，若 --inference-only 則嘗試直接載入
-    model = None
-    if inference_only:
-        if os.path.exists(MODEL_PATH):
-            try:
-                model = joblib.load(MODEL_PATH)
-                print(f"✓ [Inference Only] 成功載入已存在的 XGBoost 模型: {MODEL_PATH}")
-            except Exception as e:
-                print(f"⚠️ [Inference Only] 載入模型失敗，將啟動完整重新訓練: {e}")
-                inference_only = False
-        else:
-            print(f"⚠️ [Inference Only] 找不到模型 {MODEL_PATH}，將啟動完整重新訓練。")
-            inference_only = False
+def train_and_predict():
+    print("--- ML Core: Potential Stocks Prediction Engine (Individual Models) ---")
             
-    # Load and process all stock records directly from DuckDB
     import duckdb
     db_path = os.path.join(DATA_DIR, "potential_analysis.ddb")
     if not os.path.exists(db_path):
         print(f"❌ Error: DuckDB database not found at {db_path}.")
         return
         
-    print(f"Connecting to DuckDB database: {db_path}")
     conn = duckdb.connect(db_path)
     
     try:
         tickers_df = conn.execute("SELECT DISTINCT ticker, code, name FROM daily_stock_data").fetchdf()
-        # Clean up duplicate tickers that have both code-as-name and proper names
         tickers_df['name_is_num'] = tickers_df['name'].apply(lambda x: 1 if str(x).strip().isdigit() else 0)
         tickers_df = tickers_df.sort_values(by=['ticker', 'name_is_num']).drop_duplicates(subset=['ticker'], keep='first').drop(columns=['name_is_num']).reset_index(drop=True)
     except Exception as e:
@@ -63,298 +59,159 @@ def train_and_predict(inference_only=False):
         conn.close()
         return
         
-    print(f"Total tickers found in DuckDB: {len(tickers_df)}")
-    
-    # 獲取資料庫中最新的交易日期，用以過濾因停牌或故障而無最新報價的商品
     try:
         row = conn.execute("SELECT MAX(date) FROM daily_stock_data").fetchone()
-        if not row or row[0] is None:
-            raise ValueError("No latest trading date found in daily_stock_data")
         global_max_date = pd.to_datetime(row[0])
         print(f"Latest trading day in DuckDB: {global_max_date.strftime('%Y-%m-%d')}")
-    except Exception as e:
-        print(f"⚠️ 無法取得最新交易日期: {e}")
+    except:
         global_max_date = pd.to_datetime(datetime.now().date())
         
-    full_data = []
     latest_inference_rows = []
     
     for idx, row in tickers_df.iterrows():
-        ticker = row['ticker']
-        code = row['code']
-        name = row['name']
-        
+        ticker, code, name = row['ticker'], row['code'], row['name']
         try:
-            # Query all daily records for this ticker sorted by date ASC
             df = conn.execute("""
                 SELECT 
-                    d.date AS Date, 
-                    d.open AS Open, 
-                    d.high AS High, 
-                    d.low AS Low, 
-                    d.close AS Close, 
-                    d.adj_close AS "Adj Close", 
-                    d.volume AS Volume, 
-                    d.foreign_net AS Foreign_Net, 
-                    d.trust_net AS Trust_Net, 
-                    d.dealer_net AS Dealer_Net,
-                    (
-                        SELECT r.revenue 
-                        FROM monthly_revenue r 
-                        WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date 
-                        ORDER BY r.date DESC 
-                        LIMIT 1
-                    ) AS Monthly_Revenue,
-                    (
-                        SELECT r.yoy 
-                        FROM monthly_revenue r 
-                        WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date 
-                        ORDER BY r.date DESC 
-                        LIMIT 1
-                    ) AS Revenue_YoY,
-                    (
-                        SELECT r.mom 
-                        FROM monthly_revenue r 
-                        WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date 
-                        ORDER BY r.date DESC 
-                        LIMIT 1
-                    ) AS Revenue_MoM,
-                    (
-                        SELECT r.eps 
-                        FROM financial_statements r 
-                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
-                        ORDER BY CAST(r.report_date AS DATE) DESC 
-                        LIMIT 1
-                    ) AS EPS,
-                    (
-                        SELECT r.gross_profit_margin 
-                        FROM financial_statements r 
-                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
-                        ORDER BY CAST(r.report_date AS DATE) DESC 
-                        LIMIT 1
-                    ) AS Gross_Profit_Margin,
-                    (
-                        SELECT r.operating_profit_margin 
-                        FROM financial_statements r 
-                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
-                        ORDER BY CAST(r.report_date AS DATE) DESC 
-                        LIMIT 1
-                    ) AS Operating_Profit_Margin,
-                    (
-                        SELECT r.net_profit_margin 
-                        FROM financial_statements r 
-                        WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date 
-                        ORDER BY CAST(r.report_date AS DATE) DESC 
-                        LIMIT 1
-                    ) AS Net_Profit_Margin
-                FROM daily_stock_data d
-                WHERE d.ticker = ? 
-                ORDER BY d.date ASC
+                    d.date AS Date, d.open AS Open, d.high AS High, d.low AS Low, d.close AS Close, d.volume AS Volume, 
+                    d.foreign_net AS Foreign_Net, d.trust_net AS Trust_Net, d.dealer_net AS Dealer_Net,
+                    (SELECT r.revenue FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Monthly_Revenue,
+                    (SELECT r.yoy FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Revenue_YoY,
+                    (SELECT r.mom FROM monthly_revenue r WHERE r.code = d.code AND CAST(r.date AS DATE) <= d.date ORDER BY r.date DESC LIMIT 1) AS Revenue_MoM,
+                    (SELECT r.eps FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY r.report_date DESC LIMIT 1) AS EPS,
+                    (SELECT r.gross_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY r.report_date DESC LIMIT 1) AS Gross_Profit_Margin,
+                    (SELECT r.operating_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY r.report_date DESC LIMIT 1) AS Operating_Profit_Margin,
+                    (SELECT r.net_profit_margin FROM financial_statements r WHERE r.code = d.code AND CAST(r.report_date AS DATE) <= d.date ORDER BY r.report_date DESC LIMIT 1) AS Net_Profit_Margin
+                FROM daily_stock_data d WHERE d.ticker = ? ORDER BY d.date ASC
             """, (ticker,)).fetchdf()
             
-            if df.empty or len(df) < 80:
-                continue
-                
+            if df.empty or len(df) < 80: continue
             processed = prepare_features(df)
             if processed is not None and not processed.empty:
-                assert isinstance(processed, pd.DataFrame)
-                # 1. Split out the last row (without a target, used for current inference)
                 last_row = processed.iloc[-1].copy()
-                last_row_date = pd.to_datetime(last_row['Date'])
-                
-                # 僅在該商品的最新有效交易日在最新交易日 7 天之內時，才將其納入實時推論（防範長期停牌商品）
-                if (global_max_date - last_row_date).days <= 7:
-                    last_row['Ticker'] = ticker
-                    last_row['Name'] = name
+                if (global_max_date - pd.to_datetime(last_row['Date'])).days <= 7:
+                    last_row['Ticker'], last_row['Name'], last_row['code'] = ticker, name, code
                     latest_inference_rows.append(last_row)
-                
-                # 2. Keep the historical rows for training (僅在需要訓練時才收集)
-                if not inference_only:
-                    historical_rows = processed.dropna(subset=['Target_Ret_20'])
-                    if not historical_rows.empty:
-                        historical_rows = historical_rows.copy()
-                        historical_rows['Ticker'] = ticker
-                        historical_rows['Name'] = name
-                        full_data.append(historical_rows)
-        except Exception as e:
-            print(f"Error processing {ticker} from DuckDB: {e}")
+        except Exception as e: print(f"Error processing {ticker}: {e}")
             
     conn.close()
     
-    # Feature columns for training
-    feature_cols = [
-        'Close', 'SMA_5', 'SMA_20', 'SMA_60', 'EMA_12', 'EMA_26', 'RSI_14', 
-        'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9',
-        'ATR_14', 'Vol_Ratio', 'Ret_1', 'Ret_5', 'Ret_20',
-        'Foreign_Net_Ratio', 'Trust_Net_Ratio', 'Dealer_Net_Ratio',
-        'Foreign_Cum_5', 'Foreign_Cum_20', 'Foreign_Cum_60',
-        'Trust_Cum_5', 'Trust_Cum_20', 'Trust_Cum_60',
-        'Dual_Force_5', 'Dual_Force_20',
-        'Foreign_Buy_Days_5', 'Trust_Buy_Days_5',
-        'Monthly_Revenue', 'Revenue_YoY', 'Revenue_MoM',
-        'EPS', 'Gross_Profit_Margin', 'Operating_Profit_Margin', 'Net_Profit_Margin'
-    ]
-    
-    if not inference_only:
-        if not full_data:
-            print("❌ Error: No training data could be loaded from DuckDB 'daily_stock_data'.")
-            return
-            
-        # Combine training data
-        train_val_df = pd.concat(full_data).reset_index(drop=True)
-        print(f"Combined historical dataset size: {len(train_val_df)} rows.")
-        
-        # Ensure all feature columns exist and have no NaNs
-        feature_cols = [c for c in feature_cols if c in train_val_df.columns]
-        
-        # Drop rows that have NaN/Inf in features or target, and filter out extreme outliers in target return
-        assert isinstance(train_val_df, pd.DataFrame)
-        train_val_df = train_val_df.replace([np.inf, -np.inf], np.nan)
-        train_val_df = train_val_df.dropna(subset=feature_cols + ['Target_Ret_20'])
-        train_val_df = train_val_df[train_val_df['Target_Ret_20'].abs() <= 10.0]
-        print(f"Dataset size after cleaning NaNs, Infs, and extreme outliers: {len(train_val_df)} rows.")
-        
-        X = train_val_df[feature_cols]
-        y = train_val_df['Target_Ret_20']
-        
-        # Chronological train/validation split to avoid data leakage
-        # We will train on data before 2025-11-23, and validate on data after
-        train_val_df['Date'] = pd.to_datetime(train_val_df['Date'])
-        split_date = pd.to_datetime('2025-11-23')
-        
-        train_mask = train_val_df['Date'] < split_date
-        val_mask = train_val_df['Date'] >= split_date
-        
-        X_train, y_train = X[train_mask], y[train_mask]
-        X_val, y_val = X[val_mask], y[val_mask]
-        
-        print(f"Train samples: {len(X_train)}, Validation samples: {len(X_val)}")
-        
-        # 2. Train XGBoost Regressor
-        print("Training XGBoost Regressor model...")
-        model = xgb.XGBRegressor(
-            n_estimators=150, 
-            max_depth=5, 
-            learning_rate=0.05, 
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42
-        )
-        
-        model.fit(
-            X_train, y_train,
-            eval_set=[(X_val, y_val)],
-            verbose=False
-        )
-        
-        # Evaluation
-        train_preds = model.predict(X_train)
-        val_preds = model.predict(X_val)
-        
-        train_mae = np.mean(np.abs(train_preds - y_train))
-        val_mae = np.mean(np.abs(val_preds - y_val))
-        
-        print(f"Training Complete. Train MAE: {train_mae:.4f}, Val MAE: {val_mae:.4f}")
-        
-        # Save the model
-        joblib.dump(model, MODEL_PATH)
-        with open(META_PATH, 'w') as f:
-            json.dump({
-                "features": feature_cols,
-                "train_mae": float(train_mae),
-                "val_mae": float(val_mae),
-                "updated_at": datetime.now().isoformat()
-            }, f, indent=2)
-        print(f"Model saved to {MODEL_PATH}")
-    else:
-        # 如果是 inference_only，需要載入 meta.json 中的 features，確保特徵順序一致
-        if os.path.exists(META_PATH):
-            try:
-                with open(META_PATH, 'r') as f:
-                    meta_data = json.load(f)
-                    feature_cols = meta_data.get("features", feature_cols)
-                    print(f"✓ 載入 Meta 中定義的特徵欄位，總計: {len(feature_cols)} 個")
-            except Exception as e:
-                print(f"⚠️ 載入 meta.json 失敗，採用預設特徵: {e}")
-                
-    # 3. Run Inference on Latest Stock Data
-    print("\nRunning ML Inference on latest trading day to score stocks...")
-    if not latest_inference_rows:
-        print("❌ Error: No inference data generated.")
+    if not latest_inference_rows: 
+        print("沒有最新的推論資料。")
         return
         
     inference_df = pd.DataFrame(latest_inference_rows).reset_index(drop=True)
-    # Ensure all features exist
-    inference_df = inference_df.dropna(subset=feature_cols)
+    inference_df['Code_Only'] = inference_df['Ticker'].apply(lambda x: x.split('.')[0])
     
-    X_inf = inference_df[feature_cols]
+    predictions = []
+    skipped_stocks = []
     
-    assert model is not None, "Model must be loaded or trained"
-    predictions = model.predict(X_inf)
+    print("⏳ 正在透過個股獨立模型進行預測...")
     
-    inference_df['Predicted_Return_20D'] = predictions
+    for idx, row in inference_df.iterrows():
+        code = row['code']
+        ticker = row['Ticker']
+        name = row['Name']
+        
+        daily_model_path = os.path.join(MODEL_DIR, f"daily_model_{code}.pkl")
+        rolling_state_path = os.path.join(MODEL_DIR, f"rolling_state_{code}.json")
+        
+        if not os.path.exists(daily_model_path):
+            skipped_stocks.append(f"{ticker} ({name})")
+            predictions.append(np.nan)
+            continue
+            
+        try:
+            model = joblib.load(daily_model_path)
+            # Ensure row has all DAILY_FEATURES without NaNs
+            row_features = row[DAILY_FEATURES].fillna(0.0)
+            X_inf = pd.DataFrame([row_features])
+            pred_val = float(model.predict(X_inf)[0])
+            
+            # Apply Bias from Rolling State if available
+            if os.path.exists(rolling_state_path):
+                try:
+                    with open(rolling_state_path, 'r') as f:
+                        state_data = json.load(f)
+                        bias_val = state_data.get("optimized_bias", 0.0)
+                        pred_val += bias_val
+                except:
+                    pass
+                    
+            predictions.append(pred_val)
+        except Exception as e:
+            print(f"  ⚠️ Error predicting for {code}: {e}")
+            skipped_stocks.append(f"{ticker} ({name})")
+            predictions.append(np.nan)
+            
+    inference_df['Predicted_Return_20D_Raw'] = predictions
     
-    # Rank stocks by predicted 20-day return descending
+    # Drop rows that don't have predictions (skipped ones)
+    inference_df = inference_df.dropna(subset=['Predicted_Return_20D_Raw']).reset_index(drop=True)
+    
+    if skipped_stocks:
+        print("\n=================================================")
+        print(f"⚠️ 因缺乏個股專屬模型而跳過的個股清單 (共 {len(skipped_stocks)} 檔):")
+        # Print grouped in 10 per line for readability
+        for i in range(0, len(skipped_stocks), 10):
+            print(", ".join(skipped_stocks[i:i+10]))
+        print("=================================================\n")
+    
+    # Risk Refinement
+    inference_df['Risk_Penalty'] = 0.0
+    if 'Dist_Yearly_Low' in inference_df.columns: inference_df.loc[inference_df['Dist_Yearly_Low'] < 0.03, 'Risk_Penalty'] += 0.05
+    if 'Max_DD_5' in inference_df.columns: inference_df.loc[inference_df['Max_DD_5'] < -0.15, 'Risk_Penalty'] += 0.10
+    if 'Bull_Trap_Signal' in inference_df.columns: inference_df.loc[inference_df['Bull_Trap_Signal'] > 0.5, 'Risk_Penalty'] += 0.08
+    
+    inference_df['Predicted_Return_20D_Final'] = inference_df['Predicted_Return_20D_Raw'] - inference_df['Risk_Penalty']
+    
+    # Multi-Horizon Bias Correction
+    bias_path = os.path.join(DATA_DIR, "ml_bias_matrix.json")
+    if os.path.exists(bias_path):
+        try:
+            with open(bias_path, 'r') as bf:
+                bias_data = json.load(bf)
+                b1, b2, b3 = [bias_data.get(k, 0) or 0 for k in ['bias_1w', 'bias_2w', 'bias_3w']]
+                avg_sys = (b1 * 0.5 + b2 * 0.3 + b3 * 0.2)
+                if avg_sys > 0.05: inference_df['Predicted_Return_20D_Final'] -= avg_sys
+                
+                f_codes = bias_data.get("failing_codes", [])
+                if not f_codes: f_codes = [t.split('.')[0] for t in bias_data.get("failing_tickers", [])]
+                if f_codes: inference_df.loc[inference_df['Code_Only'].isin(f_codes), 'Predicted_Return_20D_Final'] -= 0.50
+        except: pass
+        
+    inference_df['Predicted_Return_20D'] = inference_df['Predicted_Return_20D_Final']
     ranked_df = inference_df.sort_values(by='Predicted_Return_20D', ascending=False).reset_index(drop=True)
+    ranked_df.loc[ranked_df['Predicted_Return_20D'] > 0.15, 'Predicted_Return_20D'] = 0.15
     
-    # Structure the Top 50 Potential Stocks
     top_50_list = []
     for loop_idx, (idx, row) in enumerate(ranked_df.head(50).iterrows()):
         top_50_list.append({
-            "rank": loop_idx + 1,
-            "ticker": row['Ticker'],
-            "code": row['Ticker'].split('.')[0],
-            "name": row['Name'],
-            "close": float(row['Close']),
-            "predicted_return_20d": float(row['Predicted_Return_20D']),
-            "date": pd.to_datetime(row['Date']).strftime('%Y-%m-%d'),
-            "rsi_14": float(row['RSI_14']),
-            "vol_ratio": float(row['Vol_Ratio']),
-            "foreign_net_5d": float(row['Foreign_Cum_5']),
-            "trust_net_5d": float(row['Trust_Cum_5']),
-            "dual_force_5d": float(row['Dual_Force_5']),
-            "foreign_net_20d": float(row['Foreign_Cum_20']),
-            "trust_net_20d": float(row['Trust_Cum_20']),
-            "eps": float(row['EPS']),
-            "gross_profit_margin": float(row['Gross_Profit_Margin']),
-            "operating_profit_margin": float(row['Operating_Profit_Margin']),
-            "net_profit_margin": float(row['Net_Profit_Margin'])
+            "rank": loop_idx + 1, "ticker": row['Ticker'], "code": row['Code_Only'], "name": row['Name'], "close": float(row['Close']),
+            "predicted_return_20d": float(row['Predicted_Return_20D']), "date": pd.to_datetime(row['Date']).strftime('%Y-%m-%d'),
+            "rsi_14": float(row['RSI_14']), "vol_ratio": float(row['Vol_Ratio']), "foreign_net_5d": float(row['Foreign_Cum_5']),
+            "trust_net_5d": float(row['Trust_Cum_5']), "dual_force_5d": float(row['Dual_Force_5']), "foreign_net_20d": float(row['Foreign_Cum_20']),
+            "trust_net_20d": float(row['Trust_Cum_20']), "eps": float(row['EPS']), "gross_profit_margin": float(row['Gross_Profit_Margin']),
+            "operating_profit_margin": float(row['Operating_Profit_Margin']), "net_profit_margin": float(row['Net_Profit_Margin'])
         })
         
-    with open(OUTPUT_JSON_PATH, 'w', encoding='utf-8') as f:
-        json.dump(top_50_list, f, indent=2, ensure_ascii=False)
-        
-    print(f"🎉 Successfully selected Top 50 potential stocks and saved to {OUTPUT_JSON_PATH}")
+    with open(OUTPUT_JSON_PATH, 'w', encoding='utf-8') as f: json.dump(top_50_list, f, indent=2, ensure_ascii=False)
     
-    # Sync predictions to DuckDB
     try:
-        import duckdb
-        db_path = os.path.join(DATA_DIR, "potential_analysis.ddb")
         conn = duckdb.connect(db_path)
-        
         pred_df = pd.DataFrame(top_50_list)
         pred_df['date'] = pd.to_datetime(pred_df['date']).dt.date
-        
-        # Explicitly reorder columns to match predictions table schema exactly
-        pred_df_temp = pred_df[['date', 'code', 'ticker', 'name', 'close', 'predicted_return_20d', 'rsi_14', 'vol_ratio', 'foreign_net_5d', 'trust_net_5d', 'dual_force_5d', 'foreign_net_20d', 'trust_net_20d', 'rank']]
-        
-        conn.execute("""
-            INSERT OR REPLACE INTO predictions (
-                date, code, ticker, name, close, predicted_return_20d, 
-                rsi_14, vol_ratio, foreign_net_5d, trust_net_5d, 
-                dual_force_5d, foreign_net_20d, trust_net_20d, rank
-            ) SELECT * FROM pred_df_temp
-        """)
+        mapping = ranked_df.head(50).set_index('Ticker')[['Predicted_Return_20D_Raw', 'Risk_Penalty']]
+        pred_df['raw_ml_pred'] = pred_df['ticker'].map(mapping['Predicted_Return_20D_Raw'])
+        pred_df['risk_penalty'] = pred_df['ticker'].map(mapping['Risk_Penalty'])
+        temp = pred_df[['date', 'code', 'ticker', 'name', 'close', 'predicted_return_20d', 'rsi_14', 'vol_ratio', 'foreign_net_5d', 'trust_net_5d', 'dual_force_5d', 'foreign_net_20d', 'trust_net_20d', 'rank', 'risk_penalty', 'raw_ml_pred']]
+        conn.execute("INSERT OR REPLACE INTO predictions (date, code, ticker, name, close, predicted_return_20d, rsi_14, vol_ratio, foreign_net_5d, trust_net_5d, dual_force_5d, foreign_net_20d, trust_net_20d, rank, risk_penalty, raw_ml_pred) SELECT * FROM temp")
         conn.close()
-        print("✓ [DuckDB] Synchronized Top 50 predictions into predictions table.")
-    except Exception as d_err:
-        print(f"⚠️ [DuckDB] Failed to sync predictions to database: {d_err}")
-        
-    print("\nTop 10 Potential Stocks Preview:")
-    for stock in top_50_list[:10]:
-        print(f"Rank {stock['rank']}: {stock['ticker']} ({stock['name']}) | Price: {stock['close']} | Predicted 20D Return: {stock['predicted_return_20d']*100:.2f}% | 5D Foreign: {stock['foreign_net_5d']:.1f}張 | 5D Trust: {stock['trust_net_5d']:.1f}張")
+    except Exception as e: print(f"DB Sync failed: {e}")
+
+    print("\nTop 30 Potential Stocks Preview:")
+    for stock in top_50_list[:30]:
+        print(f"Rank {stock['rank']}: {stock['ticker']} ({stock['name']}) | Price: {stock['close']:.2f} | Score: {stock['predicted_return_20d']*100:.2f}%")
 
 if __name__ == "__main__":
-    import sys
-    inference_only = "--inference-only" in sys.argv
-    train_and_predict(inference_only=inference_only)
+    train_and_predict()

@@ -61,17 +61,17 @@
       "schedule_display": "0 9 * * 0",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 6
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:34.551416+08:00",
-      "next_run_at": "2026-06-21T09:00:00+08:00",
-      "last_run_at": "2026-06-14T09:00:22.524675+08:00",
-      "last_status": "error",
-      "last_error": "no_agent=True but no script is set for this job",
+      "next_run_at": "2026-06-28T09:00:00+08:00",
+      "last_run_at": "2026-06-21T09:05:30.271212+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -108,15 +108,15 @@
       "schedule_display": "0 6 * * *",
       "repeat": {
         "times": null,
-        "completed": 38
+        "completed": 51
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T10:06:37.725732+08:00",
-      "next_run_at": "2026-06-15T06:00:00+08:00",
-      "last_run_at": "2026-06-14T06:00:06.169653+08:00",
+      "next_run_at": "2026-06-28T06:00:00+08:00",
+      "last_run_at": "2026-06-27T06:00:45.671976+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -234,15 +234,15 @@
       "schedule_display": "30 13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 30
+        "completed": 40
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-04T18:15:42.884626+08:00",
-      "next_run_at": "2026-06-15T13:30:00+08:00",
-      "last_run_at": "2026-06-12T13:30:52.664263+08:00",
+      "next_run_at": "2026-06-29T13:30:00+08:00",
+      "last_run_at": "2026-06-26T13:30:09.200837+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -279,15 +279,15 @@
       "schedule_display": "0 15-23,0-5 * * *",
       "repeat": {
         "times": null,
-        "completed": 545
+        "completed": 748
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:16:44.283732+08:00",
-      "next_run_at": "2026-06-14T15:00:00+08:00",
-      "last_run_at": "2026-06-14T05:01:03.713259+08:00",
+      "next_run_at": "2026-06-27T23:00:00+08:00",
+      "last_run_at": "2026-06-27T22:00:20.327716+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -320,17 +320,17 @@
       "schedule_display": "0 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 40
+        "completed": 53
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T08:32:26.197660+08:00",
-      "next_run_at": "2026-06-15T08:00:00+08:00",
-      "last_run_at": "2026-06-14T08:00:16.534362+08:00",
-      "last_status": "error",
-      "last_error": "no_agent=True but no script is set for this job",
+      "next_run_at": "2026-06-28T08:00:00+08:00",
+      "last_run_at": "2026-06-27T08:01:13.729172+08:00",
+      "last_status": "ok",
+      "last_error": null,
       "last_delivery_error": null,
       "deliver": "origin",
       "origin": {
@@ -355,7 +355,7 @@
       "model": null,
       "provider": null,
       "base_url": null,
-      "script": "/usr/bin/swift /Users/bookid/.hermes/scripts/hermes_orchestrator.swift",
+      "script": "/Users/bookid/.hermes/scripts/run_hermes_orchestrator.sh",
       "no_agent": true,
       "context_from": null,
       "schedule": {
@@ -366,15 +366,15 @@
       "schedule_display": "*/5 9-13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 1378
+        "completed": 1979
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-05T09:44:30.413848+08:00",
-      "next_run_at": "2026-06-15T09:00:00+08:00",
-      "last_run_at": "2026-06-12T13:55:56.310730+08:00",
+      "next_run_at": "2026-06-29T09:00:00+08:00",
+      "last_run_at": "2026-06-26T13:55:32.035038+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -407,15 +407,15 @@
       "schedule_display": "30 23 * * *",
       "repeat": {
         "times": null,
-        "completed": 36
+        "completed": 49
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-06T21:58:27.890264+08:00",
-      "next_run_at": "2026-06-14T23:30:00+08:00",
-      "last_run_at": "2026-06-13T23:31:33.571508+08:00",
+      "next_run_at": "2026-06-27T23:30:00+08:00",
+      "last_run_at": "2026-06-26T23:30:56.328981+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -454,17 +454,17 @@
       "schedule_display": "0 5 * * *",
       "repeat": {
         "times": null,
-        "completed": 36
+        "completed": 49
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:02:14.142354+08:00",
-      "next_run_at": "2026-06-15T05:00:00+08:00",
-      "last_run_at": "2026-06-14T05:04:06.044250+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-28T05:00:00+08:00",
+      "last_run_at": "2026-06-27T07:00:38.324048+08:00",
+      "last_status": "error",
+      "last_error": "Script timed out after 7200s: /Users/bookid/.hermes/scripts/run_daily_ml.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -496,17 +496,17 @@
       "schedule_display": "30 14 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 25
+        "completed": 35
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:21:57.694271+08:00",
-      "next_run_at": "2026-06-15T14:30:00+08:00",
-      "last_run_at": "2026-06-12T14:31:04.209301+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-29T14:30:00+08:00",
+      "last_run_at": "2026-06-26T14:30:17.124491+08:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 1\nstderr:\nTraceback (most recent call last):\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/data.py\", line 408, in pandas_feature_info\n    new_feature_types.append(_pandas_dtype_mapper[dtype.name])\n                             ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^\nKeyError: 'object'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/Users/bookid/.hermes/scripts/confluence_eod_analysis.py\", line 203, in <module>\n    analyze_confluence()\n    ~~~~~~~~~~~~~~~~~~^^\n  File \"/Users/bookid/.hermes/scripts/confluence_eod_analysis.py\", line 139, in analyze_confluence\n    prob_buy = model_buy.predict_proba(X)[0][1]\n               ~~~~~~~~~~~~~~~~~~~~~~~^^^\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/sklearn.py\", line 1921, in predict_proba\n    class_probs = super().predict(\n        X=X,\n    ...<2 lines>...\n        iteration_range=iteration_range,\n    )\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/sklearn.py\", line 1446, in predict\n    predts = self.get_booster().inplace_predict(\n        data=X,\n    ...<4 lines>...\n        validate_features=validate_features,\n    )\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/core.py\", line 751, in inner_f\n    return func(**kwargs)\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/core.py\", line 2852, in inplace_predict\n    data, fns, _ = _transform_pandas_df(data, enable_categorical)\n                   ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/data.py\", line 668, in _transform_pandas_df\n    feature_names, feature_types = pandas_feature_info(\n                                   ~~~~~~~~~~~~~~~~~~~^\n        data, meta, feature_names, feature_types, enable_categorical\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/data.py\", line 410, in pandas_feature_info\n    _invalid_dataframe_dtype(data)\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^\n  File \"/Users/bookid/.hermes/.venv/lib/python3.14/site-packages/xgboost/data.py\", line 373, in _invalid_dataframe_dtype\n    raise ValueError(msg)\nValueError: DataFrame.dtypes for data must be int, float, bool or category. When categorical type is supplied, the experimental DMatrix parameter`enable_categorical` must be set to `True`.  Invalid columns:SMA_60: object\nstdout:\nAPI Check failed (HTTP Error 401: Unauthorized), defaulting to weekday/hours logic.\n--- Starting Daily Historical Sync [Fast] [2026-06-26 14:30] ---\nTarget previous trading day for sync check: 2026-06-26\n\u26a0\ufe0f \u5075\u6e2c\u5230 1951 \u6a94\u5df2\u4e0b\u5e02/\u4e0d\u5728\u7dda\u500b\u80a1\uff0c\u6b77\u53f2\u8cc7\u6599\u4fdd\u7559\uff0c\u6392\u9664\u6bcf\u65e5\u540c\u6b65\u66f4\u65b0\uff1a\n  - 0051.TW (\u5143\u5927\u4e2d\u578b100)\n  - 0053.TW (\u5143\u5927\u96fb\u5b50)\n  - 0055.TW (\u5143\u5927MSCI\u91d1\u878d)\n  - 0056.TW (\u5143\u5927\u9ad8\u80a1\u606f)\n  - 0057.TW (\u5bcc\u90a6\u6469\u53f0)\n  - 0061.TW (\u5143\u5927\u5bf6\u6eec\u6df1)\n  - 1101.TW (\u53f0\u6ce5)\n  - 1102.TW (\u4e9e\u6ce5)\n  - 1103.TW (\u5609\u6ce5)\n  - 1104.TW (\u74b0\u6ce5)\n  - 1108.TW (\u5e78\u798f)\n  - 1109.TW (\u4fe1\u5927)\n  - 1110.TW (\u6771\u6ce5)\n  - 1201.TW (\u5473\u5168)\n  - 1203.TW (\u5473\u738b)\n  - 1210.TW (\u5927\u6210)\n  - 1213.TW (\u5927\u98f2)\n  - 1215.TW (\u535c\u8702)\n  - 1216.TW (\u7d71\u4e00)\n  - 1217.TW (\u611b\u4e4b\u5473)\n  - 1218.TW (\u6cf0\u5c71)\n  - 1219.TW (\u798f\u58fd)\n  - 1220.TW (\u53f0\u69ae)\n  - 1225.TW (\u798f\u61cb\u6cb9)\n  - 1227.TW (\u4f73\u683c)\n  - 1229.TW (\u806f\u83ef)\n  - 1231.TW (\u806f\u83ef\u98df)\n  - 1232.TW (\u5927\u7d71\u76ca)\n  - 1233.TW (\u5929\u4ec1)\n  - 1234.TW (\u9ed1\u677e)\n  - 1235.TW (\u8208\u6cf0)\n  - 1236.TW (\u5b8f\u4e9e)\n  - 1240.TWO (\u8302\u751f\u8fb2\u7d93)\n  - 1256.TW (\u9bae\u6d3b\u679c\u6c41-KY)\n  - 1259.TWO (\u5b89\u5fc3)\n  - 1264.TWO (\u5fb7\u9ea5)\n  - 1268.TWO (\u6f22\u4f86\u7f8e\u98df)\n  - 1294.TWO (\u6f22\u7530\u751f\u6280)\n  - 1295.TWO (\u751f\u5408)\n  - 1301.TW (\u53f0\u5851)\n  - 1303.TW (\u5357\u4e9e)\n  - 1304.TW (\u53f0\u805a)\n  - 1305.TW (\u83ef\u590f)\n  - 1307.TW (\u4e09\u82b3)\n  - 1308.TW (\u4e9e\u805a)\n  - 1309.TW (\u53f0\u9054\u5316)\n  - 1310.TW (\u53f0\u82ef)\n  - 1312.TW (\u570b\u55ac)\n  - 1313.TW (\u806f\u6210)\n  - 1314.TW (\u4e2d\u77f3\u5316)\n  - 1315.TW (\u9054\u65b0)\n  - 1316.TW (\u4e0a\u66dc)\n  - 1319.TW (\u6771\u967d)\n  - 1321.TW (\u5927\u6d0b)\n  - 1323.TW (\u6c38\u88d5)\n  - 1324.TW (\u5730\u7403)\n  - 1325.TW (\u6046\u5927)\n  - 1326.TW (\u53f0\u5316)\n  - 1336.TWO (\u53f0\u7ff0)\n  - 1337.TW (\u518d\u751f-KY)\n  - 1338.TW (\u5ee3\u83ef-KY)\n  - 1339.TW (\u662d\u8f1d)\n  - 1340.TW (\u52dd\u6085-KY)\n  - 1341.TW (\u5bcc\u6797-KY)\n  - 1342.TW (\u516b\u8cab)\n  - 1402.TW (\u9060\u6771\u65b0)\n  - 1409.TW (\u65b0\u7e96)\n  - 1410.TW (\u5357\u67d3)\n  - 1413.TW (\u5b8f\u6d32)\n  - 1414.TW (\u6771\u548c)\n  - 1416.TW (\u5ee3\u8c50)\n  - 1417.TW (\u5609\u88d5)\n  - 1418.TW (\u6771\u83ef)\n  - 1419.TW (\u65b0\u7d21)\n  - 1423.TW (\u5229\u83ef)\n  - 1432.TW (\u5927\u9b6f\u95a3)\n  - 1434.TW (\u798f\u61cb)\n  - 1435.TW (\u4e2d\u798f)\n  - 1436.TW (\u83ef\u53cb\u806f)\n  - 1437.TW (\u52e4\u76ca\u63a7)\n  - 1438.TW (\u4e09\u5730\u958b\u767c)\n  - 1439.TW (\u96cb\u63da)\n  - 1440.TW (\u5357\u7d21)\n  - 1441.TW (\u5927\u6771)\n  - 1442.TW (\u540d\u8ed2)\n  - 1443.TW (\u7acb\u76ca\u7269\u6d41)\n  - 1444.TW (\u529b\u9e97)\n  - 1445.TW (\u5927\u5b87)\n  - 1446.TW (\u5b8f\u548c)\n  - 1447.TW (\u529b\u9d6c)\n  - 1449.TW (\u4f73\u548c)\n  - 1451.TW (\u5e74\u8208)\n  - 1452.TW (\u5b8f\u76ca)\n  - 1453.TW (\u5927\u5c07)\n  - 1454.TW (\u53f0\u5bcc)\n  - 1455.TW (\u96c6\u76db)\n  - 1456.TW (\u6021\u83ef)\n  - 1457.TW (\u5b9c\u9032)\n  - 1459.TW (\u806f\u767c)\n  - 1460.TW (\u5b8f\u9060)\n  - 1463.TW (\u5f37\u76db\u65b0)\n  - 1464.TW (\u5f97\u529b)\n  - 1465.TW (\u5049\u5168)\n  - 1466.TW (\u805a\u9686)\n  - 1467.TW (\u5357\u7def)\n  - 1468.TW (\u6636\u548c)\n  - 1470.TW (\u5927\u7d71\u65b0\u5275)\n  - 1471.TW (\u9996\u5229)\n  - 1472.TW (\u4e09\u6d0b\u5be6\u696d)\n  - 1473.TW (\u53f0\u5357)\n  - 1474.TW (\u5f18\u88d5)\n  - 1475.TW (\u696d\u65fa)\n  - 1476.TW (\u5112\u9d3b)\n  - 1477.TW (\u805a\u967d)\n  - 1503.TW (\u58eb\u96fb)\n  - 1504.TW (\u6771\u5143)\n  - 1506.TW (\u6b63\u9053)\n  - 1512.TW (\u745e\u5229)\n  - 1514.TW (\u4e9e\u529b)\n  - 1515.TW (\u529b\u5c71)\n  - 1516.TW (\u5ddd\u98db)\n  - 1517.TW (\u5229\u5947)\n  - 1519.TW (\u83ef\u57ce)\n  - 1521.TW (\u5927\u5104)\n  - 1522.TW (\u5824\u7dad\u897f)\n  - 1524.TW (\u803f\u9f0e)\n  - 1525.TW (\u6c5f\u7533)\n  - 1526.TW (\u65e5\u99b3)\n  - 1527.TW (\u947d\u5168)\n  - 1528.TW (\u6069\u5fb7)\n  - 1529.TW (\u6a02\u4e8b\u7da0\u80fd)\n  - 1530.TW (\u4e9e\u5d34)\n  - 1531.TW (\u9ad8\u6797\u80a1)\n  - 1532.TW (\u52e4\u7f8e)\n  - 1533.TW (\u8eca\u738b\u96fb)\n  - 1535.TW (\u4e2d\u5b87)\n  - 1536.TW (\u548c\u5927)\n  - 1537.TW (\u5ee3\u9686)\n  - 1538.TW (\u6b63\u5cf0)\n  - 1539.TW (\u5de8\u5ead)\n  - 1540.TW (\u55ac\u798f)\n  - 1541.TW (\u9329\u6cf0)\n  - 1558.TW (\u4f38\u8208)\n  - 1560.TW (\u4e2d\u7802)\n  - 1563.TW (\u5de7\u65b0)\n  - 1565.TWO (\u7cbe\u83ef)\n  - 1568.TW (\u5009\u4f51)\n  - 1569.TWO (\u6ff1\u5ddd)\n  - 1570.TWO (\u529b\u80af)\n  - 1580.TWO (\u65b0\u9ea5)\n  - 1582.TW (\u4fe1\u9326)\n  - 1583.TW (\u7a0b\u6cf0)\n  - 1584.TWO (\u7cbe\u525b)\n  - 1586.TWO (\u548c\u52e4)\n  - 1587.TW (\u5409\u8302)\n  - 1589.TW (\u6c38\u51a0-KY)\n  - 1590.TW (\u4e9e\u5fb7\u5ba2-KY)\n  - 1591.TWO (\u99ff\u5409-KY)\n  - 1593.TWO (\u797a\u9a4a)\n  - 1595.TWO (\u5ddd\u5bf6)\n  - 1597.TW (\u76f4\u5f97)\n  - 1598.TW (\u5cb1\u5b87)\n  - 1599.TWO (\u5b8f\u4f73\u9a30)\n  - 1603.TW (\u83ef\u96fb)\n  - 1604.TW (\u8072\u5bf6)\n  - 1605.TW (\u83ef\u65b0)\n  - 1608.TW (\u83ef\u69ae)\n  - 1609.TW (\u5927\u4e9e)\n  - 1611.TW (\u4e2d\u96fb)\n  - 1612.TW (\u5b8f\u6cf0)\n  - 1614.TW (\u4e09\u6d0b\u96fb)\n  - 1615.TW (\u5927\u5c71)\n  - 1616.TW (\u5104\u6cf0)\n  - 1617.TW (\u69ae\u661f)\n  - 1618.TW (\u5408\u6a5f)\n  - 1623.TW (\u5927\u6771\u96fb)\n  - 1626.TW (\u827e\u7f8e\u7279-KY)\n  - 1702.TW (\u5357\u50d1)\n  - 1707.TW (\u8461\u8404\u738b)\n  - 1708.TW (\u6771\u9e7c)\n  - 1709.TW (\u548c\u76ca)\n  - 1710.TW (\u6771\u806f)\n  - 1711.TW (\u6c38\u5149)\n  - 1712.TW (\u8208\u8fb2)\n  - 1713.TW (\u570b\u5316)\n  - 1714.TW (\u548c\u6850)\n  - 1717.TW (\u9577\u8208)\n  - 1718.TW (\u4e2d\u7e96)\n  - 1720.TW (\u751f\u9054)\n  - 1721.TW (\u4e09\u6643)\n  - 1722.TW (\u53f0\u80a5)\n  - 1723.TW (\u4e2d\u78b3)\n  - 1725.TW (\u5143\u798e)\n  - 1726.TW (\u6c38\u8a18)\n  - 1727.TW (\u4e2d\u83ef\u5316)\n  - 1730.TW (\u82b1\u4ed9\u5b50)\n  - 1731.TW (\u7f8e\u543e\u83ef)\n  - 1732.TW (\u6bdb\u5bf6)\n  - 1733.TW (\u4e94\u9f0e)\n  - 1734.TW (\u674f\u8f1d)\n  - 1735.TW (\u65e5\u52dd\u5316)\n  - 1736.TW (\u55ac\u5c71)\n  - 1737.TW (\u81fa\u9e7d)\n  - 1742.TWO (\u53f0\u881f)\n  - 1752.TW (\u5357\u5149)\n  - 1760.TW (\u5bf6\u9f61\u5bcc\u9326)\n  - 1762.TW (\u4e2d\u5316\u751f)\n  - 1773.TW (\u52dd\u4e00)\n  - 1776.TW (\u5c55\u5b87)\n  - 1777.TWO (\u751f\u6cf0)\n  - 1781.TWO (\u5408\u4e16)\n  - 1783.TW (\u548c\u5eb7\u751f)\n  - 1784.TWO (\u8a0a\u806f)\n  - 1785.TWO (\u5149\u6d0b\u79d1)\n  - 1786.TW (\u79d1\u598d)\n  - 1788.TWO (\u674f\u660c)\n  - 1789.TW (\u795e\u9686)\n  - 1795.TW (\u7f8e\u6642)\n  - 1796.TWO (\u91d1\u7a4e\u751f\u6280)\n  - 1799.TWO (\u6613\u5a01)\n  - 1805.TW (\u5bf6\u5fa0)\n  - 1806.TW (\u51a0\u8ecd)\n  - 1808.TW (\u6f64\u9686)\n  - 1809.TW (\u4e2d\u91c9)\n  - 1810.TW (\u548c\u6210)\n  - 1813.TWO (\u5bf6\u5229\u5fa0)\n  - 1815.TWO (\u5bcc\u55ac)\n  - 1817.TW (\u51f1\u6492\u885b)\n  - 1903.TW (\u58eb\u7d19)\n  - 1904.TW (\u6b63\u9686)\n  - 1905.TW (\u83ef\u7d19)\n  - 1906.TW (\u5bf6\u9686)\n  - 1907.TW (\u6c38\u8c50\u9918)\n  - 1909.TW (\u69ae\u6210)\n  - 2002.TW (\u4e2d\u92fc)\n  - 2006.TW (\u6771\u548c\u92fc\u9435)\n  - 2007.TW (\u71c1\u8208)\n  - 2008.TW (\u9ad8\u8208\u660c)\n  - 2009.TW (\u7b2c\u4e00\u9285)\n  - 2010.TW (\u6625\u6e90)\n  - 2012.TW (\u6625\u96e8)\n  - 2013.TW (\u4e2d\u92fc\u69cb)\n  - 2014.TW (\u4e2d\u9d3b)\n  - 2015.TW (\u8c50\u8208)\n  - 2017.TW (\u5b98\u7530\u92fc)\n  - 2020.TW (\u7f8e\u4e9e)\n  - 2022.TW (\u805a\u4ea8)\n  - 2023.TW (\u71c1\u8f1d)\n  - 2024.TW (\u5fd7\u806f)\n  - 2025.TW (\u5343\u8208)\n  - 2027.TW (\u5927\u6210\u92fc)\n  - 2028.TW (\u5a01\u81f4)\n  - 2029.TW (\u76db\u9918)\n  - 2030.TW (\u5f70\u6e90)\n  - 2031.TW (\u65b0\u5149\u92fc)\n  - 2032.TW (\u65b0\u92fc)\n  - 2033.TW (\u4f73\u5927)\n  - 2034.TW (\u5141\u5f37)\n  - 2035.TWO (\u5510\u69ae)\n  - 2038.TW (\u6d77\u5149)\n  - 2059.TW (\u5ddd\u6e56)\n  - 2061.TWO (\u98a8\u9752)\n  - 2062.TW (\u6a4b\u693f)\n  - 2063.TWO (\u4e16\u93a7)\n  - 2064.TWO (\u6649\u693f)\n  - 2065.TWO (\u4e16\u8c50)\n  - 2066.TWO (\u4e16\u5fb7)\n  - 2067.TWO (\u5609\u92fc)\n  - 2069.TW (\u904b\u9329)\n  - 2070.TWO (\u7cbe\u6e5b)\n  - 2072.TW (\u4e16\u7d00\u98a8\u96fb)\n  - 2073.TWO (\u96c4\u9806)\n  - 2101.TW (\u5357\u6e2f)\n  - 2102.TW (\u6cf0\u8c50)\n  - 2103.TW (\u53f0\u6a61)\n  - 2104.TW (\u570b\u969b\u4e2d\u6a61)\n  - 2105.TW (\u6b63\u65b0)\n  - 2106.TW (\u5efa\u5927)\n  - 2107.TW (\u539a\u751f)\n  - 2108.TW (\u5357\u5e1d)\n  - 2109.TW (\u83ef\u8c50)\n  - 2114.TW (\u946b\u6c38\u9293)\n  - 2115.TW (\u516d\u6689-KY)\n  - 2201.TW (\u88d5\u9686)\n  - 2204.TW (\u4e2d\u83ef)\n  - 2206.TW (\u4e09\u967d\u5de5\u696d)\n  - 2207.TW (\u548c\u6cf0\u8eca)\n  - 2208.TW (\u53f0\u8239)\n  - 2211.TW (\u9577\u69ae\u92fc)\n  - 2221.TWO (\u5927\u7532)\n  - 2227.TW (\u88d5\u65e5\u8eca)\n  - 2228.TW (\u528d\u9e9f)\n  - 2230.TWO (\u6cf0\u8302)\n  - 2231.TW (\u70ba\u5347)\n  - 2233.TW (\u5b87\u9686)\n  - 2235.TWO (\u8b1a\u6e90)\n  - 2236.TW (\u767e\u9054-KY)\n  - 2239.TW (\u82f1\u5229-KY)\n  - 2241.TW (\u827e\u59c6\u52d2)\n  - 2243.TW (\u5b8f\u65ed-KY)\n  - 2247.TW (\u6c4e\u5fb7\u6c38\u696d)\n  - 2248.TW (\u83ef\u52dd-KY)\n  - 2250.TW (IKKA-KY)\n  - 2254.TW (\u5de8\u93a7\u7cbe\u5bc6-\u5275)\n  - 2258.TW (\u9d3b\u83ef\u5148\u9032-\u5275)\n  - 2301.TW (\u5149\u5bf6\u79d1)\n  - 2302.TW (\u9e97\u6b63)\n  - 2305.TW (\u5168\u53cb)\n  - 2308.TW (\u53f0\u9054\u96fb)\n  - 2312.TW (\u91d1\u5bf6)\n  - 2314.TW (\u53f0\u63da)\n  - 2316.TW (\u6960\u6893\u96fb)\n  - 2321.TW (\u6771\u8a0a)\n  - 2323.TW (\u4e2d\u74b0)\n  - 2324.TW (\u4ec1\u5bf6)\n  - 2328.TW (\u5ee3\u5b87)\n  - 2329.TW (\u83ef\u6cf0)\n  - 2331.TW (\u7cbe\u82f1)\n  - 2332.TW (\u53cb\u8a0a)\n  - 2337.TW (\u65fa\u5b8f)\n  - 2338.TW (\u5149\u7f69)\n  - 2340.TW (\u53f0\u4e9e)\n  - 2342.TW (\u8302\u77fd)\n  - 2344.TW (\u83ef\u90a6\u96fb)\n  - 2345.TW (\u667a\u90a6)\n  - 2347.TW (\u806f\u5f37)\n  - 2348.TW (\u6d77\u6085)\n  - 2349.TW (\u9338\u5fb7)\n  - 2351.TW (\u9806\u5fb7)\n  - 2352.TW (\u4f73\u4e16\u9054)\n  - 2353.TW (\u5b8f\ufffd\ufffd)\n  - 2354.TW (\u9d3b\u6e96)\n  - 2355.TW (\u656c\u9d6c)\n  - 2356.TW (\u82f1\u696d\u9054)\n  - 2357.TW (\u83ef\u78a9)\n  - 2359.TW (\u6240\u7f85\u9580)\n  - 2360.TW (\u81f4\u8302)\n  - 2362.TW (\u85cd\u5929)\n  - 2363.TW (\u77fd\u7d71)\n  - 2364.TW (\u502b\u98db)\n  - 2365.TW (\u6606\u76c8)\n  - 2367.TW (\u71ff\u83ef)\n  - 2369.TW (\u83f1\u751f)\n  - 2371.TW (\u5927\u540c)\n  - 2373.TW (\u9707\u65e6\u884c)\n  - 2374.TW (\u4f73\u80fd)\n  - 2375.TW (\u51f1\u7f8e)\n  - 2377.TW (\u5fae\u661f)\n  - 2379.TW (\u745e\u6631)\n  - 2380.TW (\u8679\u5149)\n  - 2383.TW (\u53f0\u5149\u96fb)\n  - 2385.TW (\u7fa4\u5149)\n  - 2387.TW (\u7cbe\u5143)\n  - 2388.TW (\u5a01\u76db)\n  - 2390.TW (\u4e91\u8fb0)\n  - 2392.TW (\u6b63\u5d34)\n  - 2393.TW (\u5104\u5149)\n  - 2395.TW (\u7814\u83ef)\n  - 2397.TW (\u53cb\u901a)\n  - 2399.TW (\u6620\u6cf0)\n  - 2401.TW (\u51cc\u967d)\n  - 2402.TW (\u6bc5\u5609)\n  - 2404.TW (\u6f22\u5510)\n  - 2405.TW (\u8f14\u4fe1)\n  - 2406.TW (\u570b\u78a9)\n  - 2412.TW (\u4e2d\u83ef\u96fb)\n  - 2413.TW (\u74b0\u79d1)\n  - 2414.TW (\u7cbe\u6280)\n  - 2415.TW (\u9329\u65b0)\n  - 2417.TW (\u5713\u525b)\n  - 2419.TW (\u4ef2\u7426)\n  - 2420.TW (\u65b0\u5de8)\n  - 2421.TW (\u5efa\u6e96)\n  - 2423.TW (\u56fa\u7def)\n  - 2424.TW (\u96b4\u83ef)\n  - 2425.TW (\u627f\u555f)\n  - 2426.TW (\u9f0e\u5143)\n  - 2427.TW (\u4e09\u5546\u96fb)\n  - 2428.TW (\u8208\u52e4)\n  - 2429.TW (\u9298\u65fa\u79d1)\n  - 2430.TW (\u71e6\u5764)\n  - 2431.TW (\u806f\u660c)\n  - 2432.TW (\u501a\u5929\u9177\ufffd\ufffd-\u5275)\n  - 2433.TW (\u4e92\u76db\u96fb)\n  - 2434.TW (\u7d71\u61cb)\n  - 2436.TW (\u5049\u8a6e\u96fb)\n  - 2438.TW (\u7fd4\u8000)\n  - 2439.TW (\u7f8e\u5f8b)\n  - 2440.TW (\u592a\u7a7a\u68ad)\n  - 2441.TW (\u8d85\u8c50)\n  - 2442.TW (\u65b0\u7f8e\u9f4a)\n  - 2444.TW (\u5146\u52c1)\n  - 2449.TW (\u4eac\u5143\u96fb\u5b50)\n  - 2450.TW (\u795e\u8166)\n  - 2451.TW (\u5275\u898b)\n  - 2453.TW (\u51cc\u7fa4)\n  - 2455.TW (\u5168\u65b0)\n  - 2457.TW (\u98db\u5b8f)\n  - 2458.TW (\u7fa9\u9686)\n  - 2459.TW (\u6566\u5409)\n  - 2460.TW (\u5efa\u901a)\n  - 2461.TW (\u5149\u7fa4\u96f7)\n  - 2462.TW (\u826f\u5f97\u96fb)\n  - 2464.TW (\u76df\u7acb)\n  - 2465.TW (\u9e97\u81fa)\n  - 2466.TW (\u51a0\u897f\u96fb)\n  - 2467.TW (\u5fd7\u8056)\n  - 2468.TW (\u83ef\u7d93)\n  - 2471.TW (\u8cc7\u901a)\n  - 2472.TW (\u7acb\u9686\u96fb)\n  - 2474.TW (\u53ef\u6210)\n  - 2476.TW (\u9245\u7965)\n  - 2477.TW (\u7f8e\u9686\u96fb)\n  - 2478.TW (\u5927\u6bc5)\n  - 2480.TW (\u6566\u967d\u79d1)\n  - 2481.TW (\u5f37\u8302)\n  - 2482.TW (\u9023\u5b87)\n  - 2483.TW (\u767e\u5bb9)\n  - 2484.TW (\u5e0c\u83ef)\n  - 2485.TW (\u5146\u8d6b)\n  - 2486.TW (\u4e00\u8a6e)\n  - 2488.TW (\u6f22\u5e73)\n  - 2489.TW (\u745e\u8ed2)\n  - 2491.TW (\u5409\u7965\u5168)\n  - 2492.TW (\u83ef\u65b0\u79d1)\n  - 2493.TW (\u63da\u535a)\n  - 2495.TW (\u666e\u5b89)\n  - 2496.TW (\u5353\u8d8a)\n  - 2497.TW (\u6021\u5229\u96fb)\n  - 2498.TW (\u5b8f\u9054\u96fb)\n  - 2501.TW (\u570b\u5efa)\n  - 2504.TW (\u570b\u7522)\n  - 2505.TW (\u570b\u63da)\n  - 2506.TW (\u592a\u8a2d)\n  - 2509.TW (\u5168\u5764\u5efa)\n  - 2511.TW (\u592a\u5b50)\n  - 2514.TW (\u9f8d\u90a6)\n  - 2515.TW (\u4e2d\u5de5)\n  - 2516.TW (\u65b0\u5efa)\n  - 2520.TW (\u51a0\u5fb7)\n  - 2524.TW (\u4eac\u57ce)\n  - 2527.TW (\u5b8f\u749f)\n  - 2528.TW (\u7687\u666e)\n  - 2530.TW (\u83ef\u5efa)\n  - 2534.TW (\u5b8f\u76db)\n  - 2535.TW (\u9054\u6b23\u5de5)\n  - 2536.TW (\u5b8f\u666e)\n  - 2537.TW (\u806f\u4e0a\u767c)\n  - 2538.TW (\u57fa\u6cf0)\n  - 2539.TW (\u6afb\u82b1\u5efa)\n  - 2540.TW (\u611b\u5c71\u6797)\n  - 2542.TW (\u8208\u5bcc\u767c)\n  - 2543.TW (\u7687\u660c)\n  - 2545.TW (\u7687\u7fd4)\n  - 2546.TW (\u6839\u57fa)\n  - 2547.TW (\u65e5\u52dd\u751f)\n  - 2548.TW (\u83ef\u56fa)\n  - 2596.TWO (\u7da0\u610f)\n  - 2597.TW (\u6f64\u5f18)\n  - 2601.TW (\u76ca\u822a)\n  - 2603.TW (\u9577\u69ae)\n  - 2605.TW (\u65b0\u8208)\n  - 2606.TW (\u88d5\u6c11)\n  - 2607.TW (\u69ae\u904b)\n  - 2608.TW (\u5609\u91cc\u5927\u69ae)\n  - 2609.TW (\u967d\u660e)\n  - 2610.TW (\u83ef\u822a)\n  - 2611.TW (\u5fd7\u4fe1)\n  - 2612.TW (\u4e2d\u822a)\n  - 2613.TW (\u4e2d\u6ac3)\n  - 2614.TW (\u6771\u68ee)\n  - 2615.TW (\u842c\u6d77)\n  - 2616.TW (\u5c71\u9686)\n  - 2617.TW (\u53f0\u822a)\n  - 2618.TW (\u9577\u69ae\u822a)\n  - 2630.TW (\u4e9e\u822a)\n  - 2633.TW (\u53f0\u7063\u9ad8\u9435)\n  - 2634.TW (\u6f22\u7fd4)\n  - 2636.TW (\u53f0\u9a4a\u63a7\u80a1)\n  - 2637.TW (\u6167\u6d0b-KY)\n  - 2640.TWO (\u5927\u8eca\u968a)\n  - 2641.TWO (\u6b63\u5fb7)\n  - 2642.TW (\u5b85\u914d\u901a)\n  - 2643.TWO (\u6377\u8fc5)\n  - 2645.TW (\u9577\u69ae\u822a\u592a)\n  - 2646.TW (\u661f\u5b87\u822a\u7a7a)\n  - 2701.TW (\u842c\u4f01)\n  - 2702.TW (\u83ef\u5712)\n  - 2704.TW (\u570b\u8cd3)\n  - 2705.TW (\u516d\u798f)\n  - 2706.TW (\u7b2c\u4e00\u5e97)\n  - 2707.TW (\u6676\u83ef)\n  - 2712.TW (\u9060\u96c4\u4f86)\n  - 2718.TWO (\u5168\u5fc3\u6295\u63a7)\n  - 2719.TWO (\u71e6\u661f\u65c5)\n  - 2722.TW (\u590f\u90fd)\n  - 2723.TW (\u7f8e\u98df-KY)\n  - 2724.TWO (\u85dd\u820d-KY)\n  - 2726.TWO (\u96c5\u8317-KY)\n  - 2727.TW (\u738b\u54c1)\n  - 2729.TWO (\u74e6\u57ce)\n  - 2731.TW (\u96c4\u7345)\n  - 2732.TWO (\u516d\u89d2)\n  - 2734.TWO (\u6613\u98db\u7db2)\n  - 2736.TWO (\u5bcc\u91ce)\n  - 2739.TW (\u5bd2\u820d)\n  - 2740.TWO (\u83ef\u8ed2)\n  - 2743.TWO (\u5c71\u5bcc)\n  - 2745.TWO (\u4e94\u798f)\n  - 2748.TW (\u96f2\u54c1)\n  - 2751.TWO (\u738b\u5ea7)\n  - 2752.TWO (\u8c46\u5e9c)\n  - 2753.TW (\u516b\u65b9\u96f2\u96c6)\n  - 2754.TWO (\u4e9e\u6d32\u85cf\u58fd\u53f8)\n  - 2755.TWO (\u63da\u79e6)\n  - 2756.TWO (\u806f\u767c\u570b\u969b)\n  - 2762.TW (\u4e16\u754c\u5065\u8eab-KY)\n  - 2801.TW (\u5f70\u9280)\n  - 2812.TW (\u53f0\u4e2d\u9280)\n  - 2816.TW (\u65fa\u65fa\u4fdd)\n  - 2820.TW (\u83ef\u7968)\n  - 2832.TW (\u53f0\u7522)\n  - 2834.TW (\u81fa\u4f01\u9280)\n  - 2836.TW (\u9ad8\u96c4\u9280)\n  - 2838.TW (\u806f\u90a6\u9280)\n  - 2845.TW (\u9060\u6771\u9280)\n  - 2849.TW (\u5b89\u6cf0\u9280)\n  - 2850.TW (\u65b0\u7522)\n  - 2851.TW (\u4e2d\u518d\u4fdd)\n  - 2852.TW (\u7b2c\u4e00\u4fdd)\n  - 2855.TW (\u7d71\u4e00\u8b49)\n  - 2867.TW (\u4e09\u5546\u58fd)\n  - 2880.TW (\u83ef\u5357\u91d1)\n  - 2881.TW (\u5bcc\u90a6\u91d1)\n  - 2882.TW (\u570b\u6cf0\u91d1)\n  - 2883.TW (\u51f1\u57fa\u91d1)\n  - 2884.TW (\u7389\u5c71\u91d1)\n  - 2885.TW (\u5143\u5927\u91d1)\n  - 2886.TW (\u5146\u8c50\u91d1)\n  - 2887.TW (\u53f0\u65b0\u65b0\u5149\u91d1)\n  - 2889.TW (\u570b\u7968\u91d1)\n  - 2890.TW (\u6c38\u8c50\u91d1)\n  - 2891.TW (\u4e2d\u4fe1\u91d1)\n  - 2892.TW (\u7b2c\u4e00\u91d1)\n  - 2897.TW (\u738b\u9053\u9280\u884c)\n  - 2901.TW (\u6b23\u6b23)\n  - 2903.TW (\u9060\u767e)\n  - 2904.TW (\u532f\u50d1)\n  - 2905.TW (\u4e09\u5546)\n  - 2906.TW (\u9ad8\u6797)\n  - 2908.TW (\u7279\u529b)\n  - 2910.TW (\u7d71\u9818)\n  - 2911.TW (\u9e97\u5b30\u623f)\n  - 2912.TW (\u7d71\u4e00\u8d85)\n  - 2913.TW (\u8fb2\u6797)\n  - 2915.TW (\u6f64\u6cf0\u5168)\n  - 2916.TWO (\u6eff\u5fc3)\n  - 2923.TW (\u9f0e\u56fa-KY)\n  - 2924.TWO (\u5b8f\u592a-KY)\n  - 2926.TWO (\u8aa0\u54c1\u751f\u6d3b)\n  - 2929.TW (\u6dd8\u5e1d-KY)\n  - 2937.TWO (\u96c6\u96c5\u793e)\n  - 2939.TW (\u6c38\u9091-KY)\n  - 2941.TWO (\u7c73\u65af\u7279)\n  - 2945.TW (\u4e09\u5546\u5bb6\u8cfc)\n  - 2947.TWO (\u632f\u5b87\u4e94\u91d1)\n  - 2948.TWO (\u5bf6\u965e)\n  - 2949.TWO (\u6b23\u65b0\u7db2)\n  - 3002.TW (\u6b50\u683c)\n  - 3003.TW (\u5065\u548c\u8208)\n  - 3004.TW (\u8c50\u9054\u79d1)\n  - 3005.TW (\u795e\u57fa)\n  - 3006.TW (\u6676\u8c6a\u79d1)\n  - 3008.TW (\u5927\u7acb\u5149)\n  - 3010.TW (\u83ef\u7acb)\n  - 3011.TW (\u4eca\u7693)\n  - 3013.TW (\u665f\u9298\u96fb)\n  - 3014.TW (\u806f\u967d)\n  - 3015.TW (\u5168\u6f22)\n  - 3016.TW (\u5609\u6676)\n  - 3017.TW (\u5947\u92d0)\n  - 3018.TW (\u9686\u9298\u7da0\u80fd)\n  - 3019.TW (\u4e9e\u5149)\n  - 3021.TW (\u9d3b\u540d)\n  - 3022.TW (\u5a01\u5f37\u96fb)\n  - 3023.TW (\u4fe1\u90a6)\n  - 3024.TW (\u61b6\u8072)\n  - 3025.TW (\u661f\u901a)\n  - 3026.TW (\u79be\u4f38\u5802)\n  - 3027.TW (\u76db\u9054)\n  - 3028.TW (\u589e\u4f60\u5f37)\n  - 3029.TW (\u96f6\u58f9)\n  - 3030.TW (\u5fb7\u5f8b)\n  - 3031.TW (\u4f70\u9d3b)\n  - 3032.TW (\u5049\u8a13)\n  - 3033.TW (\u5a01\u5065)\n  - 3034.TW (\u806f\u8a60)\n  - 3035.TW (\u667a\u539f)\n  - 3036.TW (\u6587\u66c4)\n  - 3038.TW (\u5168\u53f0)\n  - 3040.TW (\u9060\u898b)\n  - 3041.TW (\u63da\u667a)\n  - 3042.TW (\u6676\u6280)\n  - 3043.TW (\u79d1\u98a8)\n  - 3044.TW (\u5065\u9f0e)\n  - 3045.TW (\u53f0\u7063\u5927)\n  - 3046.TW (\u5efa\ufffd\ufffd)\n  - 3047.TW (\u8a0a\u821f)\n  - 3048.TW (\u76ca\u767b)\n  - 3049.TW (\u7cbe\u91d1)\n  - 3050.TW (\u923a\u5fb7)\n  - 3051.TW (\u529b\u7279)\n  - 3052.TW (\u5906\u5178)\n  - 3054.TW (\u7acb\u842c\u5229)\n  - 3055.TW (\u851a\u83ef\u79d1)\n  - 3056.TW (\u5bcc\u83ef\u65b0)\n  - 3057.TW (\u55ac\u9f0e)\n  - 3058.TW (\u7acb\u5fb7)\n  - 3059.TW (\u83ef\u6676\u79d1)\n  - 3060.TW (\u9298\u7570)\n  - 3062.TW (\u5efa\u6f22)\n  - 3064.TWO (\u6cf0\u5049)\n  - 3066.TWO (\u674e\u6d32)\n  - 3067.TWO (\u5168\u57df)\n  - 3071.TWO (\u5354\u79a7)\n  - 3073.TWO (\u5929\u65b9\u80fd\u6e90)\n  - 3078.TWO (\u50d1\u5a01)\n  - 3081.TWO (\u806f\u4e9e)\n  - 3083.TWO (\u7db2\u9f8d)\n  - 3085.TWO (\u65b0\u96f6\u552e)\n  - 3086.TWO (\u83ef\u7fa9*)\n  - 3088.TWO (\u827e\u8a0a)\n  - 3090.TW (\u65e5\u96fb\u8cbf)\n  - 3092.TW (\u9d3b\u78a9)\n  - 3093.TWO (\u6e2f\u5efa*)\n  - 3094.TW (\u806f\u5091)\n  - 3095.TWO (\u53ca\u6210)\n  - 3114.TWO (\u597d\u5fb7)\n  - 3115.TWO (\u5bcc\u69ae\u7db1)\n  - 3118.TWO (\u9032\u968e)\n  - 3122.TWO (\u7b19\u6cc9)\n  - 3128.TWO (\u6607\u92b3)\n  - 3130.TW (\u4e00\u96f6\u56db)\n  - 3131.TWO (\u5f18\u5851)\n  - 3135.TW (\u51cc\u822a)\n  - 3138.TW (\u8000\u767b)\n  - 3141.TWO (\u6676\u5b8f)\n  - 3147.TWO (\u5927\u7d9c)\n  - 3149.TW (\u6b63\u9054)\n  - 3150.TW (\u923a\u5bf6-\u5275)\n  - 3152.TWO (\u749f\u5fb7)\n  - 3158.TWO (\u5609\u5be6)\n  - 3162.TWO (\u7cbe\u78ba)\n  - 3163.TWO (\u6ce2\u82e5\u5a01)\n  - 3164.TW (\u666f\u5cb3)\n  - 3167.TW (\u5927\u91cf)\n  - 3168.TW (\u773e\u798f\u79d1)\n  - 3169.TWO (\u4e9e\u4fe1)\n  - 3171.TWO (\u708e\u6d32\u6d41\u901a)\n  - 3176.TWO (\u57fa\u4e9e)\n  - 3178.TWO (\u516c\u6e96)\n  - 3188.TWO (\u946b\u9f8d\u9a30)\n  - 3189.TW (\u666f\u78a9)\n  - 3191.TWO (\u96f2\u5609\u5357)\n  - 3205.TWO (\u4f70\u7814)\n  - 3206.TWO (\u5fd7\u8c50)\n  - 3207.TWO (\u8000\u52dd)\n  - 3209.TW (\u5168\u79d1)\n  - 3211.TWO (\u9806\u9054)\n  - 3213.TWO (\u8302\u8a0a)\n  - 3217.TWO (\u512a\u7fa4)\n  - 3218.TWO (\u5927\u5b78\u5149)\n  - 3219.TWO (\u501a\u5f37\u79d1)\n  - 3221.TWO (\u53f0\u5609\u78a9)\n  - 3224.TWO (\u4e09\u9867)\n  - 3226.TWO (\u9f8d\u92d2)\n  - 3227.TWO (\u539f\u76f8)\n  - 3228.TWO (\u91d1\u9e97\u79d1)\n  - 3229.TW (\u665f\u9226)\n  - 3230.TWO (\u9326\u660e)\n  - 3231.TW (\u7def\u5275)\n  - 3232.TWO (\u6631\u6377)\n  - 3234.TWO (\u5149\u74b0)\n  - 3236.TWO (\u5343\u5982)\n  - 3252.TWO (\u6d77\u7063)\n  - 3257.TW (\u8679\u51a0\u96fb)\n  - 3259.TWO (\u946b\u5275)\n  - 3264.TWO (\u6b23\u9293)\n  - 3265.TWO (\u53f0\u661f\u79d1)\n  - 3266.TW (\u6607\u967d)\n  - 3268.TWO (\u6d77\u5fb7\u5a01)\n  - 3272.TWO (\u6771\u78a9)\n  - 3276.TWO (\u5b87\u74b0)\n  - 3284.TWO (\u592a\u666e\u9ad8)\n  - 3285.TWO (\u5fae\u7aef)\n  - 3287.TWO (\u5ee3\u5bf0\u79d1)\n  - 3288.TWO (\u9ede\u6676)\n  - 3289.TWO (\u5b9c\u7279)\n  - 3290.TWO (\u6771\u6d66)\n  - 3293.TWO (\u920a\u8c61)\n  - 3294.TWO (\u82f1\u6fdf)\n  - 3296.TW (\u52dd\u5fb7)\n  - 3297.TWO (\u676d\u7279)\n  - 3303.TWO (\u5cb1\u7a1c)\n  - 3305.TW (\u6607\u8cbf)\n  - 3306.TWO (\u9f0e\u5929)\n  - 3308.TW (\u806f\u5fb7)\n  - 3310.TWO (\u4f73\u7a4e)\n  - 3311.TW (\u958e\u6689)\n  - 3312.TW (\u5f18\u61b6\u80a1)\n  - 3313.TWO (\u6590\u6210)\n  - 3317.TWO (\u5c3c\u514b\u68ee)\n  - 3321.TW (\u540c\u6cf0)\n  - 3322.TWO (\u5efa\u821c\u96fb)\n  - 3323.TWO (\u52a0\u767e\u88d5)\n  - 3324.TWO (\u96d9\u9d3b)\n  - 3325.TWO (\u65ed\u54c1)\n  - 3332.TWO (\u5e78\u5eb7)\n  - 3338.TW (\u6cf0\u78a9)\n  - 3339.TWO (\u6cf0\u8c37)\n  - 3346.TW (\u9e97\u6e05)\n  - 3349.TWO (\u5bf6\u5fb7)\n  - 3354.TWO (\u5f8b\u52dd)\n  - 3356.TW (\u5947\u5076)\n  - 3357.TWO (\u81fa\u6176\u79d1)\n  - 3360.TWO (\u5c1a\u7acb)\n  - 3362.TWO (\u5148\u9032\u5149)\n  - 3363.TWO (\u4e0a\u8a6e)\n  - 3372.TWO (\u5178\u7bc4)\n  - 3373.TWO (\u71b1\u6620)\n  - 3374.TWO (\u7cbe\u6750)\n  - 3376.TW (\u65b0\u65e5\u8208)\n  - 3379.TWO (\u5f6c\u53f0)\n  - 3380.TW (\u660e\u6cf0)\n  - 3388.TWO (\u5d07\u8d8a\u96fb)\n  - 3390.TWO (\u65ed\u8edf)\n  - 3402.TWO (\u6f22\u79d1)\n  - 3406.TW (\u7389\u6676\u5149)\n  - 3413.TW (\u4eac\u9f0e)\n  - 3416.TW (\u878d\u7a0b\u96fb)\n  - 3419.TW (\u8b41\u88d5)\n  - 3426.TWO (\u53f0\u8208)\n  - 3430.TWO (\u5947\u9226\u79d1)\n  - 3432.TW (\u53f0\u7aef)\n  - 3434.TWO (\u54f2\u56fa)\n  - 3437.TW (\u69ae\u5275)\n  - 3438.TWO (\u985e\u6bd4\u79d1)\n  - 3441.TWO (\u806f\u4e00\u5149)\n  - 3443.TW (\u5275\u610f)\n  - 3444.TWO (\u5229\u6a5f)\n  - 3447.TW (\u5c55\u9054)\n  - 3450.TW (\u806f\u921e)\n  - 3455.TWO (\u7531\u7530)\n  - 3465.TWO (\u9032\u6cf0\u96fb\u5b50)\n  - 3466.TWO (\u5fb7\u6649)\n  - 3467.TWO (\u53f0\u7063\u7cbe\u6750)\n  - 3479.TWO (\u5b89\u52e4)\n  - 3483.TWO (\u529b\u81f4)\n  - 3484.TWO (\u5d27\u9a30)\n  - 3485.TWO (\u6558\u8c50)\n  - 3489.TWO (\u68ee\u5bf6)\n  - 3490.TWO (\u55ae\u4e95)\n  - 3491.TWO (\u6607\u9054\u79d1)\n  - 3492.TWO (\u9577\u76db)\n  - 3494.TW (\u8aa0\u7814)\n  - 3498.TWO (\u967d\u7a0b)\n  - 3499.TWO (\u74b0\u5929\u79d1)\n  - 3501.TW (\u7dad\u71b9)\n  - 3504.TW (\u63da\u660e\u5149)\n  - 3508.TWO (\u4f4d\u901f)\n  - 3511.TWO (\u77fd\u746a)\n  - 3512.TWO (\u7687\u9f8d)\n  - 3515.TW (\u83ef\u64ce)\n  - 3516.TWO (\u4e9e\u5e1d\u6b50)\n  - 3518.TW (\u67cf\u9a30)\n  - 3520.TWO (\u83ef\u76c8)\n  - 3521.TWO (\u53f0\u92fc\u5efa\u8a2d)\n  - 3522.TWO (\u5fa1\u5d7f)\n  - 3523.TWO (\u8fce\u8f1d)\n  - 3526.TWO (\u51e1\u7532)\n  - 3527.TWO (\u805a\u7a4d)\n  - 3528.TW (\u5b89\u99b3)\n  - 3529.TWO (\u529b\u65fa)\n  - 3530.TW (\u6676\u76f8\u5149)\n  - 3531.TWO (\u5148\u76ca)\n  - 3532.TW (\u53f0\u52dd\u79d1)\n  - 3533.TW (\u5609\u6fa4)\n  - 3535.TW (\u6676\u5f69\u79d1)\n  - 3537.TWO (\u5821\u9054)\n  - 3540.TWO (\u66dc\u8d8a)\n  - 3541.TWO (\u897f\u67cf)\n  - 3543.TW (\u5dde\u5de7)\n  - 3545.TW (\u6566\u6cf0)\n  - 3546.TWO (\u5b87\u5cfb)\n  - 3548.TWO (\u5146\u5229)\n  - 3550.TW (\u806f\u7a4e)\n  - 3551.TWO (\u4e16\u79be)\n  - 3552.TWO (\u540c\u81f4)\n  - 3555.TWO (\u535a\u58eb\u65fa)\n  - 3556.TWO (\u79be\u745e\u4e9e)\n  - 3557.TW (\u5609\u5a01)\n  - 3558.TWO (\u795e\u6e96)\n  - 3563.TW (\u7267\u5fb7)\n  - 3564.TWO (\u5176\u967d)\n  - 3567.TWO (\u9038\u660c)\n  - 3570.TWO (\u5927\u585a)\n  - 3576.TW (\u806f\u5408\u518d\u751f)\n  - 3577.TWO (\u6cd3\u683c)\n  - 3580.TWO (\u53cb\u5a01\u79d1)\n  - 3581.TWO (\u535a\u78ca)\n  - 3583.TW (\u8f9b\u8018)\n  - 3587.TWO (\u958e\u5eb7)\n  - 3588.TW (\u901a\u5609)\n  - 3591.TW (\u827e\u7b1b\u68ee)\n  - 3592.TW (\u745e\u9f0e)\n  - 3593.TW (\u529b\u9298)\n  - 3594.TWO (\u78d0\u5100)\n  - 3596.TW (\u667a\u6613)\n  - 3597.TWO (\u6620\u8208)\n  - 3605.TW (\u5b8f\u81f4)\n  - 3607.TW (\u8c37\u5d27)\n  - 3609.TWO (\u4e09\u4e00\u6771\u6797)\n  - 3611.TWO (\u9f0e\u7ff0)\n  - 3615.TWO (\u5b89\u53ef)\n  - 3617.TW (\u78a9\u5929)\n  - 3622.TW (\u6d0b\u83ef)\n  - 3623.TWO (\u5bcc\u6676\u901a)\n  - 3624.TWO (\u5149\u9821)\n  - 3625.TWO (\u897f\u52dd)\n  - 3628.TWO (\u76c8\u6b63)\n  - 3629.TWO (\u5730\u5fc3\u5f15\u529b)\n  - 3630.TWO (\u65b0\u9245\u79d1)\n  - 3631.TWO (\u665f\u6960)\n  - 3632.TWO (\u7814\u52e4)\n  - 3645.TW (\u9054\u9081)\n  - 3646.TWO (\u827e\u6069\u7279)\n  - 3652.TW (\u7cbe\u806f)\n  - 3653.TW (\u5065\u7b56)\n  - 3661.TW (\u4e16\u82af-KY)\n  - 3663.TWO (\u946b\u79d1)\n  - 3664.TWO (\u5b89\u745e-KY)\n  - 3665.TW (\u8cbf\u806f-KY)\n  - 3666.TWO (\u5149\u8000)\n  - 3669.TW (\u5713\u5c55)\n  - 3672.TWO (\u5eb7\u806f\u8a0a)\n  - 3673.TW (TPK-KY)\n  - 3675.TWO (\u5fb7\u5fae)\n  - 3679.TW (\u65b0\u81f3\u965e)\n  - 3680.TWO (\u5bb6\u767b)\n  - 3684.TWO (\u69ae\u660c)\n  - 3685.TWO (\u5143\u5275\u7cbe\u5bc6)\n  - 3686.TW (\u9054\u80fd)\n  - 3687.TWO (\u6b50\u8cb7\u5c2c)\n  - 3689.TWO (\u6e67\u5fb7)\n  - 3691.TWO (\u78a9\u79be)\n  - 3693.TWO (\u71df\u90a6)\n  - 3694.TW (\u6d77\u83ef)\n  - 3701.TW (\u5927\u773e\u63a7)\n  - 3702.TW (\u5927\u806f\u5927)\n  - 3703.TW (\u6b23\u9678)\n  - 3704.TW (\u5408\u52e4\u63a7)\n  - 3705.TW (\u6c38\u4fe1)\n  - 3706.TW (\u795e\u9054)\n  - 3707.TWO (\u6f22\u78ca)\n  - 3708.TW (\u4e0a\u7def\u6295\u63a7)\n  - 3710.TWO (\u9023\u5c55\u6295\u63a7)\n  - 3711.TW (\u65e5\u6708\u5149\u6295\u63a7)\n  - 3712.TW (\u6c38\u5d34\u6295\u63a7)\n  - 3713.TWO (\u65b0\u6676\u6295\u63a7)\n  - 3714.TW (\u5bcc\u91c7)\n  - 3715.TW (\u5b9a\u7a4e\u6295\u63a7)\n  - 3716.TW (\u4e2d\u5316\u63a7\u80a1)\n  - 3717.TW (\u806f\u5609\u6295\u63a7)\n  - 4102.TWO (\u6c38\u65e5)\n  - 4104.TW (\u4f73\u91ab)\n  - 4105.TWO (\u6771\u6d0b)\n  - 4106.TW (\u96c3\u535a)\n  - 4107.TWO (\u90a6\u7279)\n  - 4108.TW (\u61f7\u7279)\n  - 4109.TWO (\u52a0\u6377\u751f\u91ab)\n  - 4111.TWO (\u6fdf\u751f)\n  - 4113.TWO (\u806f\u4e0a)\n  - 4114.TWO (\u5065\u55ac)\n  - 4116.TWO (\u660e\u57fa\u91ab)\n  - 4119.TW (\u65ed\u5bcc)\n  - 4120.TWO (\u53cb\u83ef)\n  - 4121.TWO (\u512a\u76db)\n  - 4123.TWO (\u665f\u5fb7)\n  - 4126.TWO (\u592a\u91ab)\n  - 4127.TWO (\u5929\u826f)\n  - 4128.TWO (\u4e2d\u5929)\n  - 4129.TWO (\u806f\u5408)\n  - 4130.TWO (\u5065\u4e9e)\n  - 4131.TWO (\u6d69\u6cf0)\n  - 4133.TW (\u4e9e\u8afe\u6cd5)\n  - 4137.TW (\u9e97\u8c50-KY)\n  - 4138.TWO (\u66dc\u4e9e)\n  - 4139.TWO (\u99ac\u5149-KY)\n  - 4142.TW (\u570b\u5149\u751f)\n  - 4147.TWO (\u4e2d\u88d5)\n  - 4148.TW (\u5168\u5b87\u751f\u6280-KY)\n  - 4153.TWO (\u923a\u7def)\n  - 4154.TWO (\u6a02\u5a01\u79d1-KY)\n  - 4155.TW (\u8a0a\u6620)\n  - 4157.TWO (\u592a\u666f*-KY)\n  - 4160.TWO (\u8a0a\u806f\u57fa\u56e0)\n  - 4161.TWO (\u807f\u65b0\u79d1)\n  - 4162.TWO (\u667a\u64ce)\n  - 4163.TWO (\u943f\u9226)\n  - 4164.TW (\u627f\u696d\u91ab)\n  - 4166.TWO (\u53cb\u9716)\n  - 4167.TWO (\u677e\u745e\u85e5)\n  - 4168.TWO (\u91a3\u806f)\n  - 4169.TW (\u6cf0\u5b97)\n  - 4171.TWO (\u745e\u57fa)\n  - 4173.TWO (\u4e45\u88d5)\n  - 4174.TWO (\u6d69\u9f0e)\n  - 4175.TWO (\u674f\u4e00)\n  - 4178.TW (\u6c38\u7b19-KY)\n  - 4183.TWO (\u798f\u6c38\u751f\u6280)\n  - 4188.TWO (\u5b89\u514b)\n  - 4190.TW (\u4f50\u767b-KY)\n  - 4192.TWO (\u674f\u570b)\n  - 4195.TW (\u57fa\u7c73-\u5275)\n  - 4198.TWO (\u6b23\u5927\u5065\u5eb7)\n  - 4205.TWO (\u4e2d\u83ef\u98df)\n  - 4207.TWO (\u74b0\u6cf0)\n  - 4303.TWO (\u4fe1\u7acb)\n  - 4304.TWO (\u52dd\u6631)\n  - 4305.TWO (\u4e16\u5764)\n  - 4306.TW (\u708e\u6d32)\n  - 4401.TWO (\u6771\u9686\u8208)\n  - 4402.TWO (\u90e1\u90fd\u958b\u767c)\n  - 4406.TWO (\u65b0\u6615\u7e96)\n  - 4413.TWO (\u98db\u5bf6\u4f01\u696d)\n  - 4414.TW (\u5982\u8208)\n  - 4416.TWO (\u4e09\u5713)\n  - 4417.TWO (\u91d1\u6d32)\n  - 4419.TWO (\u7687\u5bb6\u7f8e\u98df)\n  - 4420.TWO (\u5149\u660e)\n  - 4426.TW (\u5229\u52e4)\n  - 4430.TWO (\u8000\u5104)\n  - 4432.TWO (\u9298\u65fa\u5be6)\n  - 4433.TWO (\u8208\u91c7)\n  - 4438.TW (\u5ee3\u8d8a)\n  - 4439.TW (\u51a0\u661f-KY)\n  - 4440.TW (\u5b9c\u65b0\u5be6\u696d)\n  - 4441.TW (\u632f\u5927\u74b0\u7403)\n  - 4442.TWO (\u7ae3\u90a6-KY)\n  - 4502.TWO (\u5065\u4fe1)\n  - 4503.TWO (\u91d1\u96e8)\n  - 4506.TWO (\u5d07\u53cb)\n  - 4510.TWO (\u9ad8\u92d2)\n  - 4513.TWO (\u798f\u88d5)\n  - 4523.TWO (\u6c38\u5f70)\n  - 4526.TW (\u6771\u53f0)\n  - 4527.TWO (\u65b9\u571f\u9716)\n  - 4528.TWO (\u6c5f\u8208\u935b)\n  - 4529.TWO (\u6df3\u7d33)\n  - 4530.TWO (\u5b8f\u6613)\n  - 4532.TW (\u745e\u667a)\n  - 4533.TWO (\u5354\u6613\u6a5f)\n  - 4534.TWO (\u6176\u9a30)\n  - 4535.TWO (\u81f3\u8208)\n  - 4536.TW (\u62d3\u51f1)\n  - 4538.TWO (\u5927\u8a60\u57ce)\n  - 4540.TW (\u5168\u7403\u50b3\u52d5)\n  - 4541.TWO (\u665f\u7530)\n  - 4542.TWO (\u79d1\u5da0)\n  - 4545.TW (\u9298\u923a)\n  - 4549.TWO (\u6853\u9054)\n  - 4550.TWO (\u9577\u4f73)\n  - 4551.TW (\u667a\u4f38\u79d1)\n  - 4552.TW (\u529b\u9054-KY)\n  - 4554.TWO (\u6a59\u7684)\n  - 4555.TW (\u6c23\u7acb)\n  - 4556.TWO (\u65ed\u7136)\n  - 4557.TW (\u6c38\u65b0-KY)\n  - 4558.TWO (\u5bf6\u7def)\n  - 4560.TW (\u5f37\u4fe1-KY)\n  - 4561.TWO (\u5065\u693f)\n  - 4562.TW (\u7a4e\u6f22)\n  - 4563.TWO (\u767e\u5fb7)\n  - 4564.TW (\u5143\u7fce)\n  - 4566.TW (\u6642\u78a9\u5de5\u696d)\n  - 4568.TWO (\u79d1\u969b\u7cbe\u5bc6)\n  - 4569.TW (\u516d\u65b9\u79d1-KY)\n  - 4571.TW (\u921e\u8208-KY)\n  - 4572.TW (\u99d0\u9f8d)\n  - 4576.TW (\u5927\u9280\u5fae\u7cfb\u7d71)\n  - 4577.TWO (\u9054\u822a\u79d1\u6280)\n  - 4580.TWO (\u6377\u6d41\u95a5\u696d)\n  - 4581.TW (\u5149\u9686\u7cbe\u5bc6-KY)\n  - 4582.TW (\u805a\u6046-\u5275)\n  - 4583.TW (\u53f0\u7063\u7cbe\u92b3)\n  - 4584.TWO (\u541b\u5e06)\n  - 4585.TW (\u9054\u660e)\n  - 4588.TW (\u7396\u9f0e\u96fb\u529b)\n  - 4590.TW (\u5bcc\u7530-\u5275)\n  - 4609.TWO (\u5510\u92d2)\n  - 4702.TWO (\u4e2d\u7f8e\u5be6)\n  - 4706.TWO (\u5927\u606d)\n  - 4707.TWO (\u78d0\u4e9e)\n  - 4711.TWO (\u6c38\u7d14)\n  - 4714.TWO (\u6c38\u6377)\n  - 4716.TWO (\u5927\u7acb)\n  - 4720.TW (\u5fb7\u6df5)\n  - 4721.TWO (\u7f8e\u742a\u746a)\n  - 4722.TW (\u570b\u7cbe\u5316)\n  - 4726.TWO (\u6c38\u6615)\n  - 4728.TWO (\u96d9\u7f8e)\n  - 4729.TWO (\u7192\u8302)\n  - 4735.TWO (\u8c6a\u5c55)\n  - 4736.TW (\u6cf0\u535a)\n  - 4737.TW (\u83ef\u5ee3)\n  - 4739.TW (\u5eb7\u666e)\n  - 4741.TWO (\u6cd3\u701a)\n  - 4743.TWO (\u5408\u4e00)\n  - 4744.TWO (\u7687\u5c07)\n  - 4745.TWO (\u5408\u5bcc-KY)\n  - 4746.TW (\u53f0\u8000)\n  - 4747.TWO (\u5f37\u751f)\n  - 4749.TWO (\u65b0\u61c9\u6750)\n  - 4754.TWO (\u570b\u78b3\u79d1)\n  - 4755.TW (\u4e09\u798f\u5316)\n  - 4760.TWO (\u52e4\u51f1)\n  - 4763.TW (\u6750\u6599*-KY)\n  - 4764.TW (\u96d9\u9375)\n  - 4766.TW (\u5357\u5bf6)\n  - 4767.TWO (\u8aa0\u6cf0\u79d1\u6280)\n  - 4768.TWO (\u6676\u5448\u79d1\u6280)\n  - 4770.TW (\u4e0a\u54c1)\n  - 4771.TW (\u671b\u96bc)\n  - 4772.TWO (\u53f0\u7279\u5316)\n  - 4804.TWO (\u5927\u7565-KY)\n  - 4806.TWO (\u6842\u7530\u6587\u5275)\n  - 4807.TW (\u65e5\u6210-KY)\n  - 4903.TWO (\u806f\u5149\u901a)\n  - 4904.TW (\u9060\u50b3)\n  - 4905.TWO (\u53f0\u806f\u96fb)\n  - 4906.TW (\u6b63\u6587)\n  - 4907.TWO (\u5bcc\u5b87)\n  - 4908.TWO (\u524d\u9f0e)\n  - 4909.TWO (\u65b0\u5fa9\u8208)\n  - 4911.TWO (\u5fb7\u82f1)\n  - 4912.TW (\u806f\u5fb7\u63a7\u80a1-KY)\n  - 4915.TW (\u81f4\u4f38)\n  - 4916.TW (\u4e8b\u6b23\u79d1)\n  - 4919.TW (\u65b0\u5510)\n  - 4923.TWO (\u529b\u58eb)\n  - 4924.TWO (\u6b23\u539a-KY)\n  - 4927.TW (\u6cf0\u9f0e-KY)\n  - 4930.TW (\u71e6\u661f\u7db2)\n  - 4931.TWO (\u65b0\u76db\u529b)\n  - 4933.TWO (\u53cb\u8f1d)\n  - 4934.TW (\u592a\u6975)\n  - 4935.TW (\u8302\u6797-KY)\n  - 4938.TW (\u548c\u78a9)\n  - 4939.TWO (\u4e9e\u96fb)\n  - 4942.TW (\u5609\u5f70)\n  - 4943.TW (\u5eb7\u63a7-KY)\n  - 4946.TWO (\u8fa3\u6912)\n  - 4949.TW (\u6709\u6210\u7cbe\u5bc6)\n  - 4950.TWO (\u91d1\u8018\u570b\u969b)\n  - 4951.TWO (\u7cbe\u62d3\u79d1)\n  - 4952.TW (\u51cc\u901a)\n  - 4953.TWO (\u7def\u8edf)\n  - 4956.TW (\u5149\u92d0)\n  - 4958.TW (\u81fb\u9f0e-KY)\n  - 4960.TW (\u8aa0\u7f8e\u6750)\n  - 4961.TW (\u5929\u923a)\n  - 4966.TWO (\u8b5c\u745e-KY)\n  - 4967.TW (\u5341\u9293)\n  - 4968.TW (\u7acb\u7a4d)\n  - 4971.TWO (IET-KY)\n  - 4972.TWO (\u6e6f\u77f3\u7167\u660e)\n  - 4973.TWO (\u5ee3\u7a4e)\n  - 4974.TWO (\u4e9e\u6cf0)\n  - 4976.TW (\u4f73\u51cc)\n  - 4977.TW (\u773e\u9054-KY)\n  - 4979.TWO (\u83ef\u661f\u5149)\n  - 4987.TWO (\u79d1\u8aa0)\n  - 4989.TW (\u69ae\u79d1)\n  - 4991.TWO (\u74b0\u5b87-KY)\n  - 4994.TW (\u50b3\u5947)\n  - 4995.TWO (\u6676\u9054)\n  - 4999.TW (\u946b\u79be)\n  - 5007.TW (\u4e09\u661f)\n  - 5009.TWO (\u69ae\u525b)\n  - 5011.TWO (\u4e45\u967d)\n  - 5013.TWO (\u5f37\u65b0)\n  - 5014.TWO (\u5efa\u9329)\n  - 5015.TWO (\u83ef\u797a)\n  - 5016.TWO (\u677e\u548c)\n  - 5201.TWO (\u51f1\u885b)\n  - 5202.TWO (\u529b\u65b0)\n  - 5203.TW (\u8a0a\u9023)\n  - 5205.TWO (\u4e2d\u8302)\n  - 5206.TWO (\u5764\u6085)\n  - 5209.TWO (\u65b0\u9f0e)\n  - 5210.TWO (\u5bf6\u78a9)\n  - 5211.TWO (\u8499\u606c)\n  - 5212.TWO (\u51cc\u7db2)\n  - 5213.TWO (\u4e9e\u6615)\n  - 5215.TW (\u79d1\u5609-KY)\n  - 5220.TWO (\u842c\u9054\u5149\u96fb)\n  - 5222.TW (\u5168\u8a0a)\n  - 5223.TWO (\u5b89\u529b-KY)\n  - 5225.TW (\u6771\u79d1-KY)\n  - 5227.TWO (\u7acb\u51f1-KY)\n  - 5228.TWO (\u923a\u93a7)\n  - 5230.TWO (\u96f7\u7b1b\u514b\u5149\u5b78)\n  - 5234.TW (\u9054\u8208\u6750\u6599)\n  - 5236.TWO (\u51cc\u967d\u5275\u65b0)\n  - 5243.TW (\u4e59\u76db-KY)\n  - 5244.TW (\u5f18\u51f1)\n  - 5245.TWO (\u667a\u6676)\n  - 5251.TWO (\u5929\u925e\u96fb)\n  - 5258.TW (\u8679\u5821)\n  - 5263.TWO (\u667a\u5d34)\n  - 5269.TW (\u7965\u78a9)\n  - 5272.TWO (\u7b19\u79d1)\n  - 5274.TWO (\u4fe1\u9a4a)\n  - 5276.TWO (\u9054\u8f1d-KY)\n  - 5278.TWO (\u5c1a\u51e1*)\n  - 5283.TW (\u79be\u806f\u78a9)\n  - 5284.TW (jpp-KY)\n  - 5285.TW (\u754c\u9716)\n  - 5287.TWO (\u6578\u5b57)\n  - 5288.TW (\u8c50\u7965-KY)\n  - 5291.TWO (\u9091\u6607)\n  - 5292.TW (\u83ef\u61cb)\n  - 5299.TWO (\u6770\u529b)\n  - 5301.TWO (\u5bf6\u5f97\u5229)\n  - 5302.TWO (\u592a\u6b23)\n  - 5306.TW (\u6842\u76df)\n  - 5309.TWO (\u7cfb\u7d71\u96fb)\n  - 5310.TWO (\u5929\u525b)\n  - 5312.TWO (\u5bf6\u5cf6\u79d1)\n  - 5314.TWO (\u4e16\u7d00*)\n  - 5315.TWO (\u5149\u806f)\n  - 5321.TWO (\u7f8e\u800c\u5feb)\n  - 5324.TWO (\u58eb\u958b)\n  - 5328.TWO (\u83ef\u5bb9)\n  - 5340.TWO (\u5efa\u69ae)\n  - 5344.TWO (\u7acb\u885b)\n  - 5345.TWO (\u99a5\u9d3b)\n  - 5348.TWO (\u6b63\u80fd\u91cf\u667a\u80fd)\n  - 5351.TWO (\u923a\u5275)\n  - 5353.TWO (\u53f0\u6797)\n  - 5355.TWO (\u4f73\u7e3d)\n  - 5356.TWO (\u5354\u76ca)\n  - 5364.TWO (\u529b\u9e97\u5e97)\n  - 5371.TWO (\u4e2d\u5149\u96fb)\n  - 5381.TWO (\u5149\u8b5c)\n  - 5386.TWO (\u9752\u96f2)\n  - 5388.TW (\u4e2d\u78ca)\n  - 5392.TWO (\u80fd\u7387)\n  - 5398.TWO (\u6155\u5eb7\u751f\u91ab)\n  - 5403.TWO (\u4e2d\u83f2)\n  - 5410.TWO (\u570b\u773e)\n  - 5425.TWO (\u53f0\u534a)\n  - 5426.TWO (\u632f\u767c)\n  - 5432.TWO (\u65b0\u9580)\n  - 5434.TW (\u5d07\u8d8a)\n  - 5438.TWO (\u6771\u53cb)\n  - 5439.TWO (\u9ad8\u6280)\n  - 5450.TWO (\u5357\u826f)\n  - 5452.TWO (\u4f76\u512a)\n  - 5455.TWO (\u6607\u76ca)\n  - 5457.TWO (\u5ba3\u5fb7)\n  - 5460.TWO (\u540c\u5354)\n  - 5464.TWO (\u9716\u5b8f)\n  - 5465.TWO (\u5bcc\u9a4a)\n  - 5468.TWO (\u51f1\u923a)\n  - 5469.TW (\u701a\u5b87\u535a)\n  - 5471.TW (\u677e\u7ff0)\n  - 5474.TWO (\u8070\u6cf0)\n  - 5475.TWO (\u5fb7\u5b8f)\n  - 5478.TWO (\u667a\u51a0)\n  - 5481.TWO (\u65b0\u83ef)\n  - 5483.TWO (\u4e2d\u7f8e\u6676)\n  - 5484.TW (\u6167\u53cb)\n  - 5487.TWO (\u901a\u6cf0)\n  - 5488.TWO (\u677e\u666e)\n  - 5489.TWO (\u5f69\u5bcc)\n  - 5490.TWO (\u540c\u4ea8)\n  - 5493.TWO (\u4e09\u806f)\n  - 5498.TWO (\u51f1\u5d34)\n  - 5508.TWO (\u6c38\u4fe1\u5efa)\n  - 5511.TWO (\u5fb7\u660c)\n  - 5512.TWO (\u529b\u9e92)\n  - 5514.TWO (\u4e09\u8c50)\n  - 5515.TW (\u5efa\u570b)\n  - 5516.TWO (\u96d9\u559c)\n  - 5519.TW (\u9686\u5927)\n  - 5520.TWO (\u529b\u6cf0)\n  - 5521.TW (\u5de5\u4fe1)\n  - 5522.TW (\u9060\u96c4)\n  - 5523.TWO (\u8c50\u8b19)\n  - 5525.TW (\u9806\u5929)\n  - 5529.TWO (\u9245\u965e)\n  - 5530.TWO (\u9f8d\u5dd6)\n  - 5531.TW (\u9109\u6797)\n  - 5533.TW (\u7687\u9f0e)\n  - 5534.TW (\u9577\u8679)\n  - 5536.TWO (\u8056\u6689*)\n  - 5538.TW (\u6771\u660e-KY)\n  - 5543.TWO (\u6853\u9f0e-KY)\n  - 5546.TW (\u6c38\u56fa-KY)\n  - 5547.TWO (\u4e45\u821c)\n  - 5548.TWO (\u5b89\u5009)\n  - 5601.TWO (\u53f0\u806f\u6ac3)\n  - 5603.TWO (\u9678\u6d77)\n  - 5604.TWO (\u4e2d\u9023)\n  - 5607.TW (\u9060\u96c4\u6e2f)\n  - 5608.TW (\u56db\u7dad\u822a)\n  - 5609.TWO (\u4e2d\u83f2\u884c)\n  - 5701.TWO (\u528d\u6e56\u5c71)\n  - 5703.TWO (\u4e9e\u90fd)\n  - 5704.TWO (\u8001\u723a\u77e5)\n  - 5706.TW (\u9cf3\u51f0)\n  - 5864.TWO (\u81f4\u548c\u8b49)\n  - 5871.TW (\u4e2d\u79df-KY)\n  - 5876.TW (\u4e0a\u6d77\u5546\u9280)\n  - 5878.TWO (\u53f0\u540d)\n  - 5880.TW (\u5408\u5eab\u91d1)\n  - 5902.TWO (\u5fb7\u8a18)\n  - 5903.TWO (\u5168\u5bb6)\n  - 5904.TWO (\u5bf6\u96c5)\n  - 5905.TWO (\u5357\u4ec1\u6e56)\n  - 5906.TW (\u53f0\u5357-KY)\n  - 5907.TW (\u5927\u6d0b-KY)\n  - 6005.TW (\u7fa4\u76ca\u8b49)\n  - 6015.TWO (\u5b8f\u9060\u8b49)\n  - 6016.TWO (\u5eb7\u548c\u8b49)\n  - 6020.TWO (\u5927\u5c55\u8b49)\n  - 6021.TWO (\u7f8e\u597d\u8b49)\n  - 6023.TWO (\u5143\u5927\u671f)\n  - 6024.TW (\u7fa4\u76ca\u671f)\n  - 6026.TWO (\u798f\u90a6\u8b49)\n  - 6028.TWO (\u516c\u52dd\u4fdd\u7d93)\n  - 6101.TWO (\u5bec\u9b5a\u570b\u969b)\n  - 6103.TWO (\u5408\u90a6)\n  - 6104.TWO (\u5275\u60df)\n  - 6108.TW (\u7af6\u570b)\n  - 6109.TWO (\u4e9e\u5143)\n  - 6111.TWO (\u5149\u805a\u6676\u96fb)\n  - 6112.TW (\u9081\u9054\u7279)\n  - 6113.TWO (\u4e9e\u77fd)\n  - 6114.TWO (\u4e45\u5a01)\n  - 6115.TW (\u93b0\u52dd)\n  - 6116.TW (\u5f69\u6676)\n  - 6117.TW (\u8fce\u5ee3)\n  - 6118.TWO (\u5efa\u9054)\n  - 6120.TW (\u9054\u904b)\n  - 6121.TWO (\u65b0\u666e)\n  - 6122.TWO (\u64ce\u90a6)\n  - 6123.TWO (\u4e0a\u5947)\n  - 6124.TWO (\u696d\u5f37)\n  - 6126.TWO (\u4fe1\u97f3)\n  - 6127.TWO (\u4e5d\u8c6a)\n  - 6128.TW (\u4e0a\u798f)\n  - 6129.TWO (\u666e\u8aa0)\n  - 6130.TWO (\u4e0a\u4e9e\u79d1\u6280)\n  - 6133.TW (\u91d1\u6a4b)\n  - 6134.TWO (\u842c\u65ed)\n  - 6136.TW (\u5bcc\u723e\u7279)\n  - 6138.TWO (\u8302\u9054)\n  - 6139.TW (\u4e9e\u7fd4)\n  - 6140.TWO (\u8a0a\u9054)\n  - 6141.TW (\u67cf\u627f)\n  - 6142.TW (\u53cb\u52c1)\n  - 6143.TWO (\u632f\u66dc)\n  - 6144.TWO (\u5f97\u5229\u5f71)\n  - 6146.TWO (\u8015\u8208)\n  - 6148.TWO (\u9a4a\u5b8f\u8cc7)\n  - 6150.TWO (\u64bc\u8a0a)\n  - 6151.TWO (\u6649\u502b)\n  - 6152.TW (\u767e\u4e00)\n  - 6153.TW (\u5609\u806f\u76ca)\n  - 6154.TWO (\u9806\u767c)\n  - 6155.TW (\u921e\u5bf6)\n  - 6156.TWO (\u677e\u4e0a)\n  - 6158.TWO (\u79be\u660c)\n  - 6160.TWO (\u6b23\u6280)\n  - 6161.TWO (\u6377\u6ce2)\n  - 6163.TWO (\u83ef\u96fb\u7db2)\n  - 6164.TW (\u83ef\u8208)\n  - 6165.TW (\u6d6a\u51e1)\n  - 6166.TW (\u51cc\u83ef)\n  - 6167.TWO (\u4e45\u6b63)\n  - 6168.TW (\u5b8f\u9f4a)\n  - 6169.TWO (\u6631\u6cc9)\n  - 6170.TWO (\u7d71\u632f)\n  - 6171.TWO (\u5927\u57ce\u5730\u7522)\n  - 6173.TWO (\u4fe1\u660c\u96fb)\n  - 6174.TWO (\u5b89\ufffd\ufffd)\n  - 6175.TWO (\u7acb\u6566)\n  - 6176.TW (\u745e\u5100)\n  - 6177.TW (\u9054\u9e97)\n  - 6179.TWO (\u4e9e\u901a)\n  - 6180.TWO (\u6a58\u5b50)\n  - 6182.TWO (\u5408\u6676)\n  - 6183.TW (\u95dc\u8cbf)\n  - 6184.TW (\u5927\u8c50\u96fb)\n  - 6185.TWO (\u5e43\u7fd4)\n  - 6186.TWO (\u65b0\u6f64)\n  - 6187.TWO (\u842c\u6f64)\n  - 6188.TWO (\u5ee3\u660e)\n  - 6189.TW (\u8c50\u85dd)\n  - 6190.TWO (\u842c\u6cf0\u79d1)\n  - 6191.TW (\u7cbe\u6210\u79d1)\n  - 6192.TW (\u5de8\u8def)\n  - 6194.TWO (\u80b2\u5bcc)\n  - 6195.TWO (\u8a69\u80af)\n  - 6196.TW (\u5e06\u5ba3)\n  - 6197.TW (\u4f73\u5fc5\u742a)\n  - 6198.TWO (\u745e\u7bc9)\n  - 6199.TWO (\u5929\u54c1)\n  - 6201.TW (\u4e9e\u5f18\u96fb)\n  - 6202.TW (\u76db\u7fa4)\n  - 6203.TWO (\u6d77\u97fb\u96fb)\n  - 6204.TWO (\u827e\u83ef)\n  - 6205.TW (\u8a6e\u6b23)\n  - 6206.TW (\u98db\u6377)\n  - 6207.TWO (\u96f7\u79d1)\n  - 6208.TWO (\u65e5\u63da)\n  - 6209.TW (\u4eca\u570b\u5149)\n  - 6210.TWO (\u6176\u751f)\n  - 6212.TWO (\u7406\u9298)\n  - 6213.TW (\u806f\u8302)\n  - 6214.TW (\u7cbe\u8aa0)\n  - 6215.TW (\u548c\u693f)\n  - 6216.TW (\u5c45\u6613)\n  - 6217.TWO (\u4e2d\u63a2\u91dd)\n  - 6218.TWO (\u8c6a\u52c9)\n  - 6219.TWO (\u5bcc\u65fa)\n  - 6220.TWO (\u5cb3\u8c50)\n  - 6221.TWO (\u6649\u6cf0)\n  - 6222.TWO (\u7acb\u8ed2)\n  - 6223.TWO (\u65fa\u77fd)\n  - 6224.TW (\u805a\u9f0e)\n  - 6225.TW (\u5929\u701a)\n  - 6226.TW (\u5149\u9f0e)\n  - 6227.TWO (\u8302\u7db8)\n  - 6228.TWO (\u5168\u8b5c)\n  - 6229.TWO (\u7814\u901a)\n  - 6230.TW (\u5c3c\u5f97\u79d1\u8d85\u773e)\n  - 6231.TWO (\u7cfb\u5fae)\n  - 6233.TWO (\u65fa\u7396)\n  - 6234.TWO (\u9ad8\u50d1)\n  - 6235.TW (\u83ef\u5b5a)\n  - 6236.TWO (\u4e2d\u6e5b)\n  - 6237.TWO (\u9a4a\u8a0a)\n  - 6240.TWO (\u677e\u5d17)\n  - 6241.TWO (\u6613\u901a\u5c55)\n  - 6242.TWO (\u7acb\u5eb7)\n  - 6243.TW (\u8fc5\u6770)\n  - 6244.TWO (\u8302\u8fea)\n  - 6245.TWO (\u7acb\u7aef)\n  - 6246.TWO (\u81fa\u9f8d)\n  - 6248.TWO (\u6c9b\u6ce2)\n  - 6257.TW (\u77fd\u683c)\n  - 6259.TWO (\u767e\u5fbd)\n  - 6261.TWO (\u4e45\u5143)\n  - 6263.TWO (\u666e\u840a\u5fb7)\n  - 6264.TWO (\u5bcc\u88d4)\n  - 6265.TWO (\u65b9\u571f\u6636)\n  - 6266.TWO (\u6cf0\u8a60)\n  - 6269.TW (\u53f0\u90e1)\n  - 6270.TWO (\u500d\u5fae)\n  - 6271.TW (\u540c\u6b23\u96fb)\n  - 6272.TW (\u9a4a\u965e)\n  - 6274.TWO (\u53f0\u71ff)\n  - 6275.TWO (\u5143\u5c71)\n  - 6276.TWO (\u5b89\u9226\u514b)\n  - 6277.TW (\u5b8f\u6b63)\n  - 6278.TW (\u53f0\u8868\u79d1)\n  - 6279.TWO (\u80e1\u9023)\n  - 6281.TW (\u5168\u570b\u96fb)\n  - 6282.TW (\u5eb7\u8212)\n  - 6283.TW (\u6df3\u5b89)\n  - 6284.TWO (\u4f73\u90a6)\n  - 6290.TWO (\u826f\u7dad)\n  - 6291.TWO (\u6c9b\u4ea8)\n  - 6292.TWO (\u8fc5\u5fb7)\n  - 6294.TWO (\u667a\u57fa)\n  - 6405.TW (\u6085\u57ce)\n  - 6409.TW (\u65ed\u96bc)\n  - 6411.TWO (\u6676\u7131)\n  - 6412.TW (\u7fa4\u96fb)\n  - 6414.TW (\u6a3a\u6f22)\n  - 6415.TW (\u77fd\u529b*-KY)\n  - 6416.TW (\u745e\u797a\u96fb\u901a)\n  - 6417.TWO (\u97cb\u50d1)\n  - 6418.TWO (\u8a60\u6607)\n  - 6419.TWO (\u4eac\u6668\u79d1)\n  - 6423.TWO (\u5104\u800c\u5f97)\n  - 6425.TWO (\u6613\u767c)\n  - 6426.TW (\u7d71\u65b0)\n  - 6431.TW (\u5149\u9e97-KY)\n  - 6432.TWO (\u4eca\u5c55\u79d1)\n  - 6435.TWO (\u5927\u4e2d)\n  - 6438.TW (\u8fc5\u5f97)\n  - 6441.TWO (\u5ee3\u9320)\n  - 6442.TW (\u5149\u8056)\n  - 6443.TW (\u5143\u6676)\n  - 6446.TW (\u85e5\u83ef\u85e5)\n  - 6449.TW (\u923a\u90a6)\n  - 6451.TW (\u8a0a\u82af-KY)\n  - 6456.TW (GIS-KY)\n  - 6461.TWO (\u76ca\u5f97)\n  - 6462.TWO (\u795e\u76fe)\n  - 6464.TW (\u53f0\u6578\u79d1)\n  - 6465.TWO (\u5a01\u6f64)\n  - 6469.TWO (\u5927\u6a39)\n  - 6470.TWO (\u5b87\u667a)\n  - 6472.TW (\u4fdd\u745e)\n  - 6474.TWO (\u83ef\u8c6b\u5be7)\n  - 6477.TW (\u5b89\u96c6)\n  - 6482.TWO (\u5f18\u715c\u79d1)\n  - 6485.TWO (\u9ede\u5e8f)\n  - 6486.TWO (\u4e92\u52d5)\n  - 6488.TWO (\u74b0\u7403\u6676)\n  - 6491.TW (\u6676\u78a9)\n  - 6492.TWO (\u751f\u83ef\u79d1)\n  - 6494.TWO (\u4e5d\u9f4a)\n  - 6496.TWO (\u79d1\u61cb)\n  - 6498.TWO (\u4e45\u79be\u5149)\n  - 6499.TWO (\u76ca\u5b89)\n  - 6504.TW (\u5357\u516d)\n  - 6505.TW (\u53f0\u5851\u5316)\n  - 6506.TWO (\u96d9\u90a6)\n  - 6508.TWO (\u60e0\u5149)\n  - 6509.TWO (\u805a\u548c)\n  - 6510.TWO (\u7cbe\u6e2c)\n  - 6512.TWO (\u555f\u767c\u96fb)\n  - 6515.TW (\u7a4e\u5d34)\n  - 6516.TWO (\u52e4\u5d34\u570b\u969b)\n  - 6517.TWO (\u4fdd\u52dd\u5149\u5b78)\n  - 6523.TWO (\u9054\u723e\u819a)\n  - 6525.TW (\u6377\u654f-KY)\n  - 6526.TW (\u9054\u767c)\n  - 6527.TWO (\u660e\u9054\u91ab)\n  - 6530.TWO (\u5275\u5a01)\n  - 6531.TW (\u611b\u666e*)\n  - 6532.TWO (\u745e\u8018)\n  - 6533.TW (\u6676\u5fc3\u79d1)\n  - 6534.TW (\u6b63\u701a-\u5275)\n  - 6535.TWO (\u9806\u85e5)\n  - 6538.TWO (\u5009\u548c)\n  - 6541.TW (\u6cf0\u798f-KY)\n  - 6542.TWO (\u9686\u4e2d)\n  - 6546.TWO (\u6b63\u57fa)\n  - 6547.TWO (\u9ad8\u7aef\u75ab\u82d7)\n  - 6548.TWO (\u9577\u79d1*)\n  - 6550.TW (\u5317\u6975\u661f\u85e5\u696d-KY)\n  - 6552.TW (\u6613\u83ef\u96fb)\n  - 6556.TWO (\u52dd\u54c1)\n  - 6558.TW (\u8208\u80fd\u9ad8)\n  - 6560.TWO (\u6b23\u666e\u7f85)\n  - 6561.TWO (\u662f\u65b9)\n  - 6568.TWO (\u5b8f\u89c0)\n  - 6569.TWO (\u91ab\u63da)\n  - 6570.TWO (\u7dad\u7530)\n  - 6573.TW (\u8679\u63da-KY)\n  - 6574.TWO (\u9708\u65b9)\n  - 6576.TWO (\u9038\u9054)\n  - 6577.TWO (\u52c1\u8c50)\n  - 6578.TWO (\u9054\u90a6\u86cb\u767d)\n  - 6579.TW (\u7814\u63da)\n  - 6581.TW (\u92fc\u806f)\n  - 6582.TW (\u7533\u8c50)\n  - 6584.TWO (\u5357\u4fca\u570b\u969b)\n  - 6585.TW (\u9f0e\u57fa)\n  - 6588.TWO (\u6771\u5178\u5149\u96fb)\n  - 6589.TW (\u53f0\u5eb7\u751f\u6280)\n  - 6590.TWO (\u666e\u9d3b)\n  - 6591.TW (\u52d5\u529b-KY)\n  - 6592.TW (\u548c\u6f64\u4f01\u696d)\n  - 6593.TWO (\u53f0\u7063\u9298\u677f)\n  - 6596.TWO (\u5bec\u5b8f\u85dd\u8853)\n  - 6597.TWO (\u7acb\u8aa0)\n  - 6598.TW (ABC-KY)\n  - 6603.TWO (\u5bcc\u5f37\u946b)\n  - 6605.TW (\u5e1d\u5bf6)\n  - 6606.TW (\u5efa\u5fb7\u5de5\u696d)\n  - 6609.TWO (\u7027\u6fa4\u79d1)\n  - 6612.TWO (\u5948\u7c73\u91ab\u6750)\n  - 6613.TWO (\u670b\u5104*)\n  - 6614.TW (\u8cc7\u62d3\u5b8f\u5b87)\n  - 6615.TWO (\u6167\u667a)\n  - 6616.TWO (\u7279\u6607-KY)\n  - 6617.TWO (\u5171\u4fe1-KY)\n  - 6620.TWO (\u6f22\u9054)\n  - 6624.TWO (\u842c\u5e74\u6e05)\n  - 6625.TW (\u5fc5\u61c9)\n  - 6629.TWO (\u6cf0\u91d1-KY)\n  - 6637.TWO (\u91ab\u5f71)\n  - 6640.TWO (\u5747\u83ef)\n  - 6641.TW (\u57fa\u58eb\u5fb7-KY)\n  - 6642.TWO (\u5bcc\u81f4)\n  - 6643.TWO (M31)\n  - 6645.TW (\u91d1\u842c\u6797-\u5275)\n  - 6649.TWO (\u53f0\u751f\u6750)\n  - 6651.TWO (\u5168\u5b87\u6615)\n  - 6654.TWO (\u5929\u6b63\u570b\u969b)\n  - 6655.TW (\u79d1\u5b9a)\n  - 6657.TW (\u83ef\u5b89)\n  - 6658.TW (\u806f\u7b56)\n  - 6661.TWO (\u5a01\u5065\u751f\u6280)\n  - 6662.TWO (\u6a02\u65af\u79d1)\n  - 6664.TWO (\u7fa4\u7fca)\n  - 6666.TW (\u7f85\u9e97\u82ac-KY)\n  - 6667.TWO (\u4fe1\u7d18\u79d1)\n  - 6668.TW (\u4e2d\u63da\u5149)\n  - 6669.TW (\u7def\u7a4e)\n  - 6670.TW (\u5fa9\u76db\u61c9\u7528)\n  - 6671.TW (\u4e09\u80fd-KY)\n  - 6672.TW (\u9a30\u8f1d\u96fb\u5b50-KY)\n  - 6674.TW (\u92d0\u5bf6\u79d1\u6280)\n  - 6679.TWO (\u923a\u592a)\n  - 6680.TWO (\u946b\u5275\u96fb\u5b50)\n  - 6683.TWO (\u96cd\u667a\u79d1\u6280)\n  - 6684.TWO (\u5b89\u683c)\n  - 6689.TW (\u4f0a\u96f2\u8c37)\n  - 6690.TWO (\u5b89\ufffd\u784c\u7a48T)\n  - 6691.TW (\u6d0b\u57fa\u5de5\u7a0b)\n  - 6692.TWO (\u9032\u80fd\u670d)\n  - 6693.TWO (\u5ee3\u958e\u79d1)\n  - 6695.TW (\u82af\u9f0e)\n  - 6697.TWO (\u6771\u6377\u8cc7\u8a0a)\n  - 6698.TW (\u65ed\u6689\u61c9\u6750)\n  - 6703.TWO (\u8ed2\u90c1)\n  - 6706.TW (\u60e0\u7279)\n  - 6708.TWO (\u5929\u64ce)\n  - 6712.TWO (\u9577\u8056)\n  - 6715.TW (\u5609\u57fa)\n  - 6716.TWO (\u61c9\u5ee3)\n  - 6719.TW (\u529b\u667a)\n  - 6720.TWO (\u4e45\u660c)\n  - 6721.TWO (\u4fe1\u5be6)\n  - 6722.TW (\u8f1d\u5275)\n  - 6725.TWO (\u77fd\u79d1\u5b8f\u665f)\n  - 6727.TWO (\u4e9e\u6cf0\u91d1\u5c6c)\n  - 6728.TWO (\u4e0a\u6d0b)\n  - 6730.TWO (\u5e38\u5ee3)\n  - 6732.TWO (\u6607\u4f73\u96fb\u5b50)\n  - 6733.TWO (\u535a\u665f\u751f\u91ab)\n  - 6735.TWO (\u7f8e\u9054\u79d1\u6280)\n  - 6739.TWO (\u7af9\u965e\u79d1\u6280)\n  - 6741.TWO (91APP*-KY)\n  - 6742.TW (\u6fa4\u7c73)\n  - 6743.TW (\u5b89\u666e\u65b0)\n  - 6751.TWO (\u667a\u806f\u670d\u52d9)\n  - 6752.TWO (\u53e1\u63da)\n  - 6753.TW (\u9f8d\u5fb7\u9020\u8239)\n  - 6754.TW (\u532f\u50d1\u8a2d\u8a08)\n  - 6756.TW (\u5a01\u92d2\u96fb\u5b50)\n  - 6757.TW (\u53f0\u7063\u864e\u822a)\n  - 6761.TWO (\u7a69\u5f97)\n  - 6762.TWO (\u9054\u4e9e)\n  - 6763.TWO (\u7da0\u754c\u79d1\u6280*)\n  - 6767.TWO (\u53f0\u5fae\u91ab)\n  - 6768.TW (\u5fd7\u5f37-KY)\n  - 6771.TW (\u5e73\u548c\u74b0\u4fdd-\u5275)\n  - 6776.TW (\u5c55\ufffd\u7725\u7bd5\ufffd)\n  - 6781.TW (AES-KY)\n  - 6782.TW (\u8996\u967d)\n  - 6785.TWO (\u6631\u5c55\u65b0\u85e5)\n  - 6788.TWO (\u83ef\u666f\u96fb)\n  - 6789.TW (\u91c7\u923a)\n  - 6790.TW (\u6c38\u8c50\u5be6)\n  - 6791.TWO (\u864e\u9580\u79d1\u6280)\n  - 6792.TW (\u8a60\u696d)\n  - 6794.TW (\u5411\u69ae\u751f\u6280)\n  - 6796.TW (\u6649\u5f18)\n  - 6799.TW (\u4f86\u9821)\n  - 6803.TWO (\u5d11\u9f0e)\n  - 6804.TWO (\u660e\u4fc2)\n  - 6805.TW (\u5bcc\u4e16\u9054)\n  - 6806.TW (\u68ee\u5d34\u80fd\u6e90)\n  - 6807.TW (\u5cf0\u6e90-KY)\n  - 6811.TWO (\u5b8f\ufffd\u784c\u7a48T)\n  - 6821.TWO (\u806f\u5bf6)\n  - 6823.TWO (\u6ffe\u80fd)\n  - 6829.TWO (\u5343\u9644\u7cbe\u5bc6)\n  - 6830.TW (\u6c4e\u9293)\n  - 6831.TW (\u9081\u79d1)\n  - 6834.TW (\u5929\u4e8c\u79d1\u6280)\n  - 6835.TW (\u5713\u88d5)\n  - 6838.TW (\u53f0\u65b0\u85e5)\n  - 6840.TWO (\u6771\u7814\u4fe1\u8d85)\n  - 6841.TWO (\u9577\u4f73\u667a\u80fd)\n  - 6843.TWO (\u9032\u5178)\n  - 6844.TWO (\u8afe\u8c9d\u5152)\n  - 6846.TWO (\u7da0\u8335)\n  - 6854.TW (\u933c\u5275\u79d1\u6280-KY\u5275)\n  - 6855.TWO (\u6578\u6cd3\u79d1)\n  - 6856.TWO (\u946b\u50b3)\n  - 6859.TWO (\u4f2f\u7279\u5149)\n  - 6861.TW (\u777f\u751f\u5149\u96fb)\n  - 6862.TW (\u4e09\u96c6\u745e-KY)\n  - 6863.TW (\u6c38\u9053-KY)\n  - 6865.TWO (\u5049\u5eb7\u79d1\u6280)\n  - 6869.TW (\u96f2\u8c79\u80fd\u6e90)\n  - 6870.TWO (\u9a30\u96f2)\n  - 6872.TWO (\u6d69\u5b87\u751f\u91ab)\n  - 6873.TW (\u6cd3\u5fb7\u80fd\u6e90)\n  - 6874.TWO (\u500d\u529b)\n  - 6875.TWO (\u570b\u9091*)\n  - 6877.TWO (\u93f5\u53cb\u76ca)\n  - 6881.TWO (\u6f64\u5fb7)\n  - 6884.TWO (\u6d77\u67cf\u7279)\n  - 6885.TW (\u5168\u798f\u751f\u6280)\n  - 6887.TW (\u5bf6\u7da0\u7279-KY)\n  - 6890.TW (\u4f86\u5104-KY)\n  - 6894.TWO (\u885b\u53f8\u7279)\n  - 6895.TWO (\u5b8f\u78a9\u7cfb\u7d71)\n  - 6899.TWO (\u5275\u70ba\u7cbe\u5bc6)\n  - 6901.TW (\u947d\u77f3\u6295\u8cc7)\n  - 6902.TW (GOGOLOOK)\n  - 6903.TWO (\u5de8\u6f22)\n  - 6904.TWO (\u4f2f\u946b)\n  - 6906.TW (\u73fe\u89c0\u79d1)\n  - 6907.TWO (\u96c5\u7279\u529b-KY)\n  - 6908.TW (\u5b8f\ufffd\u7826C\u6232-\u5275)\n  - 6909.TW (\u5275\u63a7)\n  - 6910.TWO (\u5fb7\u9d3b)\n  - 6913.TWO (\u9d3b\u5448)\n  - 6914.TW (\u961c\u723e\u904b\u901a)\n  - 6916.TW (\u83ef\u51cc)\n  - 6918.TW (\u611b\u6d3e\u53f8)\n  - 6919.TW (\u5eb7\u9708*)\n  - 6921.TW (\u5609\u96e8\u601d-\u5275)\n  - 6922.TWO (\u5bb8\u66dc)\n  - 6923.TW (\u4e2d\u53f0)\n  - 6924.TW (\u69ae\u60e0-KY\u5275)\n  - 6925.TWO (\u610f\u85cd)\n  - 6928.TW (\u6538\u6cf0\u79d1\u6280)\n  - 6929.TWO (\u4f51\u5168)\n  - 6931.TW (\u9752\u677e\u5065\u5eb7)\n  - 6933.TW (AMAX-KY)\n  - 6934.TW (\u5fc3\u8aa0\u9382)\n  - 6936.TW (\u6c38\u9d3b\u751f\u6280)\n  - 6937.TW (\u5929\u8679)\n  - 6944.TW (\u5146\u806f\u5be6\u696d)\n  - 6945.TWO (\u5713\u7965\u751f\u6280)\n  - 6949.TW (\u6c9b\u723e\u751f\u91ab-\u5275)\n  - 6951.TW (\u9752\u65b0-\u5275)\n  - 6952.TW (\u5927\u6b66\u5c71)\n  - 6953.TWO (\u5bb6\u78a9)\n  - 6955.TW (\u90a6\u777f\u751f\u6280-\u5275)\n  - 6957.TW (\u88d5\u6176-KY)\n  - 6958.TW (\u65e5\u76db\u53f0\u99ff)\n  - 6961.TWO (\u65c5\u5929\u4e0b)\n  - 6962.TW (\u5955\u529b-KY)\n  - 6965.TW (\u4e2d\u5091-KY)\n  - 6967.TWO (\u6c4e\u744b\u6750\u6599)\n  - 6968.TWO (\u842c\u9054\u5bf5\u7269)\n  - 6969.TW (\u6210\u4fe1\u5be6\u696d*-\u5275)\n  - 6971.TWO (\u60e0\u6c11\u5be6\u696d)\n  - 6982.TWO (\u5927\u4e95\u6cf5\u6d66)\n  - 6983.TWO (\u83ef\u6d0b\u7cbe\u6a5f)\n  - 6988.TW (\u5a01\u529b\u6698-\u5275)\n  - 6994.TW (\u5bcc\u5a01\u96fb\u529b)\n  - 6996.TWO (\u529b\u9818\u79d1\u6280)\n  - 6997.TWO (\u535a\u5f18)\n  - 7402.TWO (\u9091\u9321)\n  - 7547.TWO (\u78a9\u7db2)\n  - 7556.TWO (\u610f\u5fb7\u58eb)\n  - 7584.TWO (\u6a02\u610f)\n  - 7610.TW (\u806f\u53cb\u91d1\u5c6c-\u5275)\n  - 7631.TW (\u805a\u8ce2\u7814\u767c-\u5275)\n  - 7642.TWO (\u6636\u745e\u6a5f\u96fb)\n  - 7703.TWO (\u92b3\u6fa4)\n  - 7704.TWO (\u660e\u9060\u7cbe\u5bc6)\n  - 7705.TW (\u4e09\u5546\u9910\u98f2)\n  - 7708.TWO (\u5168\u5bb6\u9910\u98f2)\n  - 7709.TWO (\u69ae\u7530)\n  - 7711.TW (\u6c38\u64ce)\n  - 7712.TWO (\u535a\u76db\u534a\u5c0e\u9ad4)\n  - 7713.TWO (\u5a01\u529b\u5fb7\u751f\u91ab)\n  - 7714.TWO (\u5275\u6cd3\u79d1\u6280)\n  - 7715.TWO (\u88d5\u5c71)\n  - 7716.TWO (\u6631\u81fa\u570b\u969b)\n  - 7717.TWO (\u840a\u5fb7\u5149\u96fb-KY)\n  - 7718.TWO (\u53cb\u92ee)\n  - 7721.TW (\u5fae\u7a0b\u5f0f)\n  - 7722.TW (LINEPAY)\n  - 7723.TWO (\u7bc9\u9593)\n  - 7728.TWO (\u5149\u7131\u79d1\u6280)\n  - 7730.TW (\u6689\u76db-\u5275)\n  - 7732.TW (\u91d1\u8208\u7cbe\u5bc6)\n  - 7734.TWO (\u5370\u80fd\u79d1\u6280)\n  - 7736.TW (\u864e\u5c71)\n  - 7738.TWO (\u6771\u806f\u4e92\u52d5)\n  - 7740.TW (\u7199\u7279\u723e-\u5275)\n  - 7743.TWO (\u91d1\u5229\u98df\u5b89)\n  - 7744.TWO (\u5d34\u5bf6)\n  - 7747.TWO (\u6615\u5947\u96f2\u7aef)\n  - 7749.TW (\u610f\u9a30-KY)\n  - 7750.TW (\u65b0\u4ee3)\n  - 7751.TWO (\u7ad1\u9a30)\n  - 7753.TWO (\u661f\u4e9e)\n  - 7757.TWO (\u91d1\u8272\u4e09\u9ea5)\n  - 7760.TW (\u4eab\u6eab\u99a8)\n  - 7765.TW (\u4e2d\u83ef\u8cc7\u5b89)\n  - 7767.TWO (\u4ec1\u5927\u8cc7\u8a0a)\n  - 7768.TW (\u980c\u52dd\u79d1\u6280)\n  - 7769.TW (\u9d3b\u52c1)\n  - 7770.TWO (\u541b\u66dc)\n  - 7772.TWO (\u8000\u7a4e)\n  - 7777.TWO (\u80fd\u7387\u4e9e\u6d32)\n  - 7780.TW (\u5927\u7814\u751f\u91ab*)\n  - 7782.TWO (\u5149\u901f\u706b\u7bad)\n  - 7786.TW (\u6771\u65b9\u98a8\u80fd)\n  - 7788.TW (\u677e\u5ddd\u7cbe\u5bc6)\n  - 7791.TW (\u7687\u5bb6\u53ef\u53e3)\n  - 7792.TWO (\u5b89\u8446)\n  - 7794.TWO (\u5b8f\ufffd\u7852\u64a5s)\n  - 7795.TW (\u9577\u5ee3)\n  - 7799.TW (\u79be\u69ae\u79d1)\n  - 7803.TW (\u96f2\u8c61\u79d1\u6280-\u5275)\n  - 7805.TWO (\u5a01\u806f\u901a)\n  - 7810.TWO (\u6377\u5275\u79d1\u6280)\n  - 7811.TWO (\u6c11\u76db)\n  - 7818.TW (\u6ea2\u6cf0\u5be6\u696d)\n  - 7819.TWO (\u7cbe\u8aa0\u91d1\u878d)\n  - 7820.TWO (\u7acb\u76c8)\n  - 7821.TW (\u795e\u6578)\n  - 7822.TW (\u500d\u5229\u79d1)\n  - 7823.TW (\u5967\u7fa9\u8cfd\u535a-KY\u5275)\n  - 7827.TW (\u6f22\u5eb7-KY\u5275)\n  - 7839.TWO (\u9054\u4eba\u7db2)\n  - 7842.TWO (\u5929\u80fd\u7da0\u96fb)\n  - 8011.TW (\u53f0\u901a)\n  - 8016.TW (\u77fd\u5275)\n  - 8021.TW (\u5c16\u9ede)\n  - 8024.TWO (\u4f51\u83ef)\n  - 8027.TWO (\u9226\u6607)\n  - 8028.TW (\u6607\u967d\u534a\u5c0e\u9ad4)\n  - 8032.TWO (\u5149\u83f1)\n  - 8033.TW (\u96f7\u864e)\n  - 8034.TWO (\u69ae\u7fa4)\n  - 8038.TWO (\u9577\u5712\u79d1)\n  - 8039.TW (\u53f0\u8679)\n  - 8040.TWO (\u4e5d\u6698)\n  - 8042.TWO (\u91d1\u5c71\u96fb)\n  - 8043.TWO (\u871c\u671b\u5be6)\n  - 8044.TWO (\u7db2\u5bb6)\n  - 8045.TW (\u9054\u904b\u5149\u96fb)\n  - 8046.TW (\u5357\u96fb)\n  - 8047.TWO (\u661f\u96f2)\n  - 8048.TWO (\u5fb7\u52dd)\n  - 8049.TWO (\u6676\u91c7)\n  - 8050.TWO (\u5ee3\u7a4d)\n  - 8054.TWO (\u5b89\u570b)\n  - 8059.TWO (\u51f1\u78a9)\n  - 8064.TWO (\u6771\u6377)\n  - 8066.TWO (\u4f86\u601d\u9054)\n  - 8067.TWO (\u5fd7\u65ed)\n  - 8068.TWO (\u5168\u9054)\n  - 8069.TWO (\u5143\u592a)\n  - 8070.TW (\u9577\u83ef*)\n  - 8071.TWO (\u80fd\u7387\u7db2\u901a)\n  - 8072.TW (\u965e\u6cf0)\n  - 8074.TWO (\u9245\u6a61)\n  - 8076.TWO (\u4f0d\u8c50)\n  - 8077.TWO (\u6d1b\ufffd\ufffd)\n  - 8080.TWO (\u6cf0\u9716)\n  - 8081.TW (\u81f4\u65b0)\n  - 8083.TWO (\u745e\u7a4e)\n  - 8084.TWO (\u5de8\u8679)\n  - 8085.TWO (\u798f\u83ef)\n  - 8086.TWO (\u5b8f\u6377\u79d1)\n  - 8087.TWO (\u9e97\u5347\u80fd\u6e90)\n  - 8088.TWO (\u54c1\u5b89)\n  - 8089.TWO (\u5eb7\u5168\u96fb\u8a0a)\n  - 8091.TWO (\u7fd4\u540d)\n  - 8092.TWO (\u5efa\u6690)\n  - 8093.TWO (\u4fdd\u92b3)\n  - 8096.TWO (\u64ce\u4e9e)\n  - 8097.TWO (\u5e38\u73f5)\n  - 8099.TWO (\u5927\u4e16\u79d1)\n  - 8101.TW (\u83ef\u51a0)\n  - 8102.TWO (\u5091\u9716\u79d1\u6280)\n  - 8103.TW (\u701a\u8343)\n  - 8104.TW (\u9338\u5bf6)\n  - 8105.TW (\u51cc\u5de8)\n  - 8107.TWO (\u5927\u5104\u91d1\u8302)\n  - 8109.TWO (\u535a\u5927)\n  - 8110.TW (\u83ef\u6771)\n  - 8111.TWO (\u7acb\ufffd\ufffd)\n  - 8112.TW (\u81f3\u4e0a)\n  - 8114.TW (\u632f\u6a3a\u96fb)\n  - 8121.TWO (\u8d8a\u5cf0)\n  - 8131.TW (\u798f\u61cb\u79d1)\n  - 8147.TWO (\u6b63\u6de9)\n  - 8150.TW (\u5357\u8302)\n  - 8155.TWO (\u535a\u667a)\n  - 8162.TW (\u5fae\u77fd\u96fb\u5b50-\u5275)\n  - 8163.TW (\u9054\u65b9)\n  - 8171.TWO (\u5929\u5b87)\n  - 8176.TWO (\u667a\u6377)\n  - 8182.TWO (\u52a0\u9ad8)\n  - 8183.TWO (\u7cbe\u661f)\n  - 8201.TW (\u7121\u6575)\n  - 8210.TW (\u52e4\u8aa0)\n  - 8213.TW (\u5fd7\u8d85)\n  - 8215.TW (\u660e\u57fa\u6750)\n  - 8222.TW (\u5bf6\u4e00)\n  - 8227.TWO (\u5de8\u6709\u79d1\u6280)\n  - 8234.TWO (\u65b0\u6f22)\n  - 8240.TWO (\u83ef\u5b8f)\n  - 8249.TW (\u83f1\u5149)\n  - 8255.TWO (\u670b\u7a0b)\n  - 8261.TW (\u5bcc\u9f0e)\n  - 8271.TW (\u5b87\u77bb)\n  - 8272.TWO (\u5168\u666f\u8edf\u9ad4)\n  - 8277.TWO (\u5546\u4e1e)\n  - 8279.TWO (\u751f\u5c55)\n  - 8284.TWO (\u4e09\u7af9)\n  - 8289.TWO (\u6cf0\u85dd)\n  - 8291.TWO (\u5c1a\u8302)\n  - 8341.TW (\u65e5\u53cb)\n  - 8342.TWO (\u76ca\u5f35)\n  - 8349.TWO (\ufffd\u77ec\ufffd)\n  - 8354.TWO (\u51a0\u597d)\n  - 8358.TWO (\u91d1\u5c45)\n  - 8367.TW (\u5efa\u65b0\u570b\u969b)\n  - 8374.TW (\u7f85\u6607)\n  - 8383.TWO (\u5343\u9644)\n  - 8390.TWO (\u91d1\u76ca\u9f0e)\n  - 8401.TWO (\u767d\u7d17\u79d1)\n  - 8403.TWO (\u76db\u5f18)\n  - 8404.TW (\u767e\u548c\u8208\u696d-KY)\n  - 8409.TWO (\u5546\u4e4b\u5668)\n  - 8410.TWO (\u68ee\u7530)\n  - 8411.TW (\u798f\u8c9e-KY)\n  - 8415.TWO (\u5927\u570b\u92fc)\n  - 8416.TWO (\u5be6\u5a01)\n  - 8421.TWO (\u65ed\u6e90)\n  - 8422.TW (\u53ef\u5be7\u885b*)\n  - 8423.TWO (\u4fdd\u7da0-KY)\n  - 8424.TWO (\u60e0\u666e)\n  - 8426.TWO (\u7d05\u6728-KY)\n  - 8429.TW (\u91d1\u9e97-KY)\n  - 8431.TWO (\u532f\u947d\u79d1)\n  - 8432.TWO (\u6771\u751f\u83ef)\n  - 8433.TWO (\u5f18\u5e06)\n  - 8435.TWO (\u9245\u9081)\n  - 8436.TWO (\u5927\u6c5f)\n  - 8437.TWO (\u5927\u5730-KY)\n  - 8438.TW (\u6636\u6615)\n  - 8440.TWO (\u7da0\u96fb)\n  - 8442.TW (\u5a01\u5b8f-KY)\n  - 8443.TW (\u963f\u7626)\n  - 8444.TWO (\u7da0\u6cb3-KY)\n  - 8446.TWO (\u83ef\u7814)\n  - 8450.TWO (\u9739\u9742)\n  - 8454.TW (\u5bcc\u90a6\u5a92)\n  - 8455.TWO (\u5927\u62d3-KY)\n  - 8462.TW (\u67cf\u6587)\n  - 8463.TW (\u6f64\u6cf0\u6750)\n  - 8464.TW (\u5104\u8c50)\n  - 8466.TW (\u7f8e\u5409\u5409-KY)\n  - 8467.TW (\u6ce2\u529b-KY)\n  - 8472.TWO (\u5920\u9ebb\u5409)\n  - 8473.TW (\u5c71\u6797\u6c34)\n  - 8476.TW (\u53f0\u5883*)\n  - 8477.TWO (\u5275\u696d\u5bb6)\n  - 8478.TW (\u6771\u54e5\u904a\u8247)\n  - 8481.TW (\u653f\u4f38)\n  - 8482.TW (\u5546\u5104-KY)\n  - 8487.TW (\u611b\u723e\u9054-\u5275)\n  - 8488.TW (\u5409\u6e90-KY)\n  - 8489.TWO (\u4e09\u8c9d\u5fb7)\n  - 8499.TW (\u9f0e\u70ab-KY)\n  - 8905.TWO (\u88d5\u570b)\n  - 8906.TWO (\u82b1\u738b)\n  - 8908.TWO (\u6b23\u96c4)\n  - 8916.TWO (\u5149\u9686)\n  - 8917.TWO (\u6b23\u6cf0)\n  - 8921.TWO (\u6c88\u6c0f)\n  - 8923.TWO (\u6642\u5831)\n  - 8924.TWO (\u5927\u7530)\n  - 8926.TW (\u53f0\u6c7d\u96fb)\n  - 8927.TWO (\u5317\u57fa)\n  - 8928.TWO (\u9245\u660e)\n  - 8929.TWO (\u5bcc\u5821)\n  - 8930.TWO (\u9752\u92fc)\n  - 8931.TWO (\u5927\u6c7d\u96fb)\n  - 8932.TWO (\u667a\u901a*)\n  - 8933.TWO (\u611b\u5730\u96c5)\n  - 8935.TWO (\u90a6\u6cf0)\n  - 8936.TWO (\u570b\u7d71)\n  - 8937.TWO (\u5408\u9a0f*)\n  - 8938.TWO (\u660e\u5b89)\n  - 8940.TW (\u65b0\u5929\u5730)\n  - 8941.TWO (\u95dc\u4e2d)\n  - 8942.TWO (\u68ee\u9245)\n  - 8996.TW (\u9ad8\u529b)\n  - 9103.TW (\u7f8e\u5fb7\u91ab\u7642-DR)\n  - 9105.TW (\u6cf0\u91d1\u5bf6-DR)\n  - 9110.TW (\u8d8a\u5357\u63a7-DR)\n  - 9136.TW (\u5de8\u9a30-DR)\n  - 9802.TW (\u923a\u9f4a-KY)\n  - 9902.TW (\u53f0\u706b)\n  - 9904.TW (\u5bf6\u6210)\n  - 9905.TW (\u5927\u83ef)\n  - 9906.TW (\u6b23\u5df4\u5df4)\n  - 9907.TW (\u7d71\u4e00\u5be6)\n  - 9908.TW (\u5927\u53f0\u5317)\n  - 9910.TW (\u8c50\u6cf0)\n  - 9911.TW (\u6afb\u82b1)\n  - 9912.TW (\u5049\u806f)\n  - 9914.TW (\u7f8e\u5229\u9054)\n  - 9917.TW (\u4e2d\u4fdd\u79d1)\n  - 9918.TW (\u6b23\u5929\u7136)\n  - 9919.TW (\u5eb7\u90a3\u9999)\n  - 9921.TW (\u5de8\u5927)\n  - 9924.TW (\u798f\u8208)\n  - 9925.TW (\u65b0\u4fdd)\n  - 9926.TW (\u65b0\u6d77)\n  - 9927.TW (\u6cf0\u9298)\n  - 9928.TW (\u4e2d\u8996)\n  - 9929.TW (\u79cb\u96e8)\n  - 9930.TW (\u4e2d\u806f\u8cc7\u6e90)\n  - 9931.TW (\u6b23\u9ad8)\n  - 9933.TW (\u4e2d\u9f0e)\n  - 9934.TW (\u6210\u9716)\n  - 9935.TW (\u6176\u8c50\u5bcc)\n  - 9937.TW (\u5168\u570b)\n  - 9938.TW (\u767e\u548c)\n  - 9939.TW (\u5b8f\u5168)\n  - 9940.TW (\u4fe1\u7fa9)\n  - 9941.TW (\u88d5\u878d)\n  - 9942.TW (\u8302\u9806)\n  - 9943.TW (\u597d\u6a02\u8fea)\n  - 9944.TW (\u65b0\u9e97)\n  - 9945.TW (\u6f64\u6cf0\u65b0)\n  - 9946.TW (\u4e09\u767c\u5730\u7522)\n  - 9949.TWO (\u7409\u5712)\n  - 9950.TWO (\u842c\u570b\u901a)\n  - 9951.TWO (\u7687\u7530)\n  - 9955.TW (\u4f73\u9f8d)\n  - 9958.TW (\u4e16\u7d00\u92fc)\n  - 9960.TWO (\u9081\u9054\u5eb7)\n  - 9962.TWO (\u6709\u76ca)\nFast Sync: Updating 36 core monitoring stocks...\nFailed to sync details for 3481.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2313.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 3260.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 1802.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 00881.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 00981A.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2368.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 0052.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 6125.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 7828.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 5289.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2376.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2317.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 4925.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 3709.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2408.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 5443.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 3037.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 6239.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 6770.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2382.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 0050.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 00965.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2049.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 5347.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 8299.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2454.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2303.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 1513.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 6147.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 4543.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2327.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2409.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 3105.TWO: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 2330.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\nFailed to sync details for 6285.TW: Yahoo API requires curl_cffi session not <class 'requests.sessions.Session'>. Solution: stop setting session, let YF handle.\n--- Sync Complete ---\n--- AI Architect: Confluence EOD Analysis (Micro + Macro) ---",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -536,17 +536,17 @@
       "schedule_display": "50 13 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 27
+        "completed": 37
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-10T01:25:25.947235+08:00",
-      "next_run_at": "2026-06-15T13:50:00+08:00",
-      "last_run_at": "2026-06-12T13:50:53.635982+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-29T13:50:00+08:00",
+      "last_run_at": "2026-06-26T13:50:10.595229+08:00",
+      "last_status": "error",
+      "last_error": "no_agent=True but no script is set for this job",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -580,17 +580,17 @@
       "schedule_display": "30 18 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 27
+        "completed": 37
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-11T15:14:22.198385+08:00",
-      "next_run_at": "2026-06-15T18:30:00+08:00",
-      "last_run_at": "2026-06-12T18:32:03.337442+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-29T18:30:00+08:00",
+      "last_run_at": "2026-06-26T20:30:37.560300+08:00",
+      "last_status": "error",
+      "last_error": "Script timed out after 7200s: /Users/bookid/.hermes/scripts/ml/run_intraday_ml_workflow.sh",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -664,15 +664,15 @@
       "schedule_display": "0 2 * * 6",
       "repeat": {
         "times": null,
-        "completed": 5
+        "completed": 7
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:35:00+08:00",
-      "next_run_at": "2026-06-20T02:00:00+08:00",
-      "last_run_at": "2026-06-13T02:01:23.028069+08:00",
+      "next_run_at": "2026-07-04T02:00:00+08:00",
+      "last_run_at": "2026-06-27T02:01:26.499998+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -701,15 +701,15 @@
       "schedule_display": "0 4 * * *",
       "repeat": {
         "times": null,
-        "completed": 29
+        "completed": 42
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T01:00:00+08:00",
-      "next_run_at": "2026-06-15T04:00:00+08:00",
-      "last_run_at": "2026-06-14T04:00:54.589466+08:00",
+      "next_run_at": "2026-06-28T04:00:00+08:00",
+      "last_run_at": "2026-06-27T04:00:32.182511+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -738,15 +738,15 @@
       "schedule_display": "0 3 * * 0",
       "repeat": {
         "times": null,
-        "completed": 3
+        "completed": 4
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-14T10:00:00+08:00",
-      "next_run_at": "2026-06-21T03:00:00+08:00",
-      "last_run_at": "2026-06-14T03:00:48.914789+08:00",
+      "next_run_at": "2026-06-28T03:00:00+08:00",
+      "last_run_at": "2026-06-21T03:00:38.978449+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -817,15 +817,15 @@
       "schedule_display": "40 8 * * *",
       "repeat": {
         "times": null,
-        "completed": 27
+        "completed": 40
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-18T09:45:00+08:00",
-      "next_run_at": "2026-06-15T08:40:00+08:00",
-      "last_run_at": "2026-06-14T08:40:20.487981+08:00",
+      "next_run_at": "2026-06-28T08:40:00+08:00",
+      "last_run_at": "2026-06-27T08:41:00.794991+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -859,15 +859,15 @@
       "schedule_display": "0 17 * * *",
       "repeat": {
         "times": null,
-        "completed": 25
+        "completed": 39
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-21T21:14:00+08:00",
-      "next_run_at": "2026-06-14T17:00:00+08:00",
-      "last_run_at": "2026-06-13T17:01:13.000092+08:00",
+      "next_run_at": "2026-06-28T17:00:00+08:00",
+      "last_run_at": "2026-06-27T17:01:58.726915+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -943,17 +943,17 @@
       "schedule_display": "0 6 * * 0",
       "repeat": {
         "times": null,
-        "completed": 2
+        "completed": 3
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-24T10:52:00.000000+08:00",
-      "next_run_at": "2026-06-21T06:00:00+08:00",
-      "last_run_at": "2026-06-14T06:08:11.562155+08:00",
-      "last_status": "ok",
-      "last_error": null,
+      "next_run_at": "2026-06-28T06:00:00+08:00",
+      "last_run_at": "2026-06-21T06:01:00.568501+08:00",
+      "last_status": "error",
+      "last_error": "Script exited with code 1\nstderr:\nTraceback (most recent call last):\n  File \"/Users/bookid/.hermes/scripts/daily_historical_sync.py\", line 414, in <module>\n    sync_all(fast_mode=fast, force=force)\n    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/bookid/.hermes/scripts/daily_historical_sync.py\", line 296, in sync_all\n    main_potential_conn = duckdb.connect(potential_ddb_path)\n_duckdb.IOException: IO Error: Could not set lock on file \"/Users/bookid/.hermes/data/potential_analysis.ddb\": Conflicting lock is held in /opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python (PID 11827) by user bookid. However, you would be able to open this database in read-only mode, e.g. by using the -readonly parameter in the CLI. See also https://duckdb.org/docs/stable/connect/concurrency\nstdout:\n=== [2026-06-21 06:00:53] Starting forced full market daily historical sync ===\n--- Starting Daily Historical Sync [Full] [2026-06-21 06:00] ---\nFetching latest stock list from ISIN...\nTarget previous trading day for sync check: 2026-06-18",
       "last_delivery_error": null,
       "deliver": "local",
       "origin": {
@@ -985,15 +985,15 @@
       "schedule_display": "0 1 * * *",
       "repeat": {
         "times": null,
-        "completed": 20
+        "completed": 33
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-24T07:41:14.009094+00:00",
-      "next_run_at": "2026-06-15T01:00:00+08:00",
-      "last_run_at": "2026-06-14T01:00:03.123807+08:00",
+      "next_run_at": "2026-06-28T01:00:00+08:00",
+      "last_run_at": "2026-06-27T01:00:16.103716+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1027,15 +1027,15 @@
       "schedule_display": "0 18 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 13
+        "completed": 23
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-27T01:10:00.000000+08:00",
-      "next_run_at": "2026-06-15T18:00:00+08:00",
-      "last_run_at": "2026-06-12T18:00:57.339236+08:00",
+      "next_run_at": "2026-06-29T18:00:00+08:00",
+      "last_run_at": "2026-06-26T18:00:34.873815+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1069,15 +1069,15 @@
       "schedule_display": "0 3 * * *",
       "repeat": {
         "times": null,
-        "completed": 17
+        "completed": 30
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-27T01:10:00.000000+08:00",
-      "next_run_at": "2026-06-15T03:00:00+08:00",
-      "last_run_at": "2026-06-14T03:08:11.691705+08:00",
+      "next_run_at": "2026-06-28T03:00:00+08:00",
+      "last_run_at": "2026-06-27T03:02:30.288855+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1111,15 +1111,15 @@
       "schedule_display": "30 16 * * 1-5",
       "repeat": {
         "times": null,
-        "completed": 11
+        "completed": 21
       },
       "enabled": true,
       "state": "scheduled",
       "paused_at": null,
       "paused_reason": null,
       "created_at": "2026-05-28T23:18:00.000000+08:00",
-      "next_run_at": "2026-06-15T16:30:00+08:00",
-      "last_run_at": "2026-06-12T16:31:42.344822+08:00",
+      "next_run_at": "2026-06-29T16:30:00+08:00",
+      "last_run_at": "2026-06-26T16:30:40.488969+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1146,8 +1146,8 @@
       "state": "scheduled",
       "created_at": "2026-06-08T08:40:30.271248",
       "deliver": "local",
-      "next_run_at": "2026-06-15T08:30:00+08:00",
-      "last_run_at": "2026-06-12T08:30:50.726190+08:00",
+      "next_run_at": "2026-06-29T08:30:00+08:00",
+      "last_run_at": "2026-06-26T08:30:43.436655+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
@@ -1166,13 +1166,13 @@
       "state": "scheduled",
       "created_at": "2026-06-08T08:40:30.271253",
       "deliver": "local",
-      "next_run_at": "2026-06-15T14:00:00+08:00",
-      "last_run_at": "2026-06-12T14:00:52.285449+08:00",
+      "next_run_at": "2026-06-29T14:00:00+08:00",
+      "last_run_at": "2026-06-26T14:00:11.726259+08:00",
       "last_status": "ok",
       "last_error": null,
       "last_delivery_error": null,
       "base_url": null
     }
   ],
-  "updated_at": "2026-06-14T09:00:22.524930+08:00"
+  "updated_at": "2026-06-27T22:00:20.328130+08:00"
 }

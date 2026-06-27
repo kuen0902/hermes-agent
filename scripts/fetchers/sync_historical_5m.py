@@ -13,6 +13,7 @@ import glob
 import sqlite3
 import json
 import requests
+import time
 import yfinance as yf
 import pandas as pd
 import duckdb
@@ -50,64 +51,36 @@ def load_stock_suffixes(active_codes):
         except Exception as e:
             print(f"  ⚠️ 批次讀取 DuckDB 股號後綴失敗: {e}")
             
-    # 3. Check existing CSV files in 5Y history directory as final override
-    save_5y_dir = os.path.expanduser("~/Documents/StockData_History_5Y")
-    if os.path.exists(save_5y_dir):
-        try:
-            for code in active_codes:
-                files = glob.glob(os.path.join(save_5y_dir, f"{code}.TW_*.csv"))
-                if files:
-                    suffixes[code] = ".TW"
-                    continue
-                files_two = glob.glob(os.path.join(save_5y_dir, f"{code}.TWO_*.csv"))
-                if files_two:
-                    suffixes[code] = ".TWO"
-        except:
-            pass
-            
     return suffixes
 
 def load_historically_active_codes():
-    """Compiles only actively monitored and held stock codes in the system."""
+    """Compiles ALL market stock codes in the system for full market ML simulation."""
     codes = set()
     
-    # 1. Read SQLite current holdings and watchlist
-    if os.path.exists(DB_PATH):
+    potential_ddb = os.path.join(DATA_DIR, "potential_analysis.ddb")
+    if os.path.exists(potential_ddb):
         try:
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            
-            # Watchlist
-            cursor.execute("SELECT code FROM watchlist")
-            for r in cursor.fetchall():
+            import duckdb
+            conn = duckdb.connect(potential_ddb, read_only=True)
+            # Fetch all codes that have daily data
+            rows = conn.execute("SELECT DISTINCT code FROM daily_stock_data").fetchall()
+            for r in rows:
                 codes.add(str(r[0]).strip())
-                
-            # Holdings
-            cursor.execute("SELECT code FROM current_holdings")
-            for r in cursor.fetchall():
-                codes.add(str(r[0]).strip())
-                
             conn.close()
         except Exception as e:
-            print(f"⚠️ 無法讀取 SQLite 監控股號: {e}")
+            print(f"⚠️ 無法讀取 DuckDB 獲取全市場股號: {e}")
             
-    # 2. Read registry groups and William codes as fallback active targets
-    if os.path.exists(REGISTRY_PATH):
+    # 2. Fallback to registry if DuckDB is empty
+    if not codes and os.path.exists(REGISTRY_PATH):
         try:
             with open(REGISTRY_PATH, 'r', encoding='utf-8') as f:
                 registry = json.load(f)
             
-            # Add William codes
-            for code in registry.get("william_codes", []):
+            for code in registry.get("official_names", {}).keys():
                 codes.add(str(code).strip())
                 
-            # Add group category codes
-            group_categories = registry.get("group_categories", {})
-            for grp, grp_codes in group_categories.items():
-                for code in grp_codes:
-                    codes.add(str(code).strip())
         except Exception as e:
-            print(f"⚠️ 無法讀取 Registry 備份股號: {e}")
+            print(f"⚠️ 無法讀取 Registry JSON: {e}")
             
     # Filter out empty or non-digit codes
     valid_codes = {c for c in codes if c.isdigit()}
@@ -144,6 +117,7 @@ def sync_5m_data():
         output_path = os.path.join(DATA_DIR, f"{code}_intraday_5m.csv")
         
         print(f"  [{idx}/{len(active_codes)}] 正在同步 {ticker} 5m 價量...")
+        time.sleep(0.5)
         
         df_db_clean = None
         
@@ -174,63 +148,122 @@ def sync_5m_data():
             except Exception as d_err:
                 print(f"    ⚠️ 從 DuckDB 讀取 {code} 失敗: {d_err}")
                 
-        # 2. 抓取最新 5 天的 5m 價量與全維度籌碼以實現增量更新
+        # 2. 抓取 150 天的 5m 價量與全維度籌碼
         df_latest = None
         # A. 優先嘗試 FinMind API (拉取 1m 資料並重採樣為 5m)
         finmind_success = False
         try:
-            five_days_ago = (datetime.now() - timedelta(days=6)).strftime("%Y-%m-%d")
+            target_start_date = (datetime.now() - timedelta(days=150)).strftime("%Y-%m-%d")
             url = "https://api.finmindtrade.com/api/v4/data"
             params = {
                 'dataset': 'TaiwanStockKBar',
                 'data_id': code,
-                'start_date': five_days_ago,
+                'start_date': target_start_date,
                 'token': "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYm9va2lkIiwiZW1haWwiOiJib29raWQyMDAwQGdtYWlsLmNvbSIsInRva2VuX3ZlcnNpb24iOjB9.MaUs7zQVYm5qKtlpIRdZ-s-I6WXCfcdtIowZiR7mXM4"
             }
-            r = requests.get(url, params=params, timeout=15, verify=False)
-            if r.status_code == 200:
-                res_data = r.json()
-                if res_data.get('status') == 200 or res_data.get('msg') == 'success':
-                    raw_data = res_data.get('data', [])
-                    if raw_data:
-                        df_raw = pd.DataFrame(raw_data)
-                        df_raw['timestamp'] = pd.to_datetime(df_raw['date'] + ' ' + df_raw['minute'])
-                        df_raw = df_raw.set_index('timestamp').sort_index()
+            
+            # FinMind Robust Retry Loop
+            for _retry in range(3):
+                r = requests.get(url, params=params, timeout=25, verify=False)
+                if r.status_code == 200:
+                    res_data = r.json()
+                    fm_status = res_data.get('status')
+                    fm_msg = res_data.get('msg', '')
+                    
+                    if fm_status == 200 or fm_msg == 'success':
+                        raw_data = res_data.get('data', [])
+                        if raw_data:
+                            df_raw = pd.DataFrame(raw_data)
+                            df_raw['timestamp'] = pd.to_datetime(df_raw['date'] + ' ' + df_raw['minute'])
+                            df_raw = df_raw.set_index('timestamp').sort_index()
+                            
+                            # 轉換為數值並確保必要欄位存在
+                            for col in ['open', 'high', 'low', 'close', 'volume', 'turnover', 'transaction']:
+                                if col not in df_raw.columns:
+                                    df_raw[col] = 0.0
+                                else:
+                                    df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce').fillna(0.0)
+                            
+                            # 重採樣成 5m
+                            resampled = df_raw.resample('5Min', closed='right', label='right').agg({
+                                'open': 'first',
+                                'high': 'max',
+                                'low': 'min',
+                                'close': 'last',
+                                'volume': 'sum',
+                                'turnover': 'sum',
+                                'transaction': 'sum'
+                            }).dropna()
+                            
+                            resampled = resampled[resampled['volume'] > 0.0].reset_index()
+                            resampled.rename(columns={
+                                'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume',
+                                'turnover': 'Amount', 'transaction': 'Transaction'
+                            }, inplace=True)
+                            
+                            # 轉為 ISO UTC 時區
+                            resampled['timestamp'] = pd.to_datetime(resampled['timestamp']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
+                            df_latest = resampled[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
+                            finmind_success = True
+                            print(f"    ✓ [FinMind] 成功同步最新 150日 全維度增量數據。")
+                            
+                            # [防護機制] 雖然有 20000 次額度，但為避免單秒鐘內發送過多請求觸發 IP Banned (DDoS防護)，
+                            # 每次成功抓取後微幅休眠 0.5 秒
+                            time.sleep(0.5)
+                        break  # Break out of retry loop on success
                         
-                        # 轉換為數值
-                        for col in ['open', 'high', 'low', 'close', 'volume', 'turnover', 'transaction']:
-                            if col in df_raw.columns:
-                                df_raw[col] = pd.to_numeric(df_raw[col], errors='coerce').fillna(0.0)
+                    elif fm_status == 402 or "limit" in str(fm_msg).lower() or "warning" in str(fm_msg).lower() or "too many" in str(fm_msg).lower():
+                        # API Limit or Warning Received: Force 30 minutes CD as per user experience
+                        wait_seconds = 1800  # 30 minutes
+                        print(f"    ⏳ [FinMind API] 收到額度上限或警告 ({fm_msg})，強制休眠 30 分鐘 (1800秒) 以確保額度重置...")
+                        time.sleep(wait_seconds)
+                        print("    ⏰ 休眠結束，重試抓取！")
+                        continue  # Retry after sleeping
+                    else:
+                        print(f"    ⚠️ 從 FinMind 下載失敗: {fm_msg}")
+                        break
                         
-                        # 重採樣成 5m
-                        resampled = df_raw.resample('5Min', closed='right', label='right').agg({
-                            'open': 'first',
-                            'high': 'max',
-                            'low': 'min',
-                            'close': 'last',
-                            'volume': 'sum',
-                            'turnover': 'sum',
-                            'transaction': 'sum'
-                        }).dropna()
-                        
-                        resampled = resampled[resampled['volume'] > 0.0].reset_index()
-                        resampled.rename(columns={
-                            'open': 'Open', 'high': 'High', 'low': 'Low', 'close': 'Close', 'volume': 'Volume',
-                            'turnover': 'Amount', 'transaction': 'Transaction'
-                        }, inplace=True)
-                        
-                        # 轉為 ISO UTC 時區
-                        resampled['timestamp'] = pd.to_datetime(resampled['timestamp']).dt.tz_localize('Asia/Taipei').dt.tz_convert('UTC').dt.strftime('%Y-%m-%d %H:%M:%S+00:00')
-                        df_latest = resampled[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
-                        finmind_success = True
-                        print(f"    ✓ [FinMind] 成功同步最新 5日全維度增量數據。")
+                elif r.status_code == 402:
+                    # HTTP 402 Payment Required / Quota Exceeded (From User Screenshot)
+                    wait_seconds = 1800  # 30 minutes
+                    print(f"    ⏳ [FinMind API] 收到 HTTP 402 (額度上限)，強制休眠 30 分鐘 (1800秒) 以確保額度重置...")
+                    time.sleep(wait_seconds)
+                    print("    ⏰ 休眠結束，重試抓取！")
+                    continue
+                    
+                elif r.status_code == 429:
+                    print("    ⚠️ [FinMind API] 請求過於頻繁 (HTTP 429)，休眠 5 秒後重試...")
+                    time.sleep(5)
+                    continue
+                elif r.status_code == 403:
+                    try:
+                        res_data = r.json()
+                        if "banned" in str(res_data.get('msg', '')).lower():
+                            retry_after = res_data.get('retry_after', 1800)
+                            print(f"    ⏳ [FinMind API] 收到 HTTP 403 (IP Banned)，需冷卻 {retry_after} 秒，強制休眠...")
+                            time.sleep(retry_after + 10)
+                            print("    ⏰ 休眠結束，重試抓取！")
+                            continue
+                    except:
+                        pass
+                    print(f"    ⚠️ 從 FinMind 下載失敗 HTTP 403")
+                    break
+                else:
+                    print(f"    ⚠️ 從 FinMind 下載失敗 HTTP {r.status_code}")
+                    break
+            
+            # [終極防護] 根據官方文件，短時間內累積太多 4xx 錯誤（如碰到無效股號）會觸發 IP 封鎖。
+            # 所以不管成功還是失敗（如 400 錯誤），每次請求完都必須強制休眠 0.5 秒，避免錯誤瞬間累積。
+            time.sleep(0.5)
+
         except Exception as fm_err:
-            print(f"    ⚠️ 從 FinMind 下載 {ticker} 5日增量失敗: {fm_err}")
+            print(f"    ⚠️ 從 FinMind 下載 {ticker} 150日增量例外錯誤: {fm_err}")
+            time.sleep(0.5)
             
         # B. 降級備用方案：若 FinMind 失敗，則使用 yfinance 抓取 OHLCV，並把 Amount 與 Transaction 補 0
         if not finmind_success:
             try:
-                df_yf = yf.download(ticker, period="5d", interval="5m", progress=False)
+                df_yf = yf.download(ticker, period="60d", interval="5m", progress=False)
                 if not df_yf.empty:
                     if isinstance(df_yf.columns, pd.MultiIndex):
                         df_yf.columns = df_yf.columns.get_level_values(0)
@@ -244,9 +277,9 @@ def sync_5m_data():
                     df_yf['Transaction'] = 0
                     
                     df_latest = df_yf[['timestamp', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'Transaction']]
-                    print(f"    ⚠️ [yfinance 備援] 已降級下載 {ticker} 5日基本價量資料。")
+                    print(f"    ⚠️ [yfinance 備援] 已降級下載 {ticker} 60日基本價量資料。")
             except Exception as e:
-                print(f"    ❌ 從 yfinance 下載 {ticker} 5日增量失敗: {e}")
+                print(f"    ❌ 從 yfinance 下載 {ticker} 60日增量失敗: {e}")
 
         # 3. 合併歷史與最新增量數據
         df = None
@@ -341,6 +374,22 @@ def sync_5m_data():
             df_all_sync['timestamp'] = pd.to_datetime(df_all_sync['timestamp'])
             
             conn_write = duckdb.connect(potential_ddb)
+            conn_write.execute("""
+                CREATE TABLE IF NOT EXISTS kbars_5m (
+                    timestamp TIMESTAMP,
+                    code VARCHAR,
+                    ticker VARCHAR,
+                    name VARCHAR,
+                    open DOUBLE,
+                    high DOUBLE,
+                    low DOUBLE,
+                    close DOUBLE,
+                    volume DOUBLE,
+                    amount DOUBLE,
+                    transaction DOUBLE,
+                    PRIMARY KEY (timestamp, code)
+                )
+            """)
             conn_write.execute("INSERT OR REPLACE INTO kbars_5m SELECT * FROM df_all_sync")
             conn_write.commit()
             conn_write.close()

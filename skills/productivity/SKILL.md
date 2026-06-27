@@ -60,3 +60,8 @@ Monitor consumption of search, crawl, and extract credits.
 - Sync research and task logs to Notion databases using the `ntn` CLI or REST API.
 - **Workflow**: Generate markdown locally -> upload blocks to Notion page.
 
+## 5. Personal Knowledge Management (PKM)
+- **Note-taking Systems**: Integrated workflows for Obsidian, Dendron, or Logseq style management.
+- **Local Collections**: Search, link, and refactor markdown notes in `~/.hermes/brain/`.
+- **Zettelkasten**: Automated backlinking and graph-aware research.
+

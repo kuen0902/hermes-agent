@@ -116,78 +116,38 @@ def audit_active_models(active_tickers):
         
     print("=========================================================")
 
-def prune_stale_models(active_tickers, archive=True):
-    """清理或歸檔不再訂閱或失效個股的過期模型與狀態檔"""
+def prune_stale_models(active_tickers, archive=True, auto_confirm=False):
+    """根據使用者政策，已全面停用自動封存與刪除模型的功能"""
     print("\n=========================================================")
-    print(" 🧹 啟動過期/失效模型自動清理與歸檔程序 (Pruning Engine) ")
+    print(" 🛡️ 自動封存與清理功能已根據政策全面停用 ")
     print("=========================================================")
-    
-    active_set = set(active_tickers)
-    archive_dir = os.path.join(MODEL_DIR, "archive")
-    if archive:
-        os.makedirs(archive_dir, exist_ok=True)
-        
-    stale_count = 0
-    bytes_freed = 0
-    
-    # 掃描模型資料夾
-    for file_name in os.listdir(MODEL_DIR):
-        if file_name in GLOBAL_PROTECTED_FILES:
-            continue
-        if file_name == "archive":
-            continue
-            
-        # 提取代號
-        code = None
-        file_type = None
-        
-        if file_name.startswith("daily_model_") and file_name.endswith(".pkl"):
-            code = file_name.replace("daily_model_", "").replace(".pkl", "")
-            file_type = "日線模型"
-        elif file_name.startswith("intraday_model_reg_") and file_name.endswith(".pkl"):
-            code = file_name.replace("intraday_model_reg_", "").replace(".pkl", "")
-            file_type = "高頻迴歸"
-        elif file_name.startswith("intraday_model_") and file_name.endswith(".pkl"):
-            code = file_name.replace("intraday_model_", "").replace(".pkl", "")
-            file_type = "高頻分類"
-        elif file_name.startswith("rolling_state_") and file_name.endswith(".json"):
-            code = file_name.replace("rolling_state_", "").replace(".json", "")
-            file_type = "滾動狀態"
-            
-        if code and code not in active_set:
-            file_path = os.path.join(MODEL_DIR, file_name)
-            file_size = os.path.getsize(file_path)
-            bytes_freed += file_size
-            stale_count += 1
-            
-            if archive:
-                dest_path = os.path.join(archive_dir, file_name)
-                shutil.move(file_path, dest_path)
-                print(f" 📂 [歸檔] 過期 {file_type} ({code}) -> archive/")
-            else:
-                os.remove(file_path)
-                print(f" ❌ [刪除] 過期 {file_type} ({code})")
-                
-    mb_freed = bytes_freed / (1024 * 1024)
-    action_str = "移動歸檔" if archive else "永久刪除"
-    print(f"\n🎉 清理完成！共計 {action_str} {stale_count} 個失效的過期檔案，釋放空間：{mb_freed:.2f} MB")
+    print("為確保所有股票皆能參與全市場潛力股海選，系統不再執行任何封存或刪除動作。")
+    print("所有的模型皆被永久保留在 models/ 資料夾中。")
     print("=========================================================")
 
 if __name__ == "__main__":
     mode = "--audit"
+    auto_confirm = False
+    
     if len(sys.argv) > 1:
-        mode = sys.argv[1]
+        for arg in sys.argv[1:]:
+            if arg == "--confirm":
+                auto_confirm = True
+            elif arg in ["--audit", "--prune", "--archive"]:
+                mode = arg
         
     active_list = load_current_active_tickers()
     
     if mode == "--audit":
         audit_active_models(active_list)
     elif mode == "--prune":
-        prune_stale_models(active_list, archive=False)
+        prune_stale_models(active_list, archive=False, auto_confirm=auto_confirm)
     elif mode == "--archive":
-        prune_stale_models(active_list, archive=True)
+        prune_stale_models(active_list, archive=True, auto_confirm=auto_confirm)
     else:
         print("使用說明：")
         print("  python manage_models.py --audit   : 稽核線上有效模型收斂度 (預設)")
         print("  python manage_models.py --archive : 歸檔失效的過期模型 (移至 archive/)")
         print("  python manage_models.py --prune   : 刪除失效的過期模型 (釋放硬碟空間)")
+        print("  附加參數:")
+        print("  --confirm                         : 跳過互動式 y/n 詢問，直接執行 (適合自動排程使用)")

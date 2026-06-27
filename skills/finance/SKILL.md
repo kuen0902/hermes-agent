@@ -33,3 +33,27 @@ This umbrella skill governs automated financial tracking, market data retrieval,
 ## 4. Historical Data & Backfilling
 - **Incremental Sync**: Daily at 05:00. Use absolute venv paths to ensure package availability.
 - **Health Checks**: Validate CSV integrity (Size > 1KB, NaN count < 5%) before ingestion.
+
+## 5. Taiwan Stock Engineering (Agentic Protocols)
+### Mandatory Session Initialization
+Before any analysis or development, you MUST read the following files from `~/.hermes/` (the Brain repository):
+- `HANDOVER.md`: To resume the latest development state.
+- `ARCHITECTURE.md`: To ensure virtual environment paths and tri-language patterns are followed.
+
+### Telegram Notification Routing (Multiple Identities)
+- **Star Platinum (Bot 8737129549)**: The primary harvester for ALL stock-related alerts (Intraday, Group, PnL reports).
+- **Gold Experience Requiem (GER)**: Command and control center for direct instructions.
+- **Troubleshooting**: If `send_message` fails with "Chat not found", verify the default token. Fallback to `curl` or Swift scripts with the hardcoded Star Platinum token.
+
+### ML Guardrails & Outlier Management 
+- **The "Dream Return" Cap**: Apply a hard cap (e.g., **15%**) to adjusted scores for all candidates. Mistaking structural collapse for oversold status is a common failure.
+- **Liquidity Synergy Strategy**: Cross-check predicted returns against `Inst_Flow_Ratio_5D`. If BULLISH but capital flow is NEGATIVE, trigger `Bull_Trap_Signal`.
+- **Target Price Revision**: Use "Flow Confidence" (Net Inst Buy / Total Volume) to adjust targets.
+- **Dual-Model Veto**: If `risk_prob > 0.50` (50%) from the auditor model, the stock is **STRUCK** regardless of projected return.
+
+### Operational Diagnostics
+Every fix or feature update MUST conclude by running the mission-critical diagnostic:
+```bash
+/usr/bin/swift ~/.hermes/scripts/hermes_diagnostic.swift
+```
+Wait for all items to show "✅" before reporting completion.

@@ -1,12 +1,13 @@
 #!/bin/bash
 set -e
+ulimit -n 10240 || true
 PYTHON="/Users/bookid/.hermes/.venv/bin/python"
 
 echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] 1. 開始更新所有監控股票之三大法人與外資持股比率 ==="
 $PYTHON /Users/bookid/.hermes/scripts/fetchers/fetch_institutional_data.py
 
-echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] 2. 開始同步當日最新日線價量並寫入 DuckDB ==="
-$PYTHON /Users/bookid/.hermes/scripts/daily_historical_sync.py --fast
+echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] Phase 1: Daily Historical Sync (Full Market) ==="
+$PYTHON /Users/bookid/.hermes/scripts/daily_historical_sync.py
 
 echo "=== [$(date '+%Y-%m-%d %H:%M:%S')] 3. 開始同步當日 5 分鐘高頻價量數據 ==="
 $PYTHON /Users/bookid/.hermes/scripts/fetchers/sync_historical_5m.py
